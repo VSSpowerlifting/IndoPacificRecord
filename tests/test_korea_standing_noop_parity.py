@@ -43,9 +43,10 @@ class KoreaStandingNoopParityTests(unittest.TestCase):
             if (ref, path) not in self.blobs:
                 raise sut.NoopHold("korea_noop_git_object_missing")
             return self.blobs[ref, path]
-        if args[:3] == ("ls-tree", "-r", "--name-only"):
-            ref = args[3]
-            return ("\n".join(sorted(self.trees[ref])) + "\n").encode()
+        if args[:3] == ("ls-tree", "-r", "--name-only") and args[4] == "--":
+            ref, prefix = args[3], args[5]
+            listed = sorted(x for x in self.trees[ref] if x.startswith(prefix))
+            return ("\n".join(listed) + "\n").encode()
         raise AssertionError("unexpected Git call")
 
     def check(self):
@@ -106,6 +107,61 @@ class KoreaStandingNoopParityTests(unittest.TestCase):
         with self.assertRaisesRegex(sut.NoopHold, "git_object_missing"):
             self.check()
 
+    def add_index(self, months=("2026-10", "2026-11")):
+        desk = b'<html><a href="korea-official-links.html">Full index</a></html>'
+        self.blobs[MAIN, "output/korea.html"] = desk
+        self.blobs[PAGES, "korea.html"] = desk
+        for route in ["korea-official-links.html"] + [
+                "korea-official-links/%s.html" % m for m in months]:
+            self.blobs[MAIN, "output/" + route] = ("index-" + route).encode()
+            self.blobs[PAGES, route] = ("index-" + route).encode()
+            if "/" in route:
+                self.trees[MAIN].add("output/" + route)
+                self.trees[PAGES].add(route)
+
+    def test_converged_official_link_index_counts_as_noop(self):
+        self.add_index()
+        result = self.check()
+        self.assertEqual(result["routes_byte_identical"], 3 + 3)
+
+    def test_official_link_index_drift_is_never_a_noop(self):
+        self.add_index()
+        self.blobs[PAGES, "korea-official-links/2026-11.html"] += b"stale"
+        with self.assertRaisesRegex(sut.NoopHold, "current_main_pages_byte_drift"):
+            self.check()
+
+    def test_missing_index_hub_on_pages_is_not_a_noop(self):
+        self.add_index()
+        del self.blobs[PAGES, "korea-official-links.html"]
+        with self.assertRaisesRegex(sut.NoopHold, "git_object_missing"):
+            self.check()
+
+    def test_missing_or_orphan_index_month_on_pages_is_not_a_noop(self):
+        for change in ("remove", "orphan"):
+            with self.subTest(change=change):
+                self.setUp()
+                self.add_index()
+                if change == "remove":
+                    self.trees[PAGES].remove("korea-official-links/2026-10.html")
+                else:
+                    self.trees[PAGES].add("korea-official-links/2026-09.html")
+                with self.assertRaisesRegex(sut.NoopHold, "official_link_index_not_converged"):
+                    self.check()
+
+    def test_index_months_without_desk_hub_link_are_not_a_noop(self):
+        self.add_index()
+        self.blobs[MAIN, "output/korea.html"] = b"<html>current desk</html>"
+        self.blobs[PAGES, "korea.html"] = b"<html>current desk</html>"
+        with self.assertRaisesRegex(sut.NoopHold, "official_link_index_not_converged"):
+            self.check()
+
+    def test_unexpected_file_in_index_tree_is_rejected(self):
+        self.add_index()
+        self.trees[PAGES].add("korea-official-links/source.zip")
+        self.trees[MAIN].add("output/korea-official-links/source.zip")
+        with self.assertRaisesRegex(sut.NoopHold, "orphan_official_link_index_page"):
+            self.check()
+
     def test_workflow_noop_skips_writer_only_after_verified_parity(self):
         from pathlib import Path
         root = Path(__file__).resolve().parents[1]
@@ -115,6 +171,8 @@ class KoreaStandingNoopParityTests(unittest.TestCase):
         self.assertIn("python -m scripts.verify_korea_standing_noop_parity", yaml)
         self.assertIn('if: steps.verified_noop.outputs.verified != \'true\'', yaml)
         self.assertIn("git status --porcelain -- research/korea_published_original_texts.json", yaml)
+        self.assertIn("output/korea-originals output/korea-official-links.html "
+                      "output/korea-official-links)", yaml)
         self.assertIn("ls-remote https://github.com/VSSpowerlifting/ipr-source-evidence-private.git", yaml)
         self.assertIn("secrets.IPR_KOREA_PRIVATE_READ_TOKEN", yaml)
         self.assertIn("refs/heads/archive/korea-policy-briefing", yaml)

@@ -112,7 +112,7 @@ class RegionalLiveSiteWiring(unittest.TestCase):
         self.assertIn("AFP official source", page)
         self.assertIn("Official links and machine explanations, published automatically", page)
         self.assertIn("Verified official publisher references", page)
-        self.assertIn("Original documents in the IPR corpus</dt><dd>None", page)
+        self.assertIn("Records with original text</dt><dd>None yet</dd>", page)
         self.assertNotIn("Kemhan Berita official source", page)
         self.assertNotIn("title_original", page)
         self.assertEqual(self._digest(), before)
@@ -172,7 +172,11 @@ class RegionalLiveSiteWiring(unittest.TestCase):
         source = (ROOT / "site/preview/generate_preview.py").read_text(
             encoding="utf-8")
         self.assertIn("load_admitted_links(db_path, desk.slug)", source)
-        self.assertIn("regional_official_links=regional_official_links", source)
+        # The desk receives the DB rows, bounded to the newest
+        # DESK_LINK_LIMIT; the full index is rendered from the same rows.
+        self.assertIn("desk_regional_links = regional_official_links", source)
+        self.assertIn("regional_official_links=desk_regional_links", source)
+        self.assertIn("official_link_index_mod.latest(desk.slug, index_rows)", source)
         self.assertNotIn("stage_afp_kemhan_official_links", source)
         self.assertNotIn("reconcile_ph_afp_first23_originals", source)
         template = (ROOT / "site/preview/templates/desk.html").read_text(

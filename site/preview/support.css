@@ -3,7 +3,7 @@
 .card--desk h2.plain a { color: var(--ink); text-decoration: none; }
 .card--desk h2.plain a:hover { text-decoration: underline; }
 .card-meta { margin: 0; }
-.card-prose { margin: 0 0 .6rem; color: var(--ink-2); font-size: .9375rem; }
+
 .card--desk .blocking { margin: 0 0 .8rem; font-size: .875rem; color: var(--ink-2); }
 .card-foot { margin: auto 0 0; padding-top: .8rem; font-size: .875rem; font-weight: 600; }
 .stat-rows { margin: .6rem 0 1rem; padding: 0; max-width: 34rem; }
@@ -48,15 +48,7 @@ table.stacking caption { display: block; }
   margin: 1.4rem 0 2rem; background: var(--surface); border: 1px solid var(--rule); border-top: 2px solid var(--rule-hard);
 }
 .processing-plate { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.5fr); }
-.processing-kicker { font-size: .8125rem; font-weight: 600; color: var(--accent-ink); }
-.processing-engraving { position: absolute; right: -1rem; bottom: -1rem; width: 60%; opacity: .5; }
-.processing-engraving path { fill: none; stroke: var(--rule-strong); stroke-width: .8; }
-.processing-plate-body { padding: 1.1rem 1.3rem; min-width: 0; }
-.processing-bars { list-style: none; margin: 0; padding: 0; }
-.processing-bars li { padding: .6rem 0; border-bottom: 1px solid var(--rule-soft); max-width: none; }
-.processing-fill { display: block; height: 100%; background: var(--accent); transform-origin: left; }
-.processing-share { font-size: .8125rem; color: var(--muted); }
-.processing-limit { margin: .8rem 0 0; font-size: .8125rem; color: var(--ink-2); max-width: none; }
+
 .status { display: inline-flex; gap: .45rem; align-items: baseline; }
 .status-mark { font-weight: 700; width: 1.2em; flex: none; text-align: center; }
 .status-name { font-weight: 600; }
@@ -75,7 +67,7 @@ table.stacking caption { display: block; }
 .issue-ledger-copy h3 a:hover { text-decoration: underline; }
 .issue-ledger-copy p { margin: .4rem 0 0; color: var(--ink-2); font-size: .9375rem; max-width: 70ch; }
 .issue-label { display: inline-block; font-size: .75rem; font-weight: 600; padding: .05rem .4rem; border: 1px solid var(--rule); border-radius: var(--radius); }
-.legacy-note { color: var(--ink-2); font-size: .875rem; }
+
 .notice { padding: 1rem 1.15rem; background: var(--surface); border: 1px solid var(--rule); border-left: 4px solid var(--accent); margin: 1.2rem 0; }
 .notice p { margin: 0; }
 .notice p + p { margin-top: .5rem; }
@@ -86,29 +78,23 @@ table.stacking caption { display: block; }
 .cite-list { list-style: none; margin: .5rem 0 0; padding: 0; }
 .cite-list li { padding: .5rem 0; border-top: 1px solid var(--rule); }
 .ed-label-inline { display: none; }
-.ed-timing { color: var(--ink-2); }
+
 .editions td, .editions th { vertical-align: top; }
 .ed-no { font-family: var(--serif); font-weight: 600; font-size: 1.25rem; white-space: nowrap; }
-.ed-title { font-family: var(--serif); font-weight: 600; }
+
 @media (max-width: 640px) {
 .editions thead { position: absolute; left: -9999px; }
 .editions, .editions tbody, .editions tr, .editions td { display: block; }
 .editions caption, .provenance caption { display: block; width: 100%; }
 .editions tr { padding: 1rem 0; border-bottom: 1px solid var(--rule-strong); }
 .editions td { border: 0; padding: 0; }
-.editions .ed-no,
-  .editions .ed-date { display: inline; font-family: var(--sans); font-size: .8125rem; font-weight: 600; color: var(--text-muted); }
+.editions .ed-no{ display: inline; font-family: var(--sans); font-size: .8125rem; font-weight: 600; color: var(--text-muted); }
 .editions .ed-no::before { content: "No. "; }
-.editions .ed-date::before { content: " · "; }
+
 .editions .ed-label-inline { display: inline; }
 .editions .ed-label-inline::before { content: " · "; }
 .editions .ed-label-wide { display: none; }
-.editions .ed-title { margin: .35rem 0 .4rem; font-size: 1.0625rem; line-height: 1.3; }
-.editions .ed-articles,
-  .editions .ed-flagged { display: inline; font-size: var(--step-meta); color: var(--text-muted); }
-.editions .ed-articles::after { content: " articles"; }
-.editions .ed-flagged::before { content: " · "; }
-.editions .ed-flagged::after { content: " model-flagged"; }
+
 .provenance, .provenance tbody, .provenance tr, .provenance th, .provenance td { display: block; }
 .provenance tr { padding: .6rem 0; border-bottom: 1px solid var(--rule); }
 .provenance th[scope="row"] { width: auto; font-size: .8125rem; color: var(--text-muted); border: 0; padding: 0; }
@@ -123,7 +109,7 @@ table.stacking caption { display: block; }
 .briefs-lead-photo figcaption { margin-top: .5rem; font-size: .75rem; line-height: 1.5; color: var(--band-dek); }
 .band .briefs-lead-photo figcaption a { color: inherit; }
 .briefs-head h1 { margin: 0; color: var(--band-ink); }
-.briefs-lead, .briefs-empty { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--band-rule); max-width: 46rem; }
+.briefs-lead{ margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid var(--band-rule); max-width: 46rem; }
 .briefs-label { margin: 0 0 .6rem; font-size: .875rem; font-weight: 600; color: var(--focus-band); }
 .briefs-lead h2 {
   margin: 0; padding: 0; border: 0; max-width: 26ch; text-wrap: balance;
@@ -134,26 +120,19 @@ table.stacking caption { display: block; }
   text-decoration-color: var(--band-muted);
 }
 .band .briefs-lead h2 a:hover { text-decoration-color: var(--focus-band); }
-.briefs-lead-byline, .briefs-lead-note { margin: .85rem 0 0; font-size: .875rem; color: var(--band-muted); }
-.briefs-lead-note { margin-top: .35rem; font-size: .8125rem; }
-.briefs-lead-plate { margin: 1.6rem 0 0; padding: 1rem 1.1rem .9rem; background: var(--surface); max-width: 34rem; }
-.briefs-lead-plate figcaption { margin-top: .6rem; }
-.briefs-empty h2 { margin: 0; padding: 0; border: 0; font-size: 1.25rem; color: var(--band-ink); }
-.briefs-empty p { margin: .55rem 0 0; max-width: 62ch; color: var(--band-dek); }
-.band .briefs-empty a { color: var(--focus-band); }
+.briefs-lead-byline{ margin: .85rem 0 0; font-size: .875rem; color: var(--band-muted); }
 
 @media (min-width: 960px) {
-.briefs-lead, .briefs-empty { margin-top: .2rem; }
+.briefs-lead{ margin-top: .2rem; }
 }
 
 @media (max-width: 600px) {
-.briefs-lead, .briefs-empty { margin-top: 1.4rem; padding-top: 1.2rem; }
+.briefs-lead{ margin-top: 1.4rem; padding-top: 1.2rem; }
 .briefs-lead-byline { margin-top: .7rem; }
 .briefs-lead > p:last-child { margin: 1.1rem 0 0; }
 .band .briefs-lead .btn--primary { margin-top: 0; }
 }
-.feature--briefs { grid-template-columns: minmax(0, 46rem); }
-.feature--briefs h3 { margin: 0; }
+
 /* Methodology, Corpus Guide */
 /* Reference pages (Methodology, About, Coverage, Sources, Guide). A section's
    heading stands in the left column and its text in the right, the way a desk
@@ -182,7 +161,7 @@ table.stacking caption { display: block; }
 .doc-end { margin: 0; padding: 1.25rem 0 0; border-top: 2px solid var(--rule-hard); font: 400 1.0625rem/1.6 var(--serif); }
 /* Terms and what they mean: one row each, hairline between. */
 .terms { margin: 1.3rem 0 1.6rem; padding: 0; border-top: 1px solid var(--rule); max-width: 50rem; }
-.terms > div { display: grid; grid-template-columns: minmax(0, 14rem) minmax(0, 1fr); gap: .2rem 1.6rem; padding: .85rem 0 .95rem; border-bottom: 1px solid var(--rule); scroll-margin-top: 1rem; }
+.terms > div { display: grid; grid-template-columns: minmax(0, min(14rem, 42%)) minmax(0, 1fr); gap: .2rem 1.6rem; padding: .85rem 0 .95rem; border-bottom: 1px solid var(--rule); scroll-margin-top: 1rem; }
 .terms dt { margin: 0; font: 600 1rem/1.45 var(--serif); color: var(--ink); }
 .terms dt small, .terms dt time { display: block; font: 400 .875rem/1.5 var(--sans); color: var(--ink-2); font-variant-numeric: tabular-nums lining-nums; }
 .terms dd { margin: 0; font: 400 1rem/1.62 var(--serif); color: var(--ink-2); max-width: 58ch; }
@@ -229,7 +208,7 @@ table.stacking caption { display: block; }
 .bar-fill { display: block; height: 100%; background: var(--ink); }
 .bar-fill.is-partial { background: none; border-top: 2px dashed var(--warning); }
 .bar-value { text-align: right; font-variant-numeric: tabular-nums lining-nums; }
-.gap-why { margin: 1.2rem 0 0; }
+
 .doc-body .notice { margin: 1.4rem 0 0; padding: .9rem 0 0; background: none; border: 0; border-top: 1px solid var(--rule); max-width: 64ch; }
 .doc-body .notice h3 { margin: 0 0 .3rem; }
 .doc-body .notice p { font: 400 1rem/1.62 var(--serif); color: var(--ink-2); }
@@ -306,12 +285,7 @@ table.volume td.v-count { min-width: 0; }
 @media (max-width: 900px) {
 :root { --gutter: 22px; }
 body { font-size: 1rem; }
-.opening-inner, .records-layout { grid-template-columns: minmax(0, 1fr); }
-.records-layout { gap: 1rem; }
-.opening-inner { gap: 1.3rem; padding-block: 1.5rem 1.4rem; }
-.desk-row { grid-template-columns: minmax(0, 1fr) auto; }
-.desk-row .desk-figure { grid-column: 1; }
-.desk-row .desk-foot { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+
 .layers { grid-template-columns: minmax(0, 1fr); }
 .processing-plate { grid-template-columns: minmax(0, 1fr); }
 .footer-grid > :first-child { grid-column: 1 / -1; }
@@ -330,7 +304,7 @@ body { font-size: 1rem; }
 .record-row { grid-template-columns: minmax(0, 1fr); gap: .3rem; }
 .record-row .row-side { display: flex; flex-wrap: wrap; gap: .1rem .8rem; }
 .record-row .row-side .row-who, .record-row .row-side .row-via { display: inline; }
-.cards--desks { grid-template-columns: minmax(0, 1fr); }
+
 .issue-ledger-row { grid-template-columns: minmax(0, 1fr); }
 .issue-ledger-meta { flex-direction: row; flex-wrap: wrap; align-items: baseline; gap: .2rem .8rem; }
 .issue-no { font-size: 1.4rem; }
@@ -339,14 +313,12 @@ body { font-size: 1rem; }
 @media (max-width: 600px) {
 :root { --gutter: 22px; }
 h1 { font-size: clamp(1.9rem, 8vw, 2.3rem); }
-.opening-inner { padding-block: .7rem .8rem; gap: .8rem; }
-.claim-sub { margin-top: .75rem; }
-.claim-cta { margin-top: .85rem; gap: .55rem; }
+
 .ledger-row { display: block; padding: 0; border-bottom: 0; }
 .ledger-row dt { font-size: .75rem; line-height: 1.25; color: var(--muted); }
 .ledger-row dd { font-size: .8125rem; line-height: 1.25; }
 .ledger-label { padding-bottom: .35rem; }
-.ledger-foot { margin-top: 0; }
+
 .ledger-note { margin-top: .25rem; }
 .lead-meta { margin-bottom: .45rem; }
 .week-bars { gap: 2px; height: 64px; }
@@ -360,7 +332,7 @@ body { background: #fff; color: #000; font-size: 11pt; }
  .freshness-bar, .site { background: #fff; border-color: #999; }
 .band { background: #fff; color: #000; }
 .band .section-head h2, .band a { color: #000; }
-.band .byline, .band .legacy-note, .band .plate figcaption { color: #333; }
+.band .byline, .band .plate figcaption { color: #333; }
 .briefs-head, .briefs-head * { color: #000 !important; border-color: #999 !important; }
 .btn { background: none !important; color: #000 !important; border: 0; padding: 0; min-height: 0; transition: none; }
 .day-date { position: static; }
@@ -372,7 +344,6 @@ thead { break-after: avoid; break-inside: avoid; }
 .table-scroll { overflow: visible; }
 h1, h2, h3 { break-after: avoid; }
 }
-
 
 /* Analysis formats above the Briefs masthead: Dossiers must not sit only beneath a Briefs-branded page. */
 .briefs-head .analysis-nav { border-bottom-color: var(--band-rule); margin: 0 0 1.6rem; }

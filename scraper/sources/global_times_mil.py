@@ -11,19 +11,22 @@ URL structure (verified May 2026):
   Listing page:  https://www.globaltimes.cn/china/military/
   Article page:  https://www.globaltimes.cn/page/YYYYMM/{numeric_id}.shtml
 
-Date filtering: The listing page includes <div class="source_time"> elements
-with text in the format "By Author  |  YYYY/M/D H:MM:SS".  The year/month
-portion of the article URL also encodes the publication month.
+Date filtering: the listing's <div class="source_time"> ("By Author  |
+YYYY/M/D H:MM:SS") dates a tile; an undated (featured) tile is resolved from
+the article's own pub_time. Candidates are filtered on [target-N, target]
+(UTC+8 dates). The URL month is not a date gate.
 
 Article structure (verified May 2026):
   Title:  <div class="article_title"> text content
-  Date:   <div class="source_time"> — regex parses "YYYY/M/D" portion
+  Date:   <span class="pub_time"> "Published: Nov 20, 2026 11:42 PM" (UTC+8);
+          listing tiles use <div class="source_time">
   Body:   <div class="article_content"> → <p> tags (first occurrence only;
           subsequent div.article_content elements are related-article embeds)
 """
 
+import hashlib
 import re
-from datetime import date
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import urljoin
 
@@ -34,19 +37,83 @@ from scraper.base import BaseScraper
 _BASE = "https://www.globaltimes.cn"
 _LISTING_URL = f"{_BASE}/china/military/"
 
-# Article URL: /page/YYYYMM/ID.shtml
+# Article URL: /page/YYYYMM/ID.shtml. The month in the path is NOT a date gate:
+# a manual-dispatch capture on Oct 31 lost two items whose URLs had rolled to
+# the next month, and a month match says nothing about the day.
 _ARTICLE_URL_RE = re.compile(
-    r"https?://www\.globaltimes\.cn/page/(\d{4})(\d{2})/\d+\.shtml$"
+    r"https?://www\.globaltimes\.cn/page/(\d{4})(\d{2})/(\d+)\.shtml$"
 )
+
+#: Source-family identifiers for the custody row.
+FAMILY = "global_times_mil"
+
+#: Bylines naming an agency or institution other than Global Times. Their
+#: text is not Global Times' own reporting; public text is held.
+_NON_GT_BYLINE_RE = re.compile(
+    r"\b(xinhua|mnd|ministry of (national )?defen[cs]e|china military|"
+    r"cmo|pla daily|people'?s daily|cctv|cgtn|cmg|reuters|afp|ap|"
+    r"agency|agencies|associated press)\b", re.IGNORECASE)
+
+_PUB_TIME_RE = re.compile(
+    r"Published:\s*([A-Za-z]{3,9})\.?\s+(\d{1,2}),\s*(\d{4})")
 
 
 class GlobalTimesMilScraper(BaseScraper):
     """Scrapes military articles from the Global Times."""
 
-    def __init__(self, target_date: Optional[date] = None) -> None:
+    #: Read by `adapters.legacy.LegacyScraperAdapter`; `production_window()`
+    #: then hands this scraper [target-2, target] instead of one day.
+    PRODUCTION_LOOKBACK_DAYS = 2
+    ACCEPTS_LOOKBACK = True
+
+    def __init__(self, target_date: Optional[date] = None,
+                 lookback_days: int = 0) -> None:
         super().__init__("global_times_mil", target_date=target_date)
+        self.lookback_days = max(0, int(lookback_days))
+        # url -> (wire bytes, decoded html), live this run only.
+        self._captured: dict[str, tuple[bytes, str]] = {}
+        self._last_wire: dict[str, bytes] = {}
+        self._last_content_type: dict[str, Optional[str]] = {}
+        # url -> Content-Type header of the captured response.
+        self._captured_type: dict[str, Optional[str]] = {}
+
+    # ── Raw capture ───────────────────────────────────────────────────────────
+
+    def _on_response(self, url, resp) -> None:
+        self._last_wire[url] = bytes(resp.content)
+        self._last_content_type[url] = resp.headers.get("Content-Type")
+
+    def fetch(self, url: str, force_refresh: bool = False):
+        """
+        Live fetch that keeps the wire bytes. A disk-cache hit would return
+        decoded text with no bytes to hash, so article pages always go live;
+        a page already fetched this run (undated-tile resolution) is reused so
+        discovery and extraction see the same bytes.
+        """
+        if not _ARTICLE_URL_RE.match(url):
+            return super().fetch(url, force_refresh=force_refresh)
+        if url in self._captured:
+            return self._captured[url][1]
+        self._last_wire.pop(url, None)
+        self._last_content_type.pop(url, None)
+        html = super().fetch(url, force_refresh=True)
+        if html is not None and url in self._last_wire:
+            self._captured[url] = (self._last_wire[url], html)
+            self._captured_type[url] = self._last_content_type.get(url)
+        return html
 
     # ── Listing page ──────────────────────────────────────────────────────────
+
+    def window(self) -> tuple[date, date]:
+        """[target-N, target], inclusive, in the source's own (UTC+8) dates."""
+        return (self.target_date - timedelta(days=self.lookback_days),
+                self.target_date)
+
+    def _in_window(self, d: Optional[date]) -> bool:
+        if d is None:
+            return False
+        start, end = self.window()
+        return start <= d <= end
 
     def get_article_urls(self) -> list[str]:
         html = self.fetch(_LISTING_URL)
@@ -55,47 +122,32 @@ class GlobalTimesMilScraper(BaseScraper):
             return []
 
         soup = self.parse(html)
-        today_str = self.target_date.strftime("%Y-%m-%d")
-        target_ym = self.target_date.strftime("%Y%m")     # e.g. "202605"
-        target_year = str(self.target_date.year)          # e.g. "2026"
-        target_month = str(self.target_date.month)        # e.g. "5" (no zero-pad)
-        target_day = str(self.target_date.day)            # e.g. "7"
 
-        seen: set[str] = set()
-        ordered_urls: list[str] = []
-
-        # Each article entry is a pair: <a href> (link) + <div class="source_time">
-        # (date).  Walk all links and validate against the date shown in source_time.
+        # url -> listing date (None for undated featured tiles), in listing
+        # order. A dated occurrence always supersedes an undated one.
+        candidates: dict[str, Optional[date]] = {}
         for a in soup.find_all("a", href=True):
             href = urljoin(_LISTING_URL, a["href"])
-            m = _ARTICLE_URL_RE.match(href)
-            if not m:
+            if not _ARTICLE_URL_RE.match(href):
                 continue
-            # Quickly reject articles from a different month/year
-            if m.group(1) + m.group(2) != target_ym:
-                continue
+            listed = _listing_date(_nearest_source_time(a))
+            if href not in candidates or (candidates[href] is None
+                                          and listed is not None):
+                candidates[href] = listed
 
-            # Find the nearest sibling or parent <div class="source_time">
-            date_text = _nearest_source_time(a)
-            if date_text is None:
-                # No date found; accept if the URL year/month matches today
-                pass
-            else:
-                # Parse "By Author  |  2026/5/7 18:37:07"
-                date_match = re.search(
-                    r"(\d{4})/(\d{1,2})/(\d{1,2})", date_text
-                )
-                if date_match:
-                    y, mo, d = date_match.groups()
-                    article_date = f"{y}-{int(mo):02d}-{int(d):02d}"
-                    if article_date != today_str:
-                        continue
-
-            if href not in seen:
-                seen.add(href)
+        ordered_urls: list[str] = []
+        for href, listed in candidates.items():
+            if listed is None:
+                # Undated tile: the article's own pub_time decides. Unresolved
+                # means skipped, never accepted.
+                page = self.fetch(href)
+                listed = (_pub_time_date(self.parse(page))
+                          if page else None)
+            if self._in_window(listed):
                 ordered_urls.append(href)
 
-        self.logger.debug("Global Times military: %d today's articles", len(seen))
+        self.logger.debug("Global Times military: %d in-window articles",
+                          len(ordered_urls))
         # Preserve the listing's observed order, not process-specific hash order.
         return ordered_urls
 
@@ -109,17 +161,63 @@ class GlobalTimesMilScraper(BaseScraper):
             self.logger.debug("No title found, skipping: %s", url)
             return None
 
-        text = self._extract_text(soup)
         pub_date = self._extract_date(soup, url)
+        if pub_date is None:
+            # Fail closed: a page with no readable publication date is not
+            # silently stamped with the run's target date.
+            self.logger.warning("No publication date, skipping: %s", url)
+            return None
+        if not self._in_window(date.fromisoformat(pub_date)):
+            self.logger.debug("Outside acquisition window, skipping: %s", url)
+            return None
 
-        return {
+        text = self._extract_text(soup)
+        byline = self._extract_byline(soup)
+        verdict = self._content_verdict(soup, text)
+        text_held = None
+        if byline and _NON_GT_BYLINE_RE.search(byline):
+            # Another agency's or ministry's text: keep title, URL and date,
+            # hold the body. No content verdict is asserted: the document has
+            # prose, it is simply not published here. A blank stored body is
+            # already withheld from model dispatch (hold_blank_original_bodies).
+            text, verdict, text_held = "", None, "non_gt_byline"
+
+        article = {
             "url":             url,
             "source_slug":     self.source_slug,
             "title_original":  title,
             "text_original":   text,
             "published_date":  pub_date,
-            "content_verdict": self._content_verdict(soup, text),
+            "content_verdict": verdict,
         }
+        if text_held:
+            # Both collection adapters report the reason and count a held
+            # body in the pipeline's text-gap receipts.
+            article["text_held"] = text_held
+        wire = self._captured.get(url, (None, None))[0]
+        if wire is not None:
+            # Custody facts for the private collector
+            # (core.collection.global_times_handoff), which alone decides
+            # whether bytes are retained: never for a held body.
+            article["custody"] = {
+                "capture_sha256": hashlib.sha256(wire).hexdigest(),
+                "byline": byline,
+                "pub_time": _pub_time_text(soup),
+                "fetched_at": datetime.now(timezone.utc).strftime(
+                    "%Y-%m-%dT%H:%M:%SZ"),
+                "text_held": text_held,
+                "content_type": self._captured_type.get(url),
+            }
+        return article
+
+    @staticmethod
+    def _extract_byline(soup: BeautifulSoup) -> Optional[str]:
+        span = soup.find("span", class_="byline")
+        if span is None:
+            return None
+        text = " ".join(span.get_text(" ", strip=True).split())
+        text = re.sub(r"^by\s+", "", text, flags=re.IGNORECASE)
+        return text or None
 
     @staticmethod
     def _content_verdict(soup: BeautifulSoup, text: str):
@@ -208,24 +306,27 @@ class GlobalTimesMilScraper(BaseScraper):
         ]
         return "\n".join(paragraphs)
 
-    def _extract_date(self, soup: BeautifulSoup, url: str) -> str:
-        # Primary: <div class="source_time"> — "By X  |  2026/5/7 18:37:07"
+    def _extract_date(self, soup: BeautifulSoup, url: str) -> Optional[str]:
+        """
+        Publication date (UTC+8 calendar date, as the site prints it), or None.
+
+        Article pages carry `<span class="pub_time">Published: Nov 20, 2026
+        11:42 PM</span>`; listing tiles carry `div.source_time`. An explicit
+        `div.source_time` is honoured if the page has one. There is no
+        fallback to the run's target date: unreadable means None.
+        """
+        d = _pub_time_date(soup)
+        if d is not None:
+            return d.isoformat()
+        if soup.find(class_="pub_time") is not None:
+            # A pub_time that does not parse is not replaced by some other
+            # date on the page (related-article tiles carry their own).
+            return None
         for div in soup.find_all("div", class_=lambda c: c and "source_time" in c):
-            text = div.get_text(strip=True)
-            m = re.search(r"(\d{4})/(\d{1,2})/(\d{1,2})", text)
-            if m:
-                y, mo, d = m.groups()
-                return f"{y}-{int(mo):02d}-{int(d):02d}"
-
-        # Fallback: year/month from URL, day unknown → use target date
-        m = _ARTICLE_URL_RE.match(url)
-        if m:
-            year, month = m.group(1), m.group(2)
-            if year == str(self.target_date.year) and int(month) == self.target_date.month:
-                return self.target_date.isoformat()
-
-        return self.target_date.isoformat()
-
+            d = _listing_date(div.get_text(strip=True))
+            if d is not None:
+                return d.isoformat()
+        return None
 
 
 #: Containers that hold other articles' text on an article page: the related
@@ -308,4 +409,40 @@ def _nearest_source_time(tag) -> Optional[str]:
             text = sibling.get_text(strip=True)
             if re.search(r"\d{4}/\d{1,2}/\d{1,2}", text):
                 return text
+    return None
+
+
+def _listing_date(text: Optional[str]) -> Optional[date]:
+    """Parse 'By Author  |  2026/5/7 18:37:07' to a date, or None."""
+    if not text:
+        return None
+    m = re.search(r"(\d{4})/(\d{1,2})/(\d{1,2})", text)
+    if not m:
+        return None
+    try:
+        return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+
+
+def _pub_time_text(soup: BeautifulSoup) -> Optional[str]:
+    span = soup.find(class_="pub_time")
+    if span is None:
+        return None
+    return " ".join(span.get_text(" ", strip=True).split()) or None
+
+
+def _pub_time_date(soup: BeautifulSoup) -> Optional[date]:
+    """Date part of 'Published: Nov 20, 2026 11:42 PM' (printed in UTC+8)."""
+    text = _pub_time_text(soup)
+    m = _PUB_TIME_RE.search(text or "")
+    if not m:
+        return None
+    for fmt in ("%b %d %Y", "%B %d %Y"):
+        try:
+            return datetime.strptime(
+                "%s %s %s" % (m.group(1)[:9], m.group(2), m.group(3)),
+                fmt).date()
+        except ValueError:
+            continue
     return None

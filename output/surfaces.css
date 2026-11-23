@@ -1,11 +1,19 @@
-/* Page furniture shared by every route, loaded last. The publication's one
-   ornament is the record itself, set as parallel text, so this sheet carries
-   no texture and no drawn scenery: paper, rules and type. */
-[data-surface] .page-head{margin:0 0 2.2rem;padding:1.6rem 0 1.9rem;border-bottom:2px solid var(--rule-hard)}
-[data-surface] .page-head h1{font:400 clamp(46px,5.6vw,80px)/1.02 var(--display);letter-spacing:-.018em;text-transform:none;max-width:18ch;margin:0 0 .35em}
-[data-surface=source] .page-head h1,[data-surface=desk] .page-head h1{font-size:clamp(42px,4.8vw,68px)}
-[data-surface] .page-head .lede{font:400 clamp(1.125rem,1rem + .45vw,1.3125rem)/1.5 var(--serif);color:var(--ink-2);max-width:56ch;margin:.4rem 0 0}
+/* Page furniture shared by every route, loaded last. */
+[data-surface] .page-head{position:relative;margin:0 0 2.2rem;padding:1.6rem 0 1.9rem;border-bottom:2px solid var(--rule-hard)}
+/* Waterline rule: the head's edge echoed as the atlas echoes a coast */
+[data-surface] .page-head:not(.ds-hero,.tl-library-head)::after{content:"";position:absolute;left:0;right:0;bottom:-10px;height:4px;border-top:1px solid color-mix(in srgb,var(--accent) 42%,var(--bg));border-bottom:1px solid color-mix(in srgb,var(--accent) 20%,var(--bg));pointer-events:none}
+[data-surface] .page-head h1{font:400 clamp(2.875rem,5.6vw,5rem)/1.06 var(--display);letter-spacing:-.018em;text-transform:none;max-width:18ch;margin:0 0 .28em;overflow-wrap:anywhere}
+[data-surface=source] .page-head h1,[data-surface=desk] .page-head h1{font-size:clamp(2.625rem,4.8vw,4.25rem)}
+[data-surface] .page-head .lede{font:400 clamp(1.125rem,1rem + .45vw,1.3125rem)/1.5 var(--serif);color:var(--ink-2);max-width:52ch;margin:.4rem 0 0}
 [data-surface] .page-head>p{max-width:64ch}
+/* The two collections introduce their subject beside the title. */
+[data-surface] .page-head.collection-head { margin-bottom: 0; border-color: var(--editorial-ink); }
+.collection-head .evidence { margin: 0 0 .8rem; }
+@media (min-width: 52rem) {
+  .collection-head { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .85fr); align-items: end; column-gap: clamp(2rem, 5vw, 5rem); }
+  .collection-head .evidence { grid-column: 1 / -1; }
+  [data-surface] .collection-head h1 { margin: 0; max-width: none; }
+}
 [data-surface] .reader-contents{background:none;padding:.7rem 0;border-block:1px solid var(--rule)}
 [data-surface] .table-scroll{background:var(--surface);padding:8px 18px;margin-block:20px;border-top:1px solid var(--rule-hard)}
 [data-surface] .status-panel{border:0;border-top:2px solid var(--rule-hard);background:var(--surface);padding:22px 24px}
@@ -13,15 +21,36 @@
 [data-surface] summary{min-height:44px}
 [data-surface] details[open]>summary{color:var(--accent-ink)}
 [data-surface] :is(.masthead,.band,footer.site) details[open]>summary{color:var(--focus-band)}
-@keyframes disclose-arrive{from{opacity:.6;transform:translateY(-6px)}to{opacity:1;transform:none}}
-@media(prefers-reduced-motion:no-preference) and (scripting:enabled){
-  [data-surface] .btn{transition:transform 160ms var(--ease-rule),background 160ms var(--ease-rule),border-color 160ms var(--ease-rule)}
+@keyframes disclose-arrive{from{transform:translateY(-4px)}to{transform:none}}
+@keyframes editorial-rule-draw{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled) {
+  [data-surface] .btn{transition:transform var(--dur-fast) var(--ease-rule),background-color var(--dur-fast) var(--ease-rule),border-color var(--dur-fast) var(--ease-rule)}
   [data-surface] :is(.btn,button):not(:disabled):active{transform:translateY(1px)}
-  [data-surface] details[open]>:not(summary){animation:disclose-arrive 180ms var(--ease-rule)}
+  [data-surface] details[open]:not([data-wide-open])>:not(summary){animation:disclose-arrive var(--dur-fast) var(--ease-rule)}
+  .nav-desktop>a::after,.analysis-nav a::after{transition:transform var(--dur-fast) var(--ease-rule)}
+
+  /* A reading rail measures the document position on long-form routes. */
+  @supports (animation-timeline:scroll(root block)) {
+    html:not(.no-anim) body:not(.no-anim):has(main:is(.record-reading,.brief-page,.dossier-page))::before {
+      content:"";
+      position:fixed;
+      z-index:20;
+      inset:0 0 auto;
+      height:2px;
+      background:var(--accent);
+      pointer-events:none;
+      transform:scaleX(0);
+      transform-origin:left;
+      animation:editorial-rule-draw auto linear both;
+      animation-timeline:scroll(root block);
+    }
+  }
 }
+@media (forced-colors:active){body:has(main:is(.record-reading,.brief-page,.dossier-page))::before{display:none}}
 @media(max-width:700px){
   [data-surface] .page-head{padding:1.1rem 0 1.4rem;margin-bottom:1.6rem}
-  [data-surface] .page-head h1{font-size:clamp(40px,11vw,56px)}
+  [data-surface] .page-head h1{font-size:clamp(2.5rem,11vw,3.5rem)}
   [data-surface] .table-scroll{padding:4px 12px}
 }
 @media(prefers-reduced-motion:reduce){[data-surface] *,[data-surface] *::before,[data-surface] *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

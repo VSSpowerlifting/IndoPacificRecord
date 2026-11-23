@@ -1,13 +1,11 @@
 /* Dossiers collection page only (dossiers.html). Individual dossier pages load
    dossiers.css and never this file. Paper, rules and type, as on the Briefs
    page. The jade rule under the page name marks the collection as analysis;
-   the ink rule marks the record a dossier rests on. Nothing is filled or boxed. */
+   the ink rule marks the record a dossier rests on. The source ledger has an inset paper ground. */
+.dossier-library { padding-top: 0; }
 .dossier-library > .wrap { padding-top: 1.2rem; padding-bottom: 2.5rem; }
 .dossier-library h2, .dossier-library h3 { margin: 0; padding: 0; border: 0; }
 .dossier-library a:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
-
-.dl-head.page-head { margin-bottom: 0; border-bottom: 2px solid var(--editorial-ink); }
-.dl-head .evidence { margin: 0 0 .9rem; }
 
 .dossier-library .dl-kind, .dossier-library .dl-label { margin: 0 0 .7rem; font: 600 .8125rem/1.5 var(--sans); color: var(--muted); }
 .dossier-library .dl-kind { color: var(--editorial-ink); }
@@ -25,10 +23,10 @@
 .dl-contents li::before { content: counter(dl-section); flex: none; min-width: 1.1em; font-variant-numeric: lining-nums tabular-nums; color: var(--muted); }
 .dl-go { margin: 1.6rem 0 0; }
 
-.dl-record { padding-top: 1rem; border-top: 2px solid var(--rule-hard); }
+.dl-record { padding: clamp(1.1rem, 2.3vw, 2rem); background: var(--surface-inset); border-top: 2px solid var(--rule-hard); }
 .dl-counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); gap: 1rem 1.5rem; margin: 0 0 1.3rem; }
 .dl-counts p { margin: 0; font: 600 .875rem/1.35 var(--sans); color: var(--ink); }
-.dl-counts b { display: block; margin-bottom: .35rem; font: 400 3.5rem/.95 var(--display); letter-spacing: -.01em; font-variant-numeric: lining-nums; }
+.dl-counts b { display: block; margin-bottom: .35rem; font: 400 2.75rem/1 var(--display); letter-spacing: -.01em; font-variant-numeric: lining-nums; }
 .dl-counts span { display: block; margin-top: .2rem; font-weight: 400; font-size: .8125rem; color: var(--muted); }
 .dl-facts { margin: 0; border-bottom: 1px solid var(--rule); }
 .dl-facts div { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: .75rem; padding: .6rem 0; border-top: 1px solid var(--rule); }
@@ -43,7 +41,7 @@
 .dl-list > li { max-width: none; margin: 0; }
 .dl-companion { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: .2rem clamp(18px, 2.4vw, 32px); padding: 1.1rem 0 1.2rem; border-bottom: 1px solid var(--rule); }
 .dl-companion .dl-kind { margin: .7rem 0 0; }
-.dl-companion h3, .dl-item h3 { max-width: 34em; font: 600 1.3125rem/1.28 var(--serif); letter-spacing: 0; text-wrap: pretty; }
+.dl-companion h3, .dl-item h3 { max-width: 34em; font: 600 1.3125rem/1.35 var(--serif); letter-spacing: 0; text-wrap: pretty; }
 .dl-companion h3 a, .dl-item h3 a { display: inline-flex; align-items: center; min-height: 40px; }
 .dl-companion p:not([class]), .dl-item-dek { margin: .2rem 0 0; max-width: 64ch; font: 400 1rem/1.55 var(--serif); color: var(--ink-2); }
 .dossier-library .dl-role, .dossier-library .dl-meta { margin: .5rem 0 0; font: 400 .8125rem/1.5 var(--sans); color: var(--muted); font-variant-numeric: lining-nums; }
@@ -61,6 +59,7 @@
   .dl-feature, .dl-foot { grid-template-columns: minmax(0, 1fr); }
   .dl-companion { grid-template-columns: minmax(0, 1fr); }
   .dl-companion .dl-kind { margin: 0; }
+  .dl-facts div { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr); }
 }
 @media (max-width: 520px) {
   .dl-contents ol, .dl-key { grid-template-columns: minmax(0, 1fr); }

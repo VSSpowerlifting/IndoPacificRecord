@@ -845,6 +845,60 @@ class IndonesiaSharedDaily(unittest.TestCase):
             with patch.object(machine,'load_policy',return_value=p):
                 self.assertEqual(machine.load(db),[])
 
+    def test_signed_held_identities_are_reported_without_changing_status(self):
+        import os, tempfile, pipeline
+        from pathlib import Path
+        from core.collection import status as st
+        from core.daily_sources import source_for
+        from migrations.versions.m0015_daily_machine_records import up
+        from core.regional_official_link_release import SCHEMA_SQL
+        from processing import daily_runner as runner
+        p=policy();r=record();state=self.process()
+        ident=r['source_identity']
+        env=d.sign_outputs(state,family=FAMILY,policy=p,key=KEY)
+        held_env=d.sign_outputs(d.process([],state,family=FAMILY,policy=p)[0],family=FAMILY,policy=p,key=KEY)
+        self.assertIn(ident,held_env['packet']['held'])
+        with tempfile.TemporaryDirectory() as tmp:
+            db=Path(tmp)/'scratch.db';inbox=Path(tmp)/'in';inbox.mkdir()
+            with sqlite3.connect(db) as conn:
+                conn.executescript(SCHEMA_SQL);up(conn)
+                conn.execute('INSERT INTO regional_official_source_links VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',(
+                    FAMILY,ident,'indonesia',r['canonical_official_url'],
+                    r['publisher_posted_date'],None,'id_kemhan',None,'c'*40,'a'*64,
+                    '123-1','official_link_only','d'*64,'2026-10-19T00:00:00Z'))
+                conn.commit()
+                first=d.admit(conn,env,family=FAMILY,policy=p,key=KEY)
+                self.assertEqual((first['admitted'],first.get('signed_held',[])),(1,[]))
+
+            def run(envelope):
+                (inbox/(FAMILY+'.json')).write_text(json.dumps(envelope))
+                with patch.dict(os.environ,{'IPR_DAILY_INTAKE_DIR':str(inbox),source_for(FAMILY).key_env:KEY}), \
+                        patch.object(pipeline,'DB_PATH',db), \
+                        patch.object(runner,'load_policy',return_value=p), \
+                        patch.object(d,'load_policy',return_value=p):
+                    return pipeline._daily_admission(FAMILY).admit(1)
+
+            def content():
+                with sqlite3.connect(db) as c:
+                    return c.execute('SELECT * FROM daily_machine_records ORDER BY 1,2').fetchall()
+
+            # Nothing signed-held: the detail never mentions it.
+            quiet=run(env)
+            self.assertEqual(quiet.status,st.OK_ALL_DUPLICATES)
+            self.assertNotIn('signed_held',quiet.error_detail or '')
+            # The signed hold withdraws the stored row; then it has no released row.
+            first_held=run(held_env)
+            self.assertEqual(first_held.status,st.OK_NO_PUBLICATIONS)
+            self.assertEqual(first_held.error_detail,'signed_held: 1')
+            before=content()
+            again=run(held_env)
+            self.assertEqual((again.status,again.error_detail),(first_held.status,'signed_held: 1'))
+            self.assertEqual(content(),before)
+            with sqlite3.connect(db) as conn:
+                receipt=d.admit(conn,held_env,family=FAMILY,policy=p,key=KEY)
+            self.assertEqual((receipt['signed_held'],receipt['holds'],receipt['admitted']),([ident],[],0))
+            self.assertEqual(content(),before)
+
     def test_source_rights_hold_before_call_for_republished_material(self):
         for change in ({'official_publisher':'other'}, {'official_republisher':'other'},
                        {'body':record()['body']+'\nSumber: external publisher'}):

@@ -451,7 +451,7 @@ class TestReviewedHome(HomeCase):
         self.assertIn('%s records, as of %s' % (total, gp.reader_date(snapshot['date'])),
                       flat(soup.select_one('.masthead .publication-status')))
         # ... and again beside the search, with what the search reads.
-        self.assertIn('%s records. Search reads titles only.' % total,
+        self.assertIn('%s records.' % total,
                       flat(soup.select_one('.home-open-note')))
         form = soup.select_one('form.home-search')
         self.assertEqual(form['action'], 'archive.html')

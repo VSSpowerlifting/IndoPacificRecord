@@ -331,8 +331,13 @@ class ProductionAssetTests(unittest.TestCase):
         self.assertEqual(self.gp.CATALOGUE_STATIC_ASSETS, ("assets/geo/region.svg",))
         self.assertEqual((self.out / "assets/geo/region.svg").read_bytes(),
                          (REPO_ROOT / "site/assets/geo/region.svg").read_bytes())
+        # The daylight atlas is shared by Desks and the desk locators.
+        # The alternate inking and its receipt remain source assets.
+        self.assertEqual(self.gp.ATLAS_ASSETS, ("assets/geo/atlas.svg",))
+        self.assertEqual((self.out / "assets/geo/atlas.svg").read_bytes(),
+                         (REPO_ROOT / "site/assets/geo/atlas.svg").read_bytes())
         self.assertEqual(sorted(p.name for p in (self.out / "assets/geo").iterdir()),
-                         ["region.svg"])
+                         ["atlas.svg", "region.svg"])
         # A public Desk flag is an explicitly referenced asset and the MIT
         # notice travels with it; gallery-only glyphs must still stay private.
         expected = {"%s.svg" % iso for iso in FLAGS} | {"LICENSE"}
@@ -345,6 +350,13 @@ class ProductionAssetTests(unittest.TestCase):
         for absent in ("assets/glyphs", "gallery-relief.html"):
             self.assertFalse((self.out / absent).exists(), absent)
         self.assertFalse(any(self.out.glob("assets/**/*.receipt.json")))
+
+    def test_atlas_navigation_is_scoped_to_desks(self):
+        self.assertIn('href="desk-map.css"',
+                      (self.out / "desks.html").read_text(encoding="utf-8"))
+        self.assertNotIn("desk-map.css", self.index)
+        self.assertNotIn('class="atlas-seats"', self.index)
+        self.assertFalse((self.out / "atlas-footer.css").exists())
 
     def test_the_homepage_draws_no_relief_art(self):
         # The pinned fixture Brief lists Singapore: the case that used to draw

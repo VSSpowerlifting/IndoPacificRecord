@@ -21,8 +21,15 @@ INDEX_NAMES = ('index.html', 'archive.html', 'analysis.html', 'corpus.html', 'pl
 DOSSIER_HTML_CSS_CAP = 230000
 # Owner authorization, DECISION_LOG 2026-11-13: temporary 130 KB HTML+CSS
 # allowance for the root Indonesia desk page only, while its admitted Kemhan
-# link list grows. Every other desk, record and nested route keeps its cap.
-INDONESIA_HTML_CSS_CAP = 130000
+# link list grows. Raised to 160 KB by the founder on 21 Nov 2026 (eight-desk
+# lead session, PR for this constant) after 100 admitted links reached
+# 130,483 bytes and would have failed every desk's Daily offline suite. The
+# desk now lists only the latest 60 admitted links (core.official_link_index
+# DESK_LINK_LIMIT); the full index moved to indonesia-official-links.html and
+# indonesia-official-links/YYYY-MM.html, which keep the default 120 KB cap. A
+# month page over that cap holds its writer. Every other desk, record and
+# nested route keeps its cap.
+INDONESIA_HTML_CSS_CAP = 160000
 # Owner authorization, DECISION_LOG 2026-11-13 (PR #1055): temporary 125 KB
 # HTML+CSS for record/476.html only. That page carries 54,211 bytes of
 # preserved stored source text (the 20 May 2026 China-Russia joint
@@ -31,9 +38,14 @@ INDONESIA_HTML_CSS_CAP = 130000
 RECORD_476_HTML_CSS_CAP = 125000
 # Owner authorization, DECISION_LOG 2026-11-16 (PR #1064): temporary 130 KB
 # HTML+CSS for the root Korea desk page only, while its admitted MND and DAPA
-# official-link list grows (about 510 bytes a link). Every other desk, record
-# and nested route keeps its cap.
-KOREA_HTML_CSS_CAP = 130000
+# official-link list grows (about 510 bytes a link). Raised to 160 KB by the
+# founder on 21 Nov 2026 after the committed page reached 132,857 bytes and
+# failed every desk's Daily offline suite. The desk's new-link rail now lists
+# only the latest 60 (core.official_link_index DESK_LINK_LIMIT); the full index
+# is korea-official-links.html and korea-official-links/YYYY-MM.html at the
+# default 120 KB cap, and a month page over it holds its writer. Every other
+# desk, record and nested route keeps its cap.
+KOREA_HTML_CSS_CAP = 160000
 
 
 def html_css_cap(route):
@@ -79,7 +91,18 @@ def verify(root, only=None):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(); parser.add_argument('--root', required=True); parser.add_argument('--receipt', required=True)
-    args = parser.parse_args(); result = verify(args.root)
+    # A page-only writer gates exactly the routes it will commit; repeatable.
+    # A named route that is missing fails rather than being skipped.
+    parser.add_argument('--only', action='append', metavar='ROUTE')
+    args = parser.parse_args()
+    if args.only is not None:
+        for route in args.only:
+            target = (Path(args.root) / route).resolve()
+            if (Path(args.root).resolve() not in target.parents
+                    or not route.endswith('.html') or not target.is_file()):
+                print('Missing or invalid gated route: %s' % route)
+                sys.exit(1)
+    result = verify(args.root, only=args.only)
     Path(args.receipt).write_text(json.dumps(result, indent=2) + '\n')
     print('Checked %s routes: %s delivery budget failures' % (result['routes_checked'], len(result['failures'])))
     if result['failures']:

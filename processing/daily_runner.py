@@ -83,9 +83,10 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         if no_release:
             readings[identity] = reading
 
-    if pilot:
-        # A selected one-item pilot must not turn other historical ledger rows
-        # into source_missing_or_metadata_changed holds. Process a temporary
+    if pilot or source_identity:
+        # A selected one-item run (an attended pilot, or an operator recovery
+        # dispatch of a recurring family) must not turn other historical ledger
+        # rows into source_missing_or_metadata_changed holds. Process a temporary
         # per-identity view, then fold only the chosen entry back into custody.
         selected_key = family + ":" + source_identity
         selected_state = {selected_key: state[selected_key]} if selected_key in state else {}
@@ -118,9 +119,21 @@ def private_run(spec, *, public_db, state_path, out_dir, no_analysis=False,
         result["holds"] = {identity: "private_reading_preservation_failed"
                            for identity in preservation_holds}
     if not no_release and policy["sources"][family]["public_machine_explanation"]:
+        collection = None
+        if source_for(family).signs_collection():
+            # Read only after the atomic queue write above; a reader failure
+            # is carried as an unattested block and never stops signing.
+            try:
+                collection = source_for(family).collection_attempt(repo, commit)
+            except Exception:
+                from core.collection import attempts
+                collection = attempts.unattested(family, commit, "collection_reader_failed")
         envelope = sign_outputs(state, family=family, policy=policy,
                                  key=os.environ.get("DAILY_OUTPUT_KEY", ""),
-                                 selected_record=eligible[0] if pilot else None)
+                                 selected_record=eligible[0] if pilot else None,
+                                 collection=collection, verified_records=eligible)
+        if collection is not None:
+            result["collection"] = envelope["packet"]["collection"]
         target = Path(out_dir) / (family + ".json")
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(json.dumps(envelope, sort_keys=True))
@@ -170,4 +183,8 @@ def intake_family(db_path, input_dir, family, *, policy=None):
     from processing.daily_intake import collection_facts
     return {"records": len(envelope["packet"]["records"]),
             "admitted": receipt["admitted"], "holds": list(receipt["holds"]),
-            "collection": collection_facts(envelope["packet"])}
+            "collection": collection_facts(envelope["packet"]),
+            **({"signed_held": list(receipt["signed_held"])}
+               if receipt.get("signed_held") else {}),
+            **({"originals_admitted": receipt["originals_admitted"]}
+               if "originals_admitted" in receipt else {})}

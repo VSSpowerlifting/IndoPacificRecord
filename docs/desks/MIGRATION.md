@@ -35,7 +35,7 @@ and source-specific decisions, not the retired 4 November amendment draft.
 | China | `pipeline.py`, ordinary article queue, existing collectors and URLs | Adapt the established record path to the common source/component interface without a bulk rewrite | Chinese terminology, source attribution, actual language and publisher-specific rights; no foreign desk inherits these permissions |
 | Singapore | MINDEF boundary in `core/mindef_public_boundary.py`, `core/mindef_permissions.py` and pipeline/renderer holds | Express restrictions through the same permitted-component projection; remove scattered special handling only after equal or stronger enforcement | PR #913 merged; retained evidence is private. Founder standing authorization (see [decision](../engineering/SINGAPORE_MINDEF_DAILY_COMPLETION_2026-11-09.md)) lets MINDEF run as one disabled-by-default `DailySource` (`sg_mindef_releases`) with link-only parent table (m0022): private English-original custody, bounded model input, independently written MINDEF-attributed explanations. Original text and media stay private; the two speech releases stay excluded; activation, spend and release remain separately authorized |
 | Korea | `core/korea_corpus_bridge.py`, `processing/korea_shared_queue.py`, original-text and reviewed-English registries; [bounded timestamp-admission repair candidate](../engineering/KOREA_DESK_OPERATION.md#current-repair-phase--2-november-2026) | Common checkpoints/admission and a record assembled from permitted components; this repair does not migrate the dispatcher | HWPX fidelity, verified licence scope, source/version exclusions and reviewed English; DAPA metadata permission is separate |
-| Philippines | `processing/daily_intake.py`, `processing/daily_runner.py`, AFP/NSC validators, `daily_machine_records`; source-definition pilot merged in PR #928; manual production manifest `desks/philippines/manifest.json` and governed dispatch (runtime migration 3, review candidate) | AFP and NSC registry, lifecycle dispatch, screening and machine-record projection share `core/daily_sources.py` following merged PR #928; admission runs through `pipeline.run_governed_manual_sources` with every other manual source; broader cross-desk convergence remains | English originals remain private; AFP and NSC identities, attribution, policies and exceptional holds remain distinct |
+| Philippines | `processing/daily_intake.py`, `processing/daily_runner.py`, AFP/NSC validators, `daily_machine_records`; source-definition pilot merged in PR #928; manual production manifest `desks/philippines/manifest.json` and governed dispatch (runtime migration 3, review candidate) | AFP and NSC registry, lifecycle dispatch, screening and machine-record projection share `core/daily_sources.py` following merged PR #928; admission runs through `pipeline.run_governed_manual_sources` with every other manual source; broader cross-desk convergence remains | AFP first-party title and prose use a separate version-pinned component on the existing Daily Record; first delivery and recurrence require production receipts. NSC originals stay private and the source identities, attribution and holds remain distinct |
 | Indonesia | Same private intake/runner as Philippines, Kemhan validator and Indonesian quality checks; source-definition pilot merged in PR #928; manual production manifest `desks/indonesia/manifest.json` (runtime migration 3, review candidate) | Kemhan uses the same shared registry, caller paths and governed dispatch as AFP/NSC; source-specific evidence/policy stays authoritative | Preserve accepted output, version bindings, Yonif TP 880 hold, source-use decisions and bounded spend; no new paid attempts are authorized |
 | Vietnam | `core/vietnam_corpus_bridge.py`, `core/vietnam_daily_handoff.py`, MPS/VPCP source decisions and factual QA; run-result reporting through the governed dispatcher in review candidate #953 | Common transport, checkpoints, admission and allowed-component interface; preserve source-specific document checks | Private originals, issuer versus decision-maker distinction, formal-document evidence, sealed source-use decisions and prior held/settled versions |
 | Japan | Isolated shadow RSS/PDF collection under `shadow/jp_mod/`, `core/japan_mod_official_links.py` and public link admission; manual production manifest `desks/japan/manifest.json` registering only `jp_mod_news_ja` (runtime migration 3, review candidate) | Same metadata/component projection and delivery contracts; link admission runs through the governed dispatcher rather than a separate Daily step; no separate Japan publisher | Retrieved/verified news-PDF metadata only under current grant; challenged HTML and all excluded original/model/media uses remain excluded; JCG English HTML releases (`jp_jcg_press_en`) are one disabled-by-default `DailySource` on the existing private custody ref `archive/japan-jcg` with a link-only parent table (m0023): published HTML article text only under the PR #1015 standing basis, PDL 1.0 source attribution and edited-content notice on every Record, PDFs/media never collected or admitted. Before model input and signing, `core/japan_jcg_rights.py` binds each stored text to its authenticated raw HTML capture at the pinned custody revision, verifies the captured publisher terms (`/questions/post-1.html`, captured every collector run, at most 7 days old) through the standing contract, and holds item-specific rights notations, third-party prose and privacy/secrecy markers. A failed terms capture does not abort the collector run: it is recorded as `listing_report.site_terms`, the run re-signs, and every row is held on the newer failed attempt. Such a source-wide evidence lapse (`JCG_RESUMABLE_HOLDS`) keeps each queue entry's attempts and output, neither releases nor withdraws it, and resumes it once a later run captures valid terms; changed or conflicting terms and item-specific holds are withdrawn and never resume without review. When the terms page and the listing both fail on transport (503/404, timeout, 401/403, access challenge, or robots.txt unreachable, recorded as `site_terms: not_reached`), the run stays a failure in its ledger (no shadow day) but is marked `jcg_source_outage_hold` and exits 0, so the existing link bridge and shared processing re-sign from it and hold the previously queued output; a listing failure with valid terms still fails the collector. The signed link envelope carries the latest run's `source_evidence` codes, and a failed or refused terms page sets the `jp_jcg_press_en` run-result row (the source-health report) to `fetch_failure`, `timeout`, `auth_failure` or `access_challenged` with `jcg_site_terms_unavailable` / `jcg_site_terms_access_refused`, instead of a quiet day. Not covered: a run that fails before writing its ledger, or a broken private workflow, still leaves the last envelope admissible; the public side has no envelope age bound. PR #1045 (founder-reserved, unmerged) registers it and turns on its policy; `JP_JCG_LINKS_ENABLED` is the single public rollback switch for both parent links and machine outputs. Variables and keys stay unset until the founder's activation decision. The JCG shadow qualification workflows are redundant once the shared lane is read back live and are retired then (index cross-section rows remain disclosed exclusions, not identities, per `shadow/jp_jcg/README.md`) |
@@ -320,15 +320,18 @@ URL and date in the existing `uscc_official_source_records` metadata lane,
 which is unchanged. The U.S. desk renders admitted machine records, annotates
 the matching official links, and feeds the Archive and search projection.
 
-Every switch is off:
-- policy flags false;
-- `US_USCC_LINKS_ENABLED` unset;
-- `desk_registered=False`, so no governed admission and no run-result row;
-- no private collector or processing-matrix row.
-
-Activation is a separate founder decision. It covers model provider and spend,
-recurring capture, seeding production custody, the private companion, manifest
-registration, the policy flags and the switch.
+Built with every switch off. **Founder first activation, 22 November 2026**
+(`DECISION_LOG.md`): the three policy flags are true within the unchanged
+ceilings, `desk_registered=True`, the source is registered in
+`desks/us-indopacific/manifest.json`, and the private collector
+(`uscc_private_first_collector.yml`, VSSpowerlifting/ipr-source-evidence-private#50)
+writes custody and its run ledger on `archive/uscc-press`. Ledgers up to
+`20261122T183844Z-45056204824-1.json` are pre-schema and sit below
+`USCC_LEDGER_AFTER`; later ones use the shared schema (see the cadence note
+below). Nothing runs until
+the owner variables are set; `US_USCC_LINKS_ENABLED` unset withholds both public
+halves. Seeding production custody from the 3 November archive and any backfill
+are not authorized.
 
 **Not complete:** BIS keeps its separate `workflow_run`-bound release and has no
 manifest/registry entry; folding it in needs a dispatcher-side run attestation
@@ -477,6 +480,29 @@ Nothing here adopts a publisher grant or restriction, activates the hold, or
 changes the live site. Activation, legacy-record treatment and publisher
 correspondence remain separate founder decisions.
 
+**China Desk: Global Times cutover to private custody (DECISION_LOG
+2026-11-22, action D).** `global_times_mil` in `desks/china/manifest.json` now
+uses `adapters.global_times_handoff:GlobalTimesHandoffAdapter`. Its slug,
+`access_method` (`html`), institution and tier are unchanged. The public Daily
+makes no request to the publisher. It replays the signed
+`global_times_mil.captures.json`, which is fetched from
+`state/global-times-captures` only when `CN_GLOBAL_TIMES_HANDOFF_ENABLED` is
+exactly `true`. The fetch is not in the shared-Daily `SOURCES`. Custody
+(versions, bytes, ledgers) lives only in the private evidence repository.
+
+The public China source-use hold precedes admission. The separately set private
+China hold governs collection and requires an explicit `true` or `false`.
+Existing IDs, URLs and hashes remain stable. Cutover order:
+1. This public PR merges.
+2. Provision the shared signing key, then merge the private collector PR.
+3. Set the private hold explicitly, enable the private schedule and dispatch once.
+4. Verify the signed capture with an independent fresh clone, then enable
+   `CN_GLOBAL_TIMES_HANDOFF_ENABLED` and verify Daily and HTTPS delivery.
+
+Until step 4, the source reports `listing_failure` `gt_handoff_not_delivered`.
+For rollback, disable and drain the private collector, revert the public
+manifest adapter, then unset the public handoff variable.
+
 ## Daily collection attestation (reader first) — 16 November 2026
 
 A fresh signed Daily envelope no longer means a fresh collection: the private
@@ -493,14 +519,91 @@ row, after admission, keeping its counts and `held:` detail.
   block, so a malformed block never blocks records (it reads as not attested).
   Vietnam family entries may carry the same optional block under the
   existing, unbumped handoff MAC; the printed receipt adds
-  `collection_by_family`.
+  `collection_by_family`. (22 November: the reader accepts an optional signed
+  `dispositions` count per bridge outcome code; the receipt adds
+  `dispositions_by_family`, and the run detail appends `private bridge: N code`
+  for non-published codes without changing status or counts. Signing it stays
+  off behind `SIGN_DISPOSITIONS` until a follow-up flip after one public Daily
+  has run this reader: older verifiers refuse the key.)
 - Order: reader (this change; every live envelope is still `/1`, so every
   disposition is unchanged) -> shared and Vietnam producers, only after one
   public Daily has run reader code -> strict flip -> liveness. Cron values are
   mirrored in `core/daily_sources.py` from the private collector workflows and
   must be edited together; the attended Singapore pilot never gets a verdict.
+  (22 November: Singapore MINDEF is recurring and declares `10:37`; it signs `/2`
+  and gets a verdict. See DECISION_LOG 2026-11-22.)
+  USCC declares `collection_cron_utc="11:35"` (private collector `'35 11 * * *'`)
+  and signs `/2`, read above `collection_ledger_after`: custody keeps the
+  pre-schema ledger(s) of the first collector (results `success`/`hold`, no
+  `target_date`, `target_date_source` or `health`), which `read_custody` would
+  otherwise report unreadable. It follows the private collector's switch to the
+  shared schema (ipr-source-evidence-private#52, `a0ec7e5`). USCC is signed
+  only by its own collector's processing run, so the first `/2` envelope comes
+  from the next USCC collection; until then the Daily keeps the last `/1`
+  envelope, which carries no verdict.
 - Strict-flip condition: set `pipeline._REQUIRE_COLLECTION_ATTESTATION` only
   after a structure-only listing shows `/2` for every enabled, non-attended
   family with a declared cadence. Until then a missing block is "no verdict".
 - #989 (an unsigned custody-head heartbeat) is superseded: it reads fresh on
   failure days because failed attempts are committed. Close it unmerged.
+
+### Collection attestation, signer side (step 2) — 17 November 2026
+
+The shared Daily private signer now emits the `/2` envelope for exactly the
+families with a declared, unattended collection cadence
+(`DailySource.signs_collection()`: AFP, NSC, Kemhan, JCG and, from
+22 November 2026, recurring Singapore MINDEF). USCC (until its collector
+writes the shared ledger schema) and DAPA have no cadence and keep signing `/1`, byte
+for byte. `private_run` reads the block after the atomic queue write and just
+before signing (`DailySource.collection_attempt` ->
+`attempts.read_custody`), so a reader failure never stops signing or alters
+queue/state writes; it signs `attested: false` with `collection_reader_failed`.
+`sign_outputs(collection=None)` is the unchanged `/1` packet and MAC; a block
+that fails `attempts.validate` (or names another family) is replaced by
+`collection_attestation_invalid`.
+
+- The reader lists the newest 20 `state/ledger/` files at the pinned custody
+  commit and copies only run_id, target_date, target_date_source,
+  finished_utc, result and health (rehearsal ledgers skipped). Ordering is by
+  parsed `finished_utc`. `latest_healthy_target_date` is the maximum over
+  healthy ledgers, so an explicit recovery rerun counts. A non-zero collector
+  receipt (`private_attempts/` for AFP and NSC, `state/private_attempts/` for
+  Kemhan) newer than the latest ledger and without its own ledger is reported
+  as `unledgered_exit`. No ledger reads `no_ledger`; any unreadable, malformed
+  or unexpected-valued ledger or newer receipt reads `ledger_unreadable`
+  (fail closed, never raises). Error text, URLs and request data are never
+  copied.
+- No private workflow change is needed for the block to be signed: the
+  signer already runs from the public processor against the pinned custody
+  checkout. But the private `process` job runs only after a *successful*
+  collector `workflow_run` (or a manual dispatch), and Kemhan and JCG are
+  processed only on their own collector's run. A failed Kemhan or JCG
+  collection is therefore never signed: the last healthy block keeps being
+  admitted, so the row reads duplicates within the 14-hour grace and
+  `collection stale` after it, not the specific failure code. In practice
+  Kemhan's `unledgered_exit` appears only through a manual dispatch. AFP and
+  NSC are processed on either one's successful collector, so each one's
+  failure is signed by the other's success (NSC's `access_challenged`
+  depends on AFP succeeding). Signing after a failed collector run is a
+  separate private workflow change (follow-up, not in this step).
+- Expected effect once the next shared Daily runs: NSC, whose collector has
+  failed every day since 5 November, reports `access_challenged` on its
+  run-result row instead of duplicates. Strict flip
+  (`_REQUIRE_COLLECTION_ATTESTATION`) stays deferred per the condition above.
+
+Vietnam uses the same collection-fact schema inside its existing signed
+handoff. The private bridge signs each enabled family's newest authenticated
+scheduled attempt from the same custody tip used for processing. MPS binds
+the private attempt to its collection ledger when successful. VPCP binds the
+cycle receipt to its original custody commit and the completed collection
+step. The scheduling grace remains 14 hours.
+
+An authenticated failure or source-wide processing hold can travel as a
+status-only family entry. It carries zero projections and can never authorize
+records. A sibling's accepted records still travel in the same handoff.
+An authenticated collection failure also withholds that family's projections
+while keeping accepted private output available for an eligible later run.
+Collection and processing details are reported independently, including when
+a new handoff reuses an older collection attempt. Legacy handoffs still
+verify and strict enforcement stays off. Enable emission through the
+existing private bridge only after the public reader is on main.

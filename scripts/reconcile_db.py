@@ -889,6 +889,17 @@ def reconcile(base_path, origin_path, local_path, out_path):
                 raise ValueError("daily_machine_record_parent_version_conflict")
             con.execute("INSERT INTO daily_machine_records VALUES (" + ",".join("?" for _ in machine_cols) + ")", tuple(row))
 
+    from core import daily_record_originals
+    from migrations.versions.m0025_daily_record_originals import FIELDS
+    pins = daily_record_originals.load_pins()
+    daily_record_originals.prune(con, pins)
+    if _has_table(con, "loc", "daily_record_originals"):
+        for row in con.execute("SELECT " + ", ".join(FIELDS) + " FROM loc.daily_record_originals"):
+            component = dict(zip(FIELDS, row))
+            if component["source_identity"] in pins.get(component["source_family"], {}):
+                if daily_record_originals.store(con, component, pins) == "held":
+                    raise ValueError("daily_original_component_reconciliation_held")
+
     report["source_results_merged"] = srr_merged
     report["source_results_origin_won"] = srr_conflicts
 

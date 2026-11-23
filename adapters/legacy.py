@@ -82,6 +82,11 @@ class LegacyScraperAdapter(SourceAdapter):
         # is precisely how it contributed zero rows for the life of the project
         # while every run reported success.
         self.implemented = not getattr(self._scraper_class, "IS_STUB", False)
+        # A scraper that discovers by its own acquisition window declares it on
+        # the class; `pipeline.production_window()` reads it from this adapter.
+        # Every scraper that declares nothing keeps the single-day window.
+        self.production_lookback_days = int(
+            getattr(self._scraper_class, "PRODUCTION_LOOKBACK_DAYS", 0))
 
     # ── construction ─────────────────────────────────────────────────────────
 
@@ -91,6 +96,10 @@ class LegacyScraperAdapter(SourceAdapter):
             kwargs = {}
             if window is not None:
                 kwargs["target_date"] = window.target_date
+                # Only scrapers that declare a window receive its lookback, so
+                # the other constructors are called exactly as before.
+                if getattr(self._scraper_class, "ACCEPTS_LOOKBACK", False):
+                    kwargs["lookback_days"] = window.lookback_days
             self._scraper = self._scraper_class(**kwargs)
         return self._scraper
 
@@ -277,8 +286,13 @@ class LegacyScraperAdapter(SourceAdapter):
         # is what let a source report "34 read" while one of the 34 was an
         # empty shell.
         result.extracted = len(documents)
-        unusable = [d for d in documents if not d.has_usable_text]
-        result.text_unavailable = len(unusable)
+        # A body a parser withheld on purpose (it marks `text_held`, e.g. a
+        # page republishing another agency's text) was read, not lost.
+        held = [d for d in documents if (d.extra or {}).get("text_held")]
+        held_ids = {id(d) for d in held}
+        unusable = [d for d in documents
+                    if not d.has_usable_text and id(d) not in held_ids]
+        result.text_unavailable = len(held) + len(unusable)
         result.failed_fetches = len(self.failed_fetches)
         result.completed_at = _now()
 
@@ -292,6 +306,12 @@ class LegacyScraperAdapter(SourceAdapter):
             # is a gap in an otherwise working source, not an outage — calling
             # it one would hide the working majority behind a failure status.
             result.status = st.OK
+            if held:
+                notes.append(
+                    "%d of %d parsed page(s) had their body held by the "
+                    "parser (%s); titles, URLs and dates were kept"
+                    % (len(held), len(documents), ", ".join(sorted(
+                        {str(d.extra["text_held"]) for d in held}))))
             if unusable:
                 notes.append(
                     "%d of %d parsed page(s) carried no usable text; their "

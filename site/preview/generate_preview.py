@@ -80,7 +80,9 @@ from core.viewmodel import PublicView                               # noqa: E402
 from core.title_translation import english_title, receipts, processing_note  # noqa: E402
 from core.china_discovery import build_focus                        # noqa: E402
 from scripts.reconcile_db import _read_only                         # noqa: E402
-from core.korea_corpus_bridge import publication_gate, hidden_predicate  # noqa: E402
+from core.korea_corpus_bridge import (  # noqa: E402,F401
+    ENGLISH_STATUS_DEFINITIONS, ENGLISH_STATUS_LABELS, ENGLISH_WITHHELD_NOTE,
+    publication_gate, publication_gate_detail, hidden_predicate)
 from core.mindef_permissions import mindef_metadata_label, source_link_approved  # noqa: E402
 KOREA_MANIFEST = "desks/korea/manifest.json"
 
@@ -103,6 +105,9 @@ ARCHIVE_MARK_ASSETS = tuple("assets/desk-marks/%s.svg" % s
 # derivatives travel separately, one by one, from the admission record
 # (core/catalogue_media.py) and only when a card actually shows one.
 CATALOGUE_STATIC_ASSETS = ("assets/geo/region.svg",)
+# The regional atlas (scripts/build_atlas.py): one waterlined Natural Earth
+# drawing, cropped by CSS for the Desks page and for each desk's locator.
+ATLAS_ASSETS = ("assets/geo/atlas.svg",)
 
 #: The public name. Owner-directed 2026-08-25; the governing record is
 #: docs/INDO_PACIFIC_RECORD_EVOLUTION.md §1. "The Declared Record" and
@@ -149,6 +154,7 @@ from core.catalogue_media import (                                   # noqa: E40
 from core.timelines import load_timelines
 from core.dossiers import load_dossiers, validate_review_destination
 from core.desk_registry import load_registry                         # noqa: E402
+from scripts.build_atlas import atlas_view, locator_view              # noqa: E402
 from core.reviewed_source_links import load_public_desk_references    # noqa: E402
 from core.public_editorial_research import load_catalog as load_editorial_catalog, published_for_desk
 from core.indonesia_official_index import load as load_indonesia_official_index  # noqa: E402
@@ -503,8 +509,12 @@ def load_corpus(db_path: Path) -> dict:
         con.row_factory = _dict_row
         # Korea rows render only once the governed bridge admitted them and
         # processing finished; every query below applies the same predicate.
-        korea_publishable, korea_hidden = publication_gate(con)
+        korea_publishable, korea_hidden, korea_english_held = (
+            publication_gate_detail(con))
         visible = hidden_predicate(korea_hidden)
+        # A Korean row shown only for its released original has no
+        # publishable machine output: it is never "analyzed" in any count.
+        machine_ok = hidden_predicate(set(korea_english_held))
 
         sources = con.execute(
             "SELECT s.slug, s.display_name, s.language, s.language_tag, "
@@ -567,7 +577,7 @@ def load_corpus(db_path: Path) -> dict:
 
         totals = con.execute(
             "SELECT (SELECT COUNT(*) FROM articles a WHERE " + visible + ") AS articles, "
-            "       (SELECT COUNT(*) FROM articles a WHERE analyzed_at IS NOT NULL AND " + visible + ") AS analyzed, "
+            "       (SELECT COUNT(*) FROM articles a WHERE analyzed_at IS NOT NULL AND " + visible + " AND " + machine_ok + ") AS analyzed, "
             "       (SELECT COUNT(*) FROM scrape_runs) AS runs, "
             "       (SELECT MIN(published_date) FROM articles a WHERE " + visible + ") AS first_date, "
             "       (SELECT MAX(published_date) FROM articles a WHERE " + visible + ") AS last_date"
@@ -588,7 +598,7 @@ def load_corpus(db_path: Path) -> dict:
             "  FROM articles a "
             "  JOIN sources s ON s.id = a.source_id "
             "  LEFT JOIN institutions i ON i.institution_id = s.institution_id "
-            " WHERE " + STATE_CASE_SQL + " = 'analyzed' AND " + visible + " "
+            " WHERE " + STATE_CASE_SQL + " = 'analyzed' AND " + visible + " AND " + machine_ok + " "
             " ORDER BY a.published_date DESC, a.id DESC LIMIT 60").fetchall()
 
         # Collection continuity: which calendar days have a run. The published
@@ -656,9 +666,41 @@ def load_corpus(db_path: Path) -> dict:
             korea_english = {r["id"]: r["text_english"] for r in con.execute(
                 "SELECT id, text_english FROM articles WHERE id IN (%s)"
                 % ",".join(str(int(i)) for i in sorted(korea_publishable)))}
+        # The gate already proved this digest equals the released, re-hashed
+        # original's digest; the record shows it beside the exhibit link.
+        korea_original_digests = {}
+        if korea_english_held:
+            korea_original_digests = {
+                r["source_identity"]: r["original_text_sha256"]
+                for r in con.execute(
+                    "SELECT source_identity, original_text_sha256 "
+                    "FROM korea_corpus_admissions WHERE article_id IN (%s)"
+                    % ",".join(str(int(i)) for i in sorted(korea_english_held)))}
+        # Every English machine field of an original-only row is withheld
+        # before anything below can read it (titles, summaries, receipts).
+        for rec in corpus:
+            if rec["id"] in korea_english_held:
+                for key in ("title_english", "summary_english", "analyzed_at",
+                            "model_id", "prompt_version", "is_significant",
+                            "title_translation_model", "title_translation_prompt",
+                            "title_translated_at",
+                            "title_translation_value_sha256"):
+                    rec[key] = None
+                rec["summary_lead"] = None
+                korea_english[rec["id"]] = None
+                if rec["state"] == "analyzed":
+                    rec["state"] = "analysis_incomplete"
 
     for rec in corpus:
         rec["state_label"] = STATE_LABELS[rec["state"]]
+        if rec["id"] in korea_english_held:
+            # The stored-state label stays as is (the Records list and the
+            # browser index share it); the Record states English separately.
+            rec["korea_english_state"] = korea_english_held[rec["id"]]
+            rec["korea_english_status"] = ENGLISH_STATUS_LABELS[
+                korea_english_held[rec["id"]]]
+            rec["korea_original_sha256"] = korea_original_digests[
+                korea_publishable[rec["id"]]]
         # The machine flag is surfaced ONLY where it was actually computed.
         # Everywhere else it is None — not False, which would read as
         # "assessed and not flagged".
@@ -691,6 +733,7 @@ def load_corpus(db_path: Path) -> dict:
         "institutions": institutions,
         "corpus": corpus,
         "korea_publishable": korea_publishable,
+        "korea_english_held": korea_english_held,
         "state_counts": corpus_state_counts(corpus),
         "facets": corpus_facets(corpus),
         "weeks": corpus_weeks(corpus, run_days),
@@ -2344,6 +2387,8 @@ def record_citation(record: dict, title: str, snapshot: dict) -> dict:
         "note": ("Historical processing status only. MINDEF titles, source text, translations, "
                  "summaries and reasoning are not published on this site at present."
                  if withheld_mindef_title else
+                 "%s. %s" % (record["korea_english_status"], ENGLISH_WITHHELD_NOTE)
+                 if record.get("korea_english_state") else
                  processing_note(record, CITATION_PROCESSING_NOTES)),
     }
 
@@ -2577,6 +2622,117 @@ LEGACY_REDIRECT = """<!doctype html>
 """
 
 
+from core import official_link_index as official_link_index_mod
+
+INDONESIA_ADMITTED_LIST = ('<ol class="desk-reference-list" '
+                           'aria-label="Admitted official publisher references">')
+INDONESIA_ADMITTED_ROW = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
+
+
+def compact_indonesia_admitted(page, expected):
+    """Compact the admitted Kemhan rows of a desk or index month page.
+
+    The admitted URL/date-only entries are repetitive; keep every source,
+    publisher and date, but compact layout whitespace and omit the per-row
+    "metadata only" refrain already explained above the list. Each row keeps
+    its identity, official URL, rel="noopener noreferrer", "Kemhan Berita
+    official source" label, publisher attribution and <time datetime>; it
+    opens in the same tab and the repeated "Official date" label is stated
+    once above the list. The desk lists only the newest
+    official_link_index.DESK_LINK_LIMIT rows, so indonesia.html stays well
+    under its 160 KB owner cap (DECISION_LOG 2026-11-13, raised 21 Nov 2026);
+    month pages keep the default 120 KB route cap.
+    """
+    matches = re.findall(INDONESIA_ADMITTED_ROW, page)
+    if len(matches) != expected:
+        raise ValueError("Indonesia admitted-index markup/count mismatch")
+
+    def compact(match):
+        item = (re.sub(r'\s*\n\s*', ' ', match.group(0))
+                .replace(' · Official-link metadata only', '')
+                .replace(' target="_blank"', '')
+                .replace(' · Official date <time', ' · <time'))
+        return re.sub(r'>\s+<', '><', item)
+
+    page = re.sub(INDONESIA_ADMITTED_ROW, compact, page)
+    page = re.sub(
+        r'(</li>)\s+(?=<li data-regional-official-source-id="kemhan:)',
+        r'\1', page)
+    if page.count(INDONESIA_ADMITTED_LIST) != 1:
+        raise ValueError("Indonesia admitted-index list is not unique")
+    page = page.replace(
+        INDONESIA_ADMITTED_LIST,
+        '<p class="meta">Each date below is the official date.</p>\n  '
+        + INDONESIA_ADMITTED_LIST)
+    # Drop indentation in the ordinary HTML flow. Keep newlines so adjacent
+    # words and inline elements retain their spacing.
+    return re.sub(r"(?m)^[ \t]+", "", page)
+
+
+def render_official_link_index(env, desk, rows, **ctx):
+    """{route: html} for a desk's official-link hub and month pages.
+
+    Every admitted row appears exactly once, on the page for the month of its
+    official date, in the caller's newest-first order. No rows, no pages.
+    """
+    oli = official_link_index_mod
+    months = oli.partition(desk.slug, rows)
+    if not months:
+        return {}
+    tmpl = env.get_template("official_link_index.html")
+    hub = oli.hub_route(desk.slug)
+    entries = [{"month": month, "label": oli.month_label(month),
+                "count": len(items), "route": oli.month_route(desk.slug, month)}
+               for month, items in months]
+    common = dict(ctx, desk=desk, index_desk=desk.slug, index_hub=hub,
+                  index_total=len(rows),
+                  index_shown=min(len(rows), oli.DESK_LINK_LIMIT),
+                  support_stylesheet=("indonesia-shell.css"
+                                      if desk.slug == "indonesia"
+                                      else "korea-shell.css"))
+    pages = {hub: tmpl.render(page=hub, nested=False, index_kind="hub",
+                              index_months=entries, **common)}
+    for position, (month, items) in enumerate(months):
+        entry = entries[position]
+        html = tmpl.render(
+            page=entry["route"], nested=True, index_kind="month",
+            index_month=entry, index_rows=items,
+            index_newer=entries[position - 1] if position else None,
+            index_older=(entries[position + 1]
+                         if position + 1 < len(entries) else None),
+            **common)
+        if desk.slug == "indonesia":
+            html = compact_indonesia_admitted(html, len(items))
+        pages[entry["route"]] = html
+    return pages
+
+
+def write_official_link_index(env, out_dir, desk, rows, **ctx):
+    """Write the index routes and remove stale ones; return written routes.
+
+    A month that no longer has admitted rows, or a whole index whose desk has
+    none, is deleted so the published tree never keeps an orphan page.
+    """
+    oli = official_link_index_mod
+    pages = render_official_link_index(env, desk, rows, **ctx)
+    folder = out_dir / oli.month_dir(desk.slug)
+    hub = out_dir / oli.hub_route(desk.slug)
+    if folder.is_dir():
+        for stale in folder.glob("*.html"):
+            if oli.month_dir(desk.slug) + "/" + stale.name not in pages:
+                stale.unlink()
+    if not pages:
+        if hub.exists():
+            hub.unlink()
+        if folder.is_dir() and not any(folder.iterdir()):
+            folder.rmdir()
+        return []
+    folder.mkdir(parents=True, exist_ok=True)
+    for route, html in pages.items():
+        (out_dir / route).write_text(html, encoding="utf-8")
+    return list(pages)
+
+
 def build(out_dir: Path, title: str, db_path: Path,
           snapshot: dict = DECLARED_SNAPSHOT,
           legacy_routes: bool = False, mode: str = BUILD_MODE,
@@ -2779,6 +2935,12 @@ def build(out_dir: Path, title: str, db_path: Path,
     env.filters["weekday"] = weekday
     from markupsafe import Markup
     env.filters["brief_prose"] = lambda text: Markup(linked_prose(text))
+    # Ship the opening layout with the HTML that uses it. A cached copy of
+    # the previous home.css can otherwise leave the finder transparent.
+    home_css = (TEMPLATES.parent / "home.css").read_text(encoding="utf-8")
+    if "</style" in home_css.lower():
+        raise ValueError("home.css cannot contain an HTML style end tag")
+    env.globals["home_css"] = Markup(home_css)
 
     gaps = collection_gaps(data["run_days"])
     editions = load_editions(REPO_ROOT)
@@ -2992,6 +3154,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         "collection_name": COLLECTION_NAME,
         "briefs_feed_route": BRIEFS_FEED_ROUTE if briefs_feed else None,
         "desks": desks,
+        # Where each desk's publishing institutions are based, on the atlas.
+        "atlas": atlas_view(desks),
         "editorial_published_desks": editorial_published_desks,
         "live_desk_count": desks.collecting_count,
         "developing_desk_count": desks.not_collecting_count,
@@ -3120,21 +3284,18 @@ def build(out_dir: Path, title: str, db_path: Path,
         desk_index_lanes = ({"korea_mnd_live_link_count": (korea_production_link_count - korea_dapa_production_link_count)}
                             if target == "desks.html" else {})
         if target == "desks.html":
-            # Philippines link metadata and machine explanations are real
-            # production lanes but not corpus originals; count each from its own
-            # governed table and never add them to a corpus figure.
             from core.regional_official_link_render import load_admitted_links as ph_links
-            from core.daily_machine_records import load as ph_machine
+            ph_records = [r for r in machine_records if r["desk_id"] == "philippines"]
             desk_index_lanes["ph_official_link_count"] = len(ph_links(db_path, "philippines"))
-            desk_index_lanes["ph_machine_explanation_count"] = sum(r["desk_id"] == "philippines" for r in ph_machine(db_path))
+            desk_index_lanes["ph_machine_explanation_count"] = len(ph_records)
+            desk_index_lanes["ph_original_count"] = sum(bool(r["original_text"]) for r in ph_records)
         page_html = env.get_template(template).render(
             page=target, **ctx, **desk_index_lanes)
         if target == "desks.html":
-            # Desks embeds the canonical 1:50m map inline. Its accessible
-            # directory keeps every status/limit, so trim only indentation
-            # at the start of lines whose next token is an HTML/SVG tag.
-            # The newline remains intact: text spacing and all SVG path
-            # coordinates are preserved, and other pages are untouched.
+            # Trim only indentation at the start of lines whose next token
+            # is a tag, to keep the long directory under its raw-size pin.
+            # The newline remains intact, so text spacing is preserved, and
+            # other pages are untouched.
             page_html = re.sub(r"(?m)^[ \t]+(?=<)", "", page_html)
         (out_dir / target).write_text(page_html, encoding="utf-8")
         written.append(target)
@@ -3237,7 +3398,8 @@ def build(out_dir: Path, title: str, db_path: Path,
         written.append("gallery.html")
         for folder in ("geo", "flags", "glyphs"):
             for asset in sorted((REPO_ROOT / "site/assets" / folder).iterdir()):
-                if (not asset.is_file() or asset.name.endswith(".receipt.json")
+                if (not asset.is_file() or asset.name.endswith(".json")
+                        or "assets/%s/%s" % (folder, asset.name) in ATLAS_ASSETS
                         or "assets/%s/%s" % (folder, asset.name) in DESKS_PUBLIC_FLAG_ASSETS
                         or "assets/%s/%s" % (folder, asset.name) in CATALOGUE_STATIC_ASSETS):
                     continue
@@ -3432,7 +3594,29 @@ def build(out_dir: Path, title: str, db_path: Path,
         ])
         source_options = sorted({(r["source_slug"], r["source_name"]) for r in references})
         languages = sorted({r["language"] for r in references})
-        desk_page = desk_tmpl.render(page=desk.route, desk=desk,
+        # Indonesia and Korea desk pages list only the newest
+        # DESK_LINK_LIMIT admitted official links; the full admitted set is
+        # carried by the hub and month routes written below. Archive groups
+        # and archive-research-index.json keep every row.
+        desk_regional_links = regional_official_links
+        desk_korea_auto_links = (korea_auto_official_rows
+                                 if desk.slug == "korea" else [])
+        index_rows = None
+        if desk.slug == "indonesia":
+            index_rows = regional_official_links
+        elif desk.slug == "korea" and not review_korea:
+            index_rows = korea_auto_official_rows
+        official_link_index = None
+        if index_rows:
+            shown = official_link_index_mod.latest(desk.slug, index_rows)
+            official_link_index = {
+                "total": len(index_rows), "shown": len(shown),
+                "hub": official_link_index_mod.hub_route(desk.slug)}
+            if desk.slug == "indonesia":
+                desk_regional_links = shown
+            else:
+                desk_korea_auto_links = shown
+        desk_page = desk_tmpl.render(page=desk.route, desk=desk, locator=locator_view(desk.slug),
                              support_stylesheet=("indonesia-shell.css"
                                  if desk.slug == "indonesia" else
                                  "korea-shell.css" if desk.slug == "korea" else "support.css"),
@@ -3442,7 +3626,8 @@ def build(out_dir: Path, title: str, db_path: Path,
                              public_reference_languages=languages,
                              indonesia_official_links=indonesia_official_links,
                              indonesia_press_links=indonesia_press_links,
-                             regional_official_links=regional_official_links,
+                             regional_official_links=desk_regional_links,
+                             official_link_index=official_link_index,
                              daily_machine_records=daily_machine_records,
                              vietnam_records=vietnam_records[:20],
                              vietnam_explained=vietnam_explained,
@@ -3452,7 +3637,7 @@ def build(out_dir: Path, title: str, db_path: Path,
                              us_bis_authenticated_links=bis_links,
                              korea_public_links=(korea_public_rows if desk.slug == "korea" else []),
                              korea_additional_links=(korea_additional_rows if desk.slug == "korea" else []),
-                             korea_auto_official_links=(korea_auto_official_rows if desk.slug == "korea" else []),
+                             korea_auto_official_links=desk_korea_auto_links,
                              korea_production_link_count=(korea_production_link_count if desk.slug == "korea" else 0),
                              korea_dapa_production_link_count=(korea_dapa_production_link_count if desk.slug == "korea" else 0),
                              korea_published_originals=(korea_published_original_rows if desk.slug == "korea" else []),
@@ -3460,42 +3645,14 @@ def build(out_dir: Path, title: str, db_path: Path,
                              korea_english_publications=(korea_english_publication_rows if desk.slug == "korea" else []),
                              display_limits=public_desk_limits(
                                  desk, source_views), **ctx)
-        if desk.slug == "indonesia" and regional_official_links:
-            # The admitted URL/date-only entries are repetitive; keep every
-            # source, publisher and date, but compact layout whitespace and
-            # omit the per-row "metadata only" refrain already explained above.
-            # Each row keeps its identity, official URL, rel="noopener
-            # noreferrer", "Kemhan Berita official source" label, publisher
-            # attribution and <time datetime>; it opens in the same tab and
-            # the repeated "Official date" label is stated once above the list.
-            # indonesia.html alone has a temporary 130 KB owner cap
-            # (DECISION_LOG 2026-11-13); every other route keeps its budget.
-            pattern = r'<li data-regional-official-source-id="kemhan:[^"]+">[\s\S]*?</li>'
-            matches = re.findall(pattern, desk_page)
-            if len(matches) != len(regional_official_links):
-                raise ValueError("Indonesia admitted-index markup/count mismatch")
-
-            def compact(match):
-                item = (re.sub(r'\s*\n\s*', ' ', match.group(0))
-                        .replace(' · Official-link metadata only', '')
-                        .replace(' target="_blank"', '')
-                        .replace(' · Official date <time', ' · <time'))
-                return re.sub(r'>\s+<', '><', item)
-
-            desk_page = re.sub(pattern, compact, desk_page)
-            desk_page = re.sub(
-                r'(</li>)\s+(?=<li data-regional-official-source-id="kemhan:)',
-                r'\1', desk_page)
-            admitted_list = ('<ol class="desk-reference-list" '
-                             'aria-label="Admitted official publisher references">')
-            if desk_page.count(admitted_list) != 1:
-                raise ValueError("Indonesia admitted-index list is not unique")
-            desk_page = desk_page.replace(
-                admitted_list,
-                '<p class="meta">Each date below is the official date.</p>\n  '
-                + admitted_list)
+        if desk.slug == "indonesia" and desk_regional_links:
+            desk_page = compact_indonesia_admitted(desk_page, len(desk_regional_links))
         (out_dir / desk.route).write_text(desk_page, encoding="utf-8")
         written.append(desk.route)
+        if desk.slug in official_link_index_mod.INDEX_DESKS and not (
+                desk.slug == "korea" and review_korea):
+            written.extend(write_official_link_index(
+                env, out_dir, desk, index_rows or [], **ctx))
 
     # Reproducible original Korean source pages are emitted ONLY when an
     # independently owner-released, exact-text-hash-pinned registry exists.
@@ -3507,8 +3664,10 @@ def build(out_dir: Path, title: str, db_path: Path,
             target.parent.mkdir(parents=True, exist_ok=True)
             # Render candidate-safe noindex markup first; the shared site-origin
             # pass below installs canonical and social URLs for actual release.
-            target.write_text(render_original_page(record, site_origin=None),
-                              encoding="utf-8")
+            target.write_text(render_original_page(
+                record, site_origin=None,
+                record_route=korea_record_routes.get(record["source_identity"])),
+                encoding="utf-8")
             written.append(record["route"])
 
     # English pages are written only for explicitly registered, already
@@ -3584,7 +3743,10 @@ def build(out_dir: Path, title: str, db_path: Path,
     for rec in data["corpus"]:
         (out_dir / "record" / ("%d.html" % rec["id"])).write_text(
             record_tmpl.render(page="archive.html", record=rec,
-                               state_definition=definitions[rec["state"]],
+                               state_definition=(
+                                   ENGLISH_STATUS_DEFINITIONS[rec["korea_english_state"]]
+                                   if rec.get("korea_english_state")
+                                   else definitions[rec["state"]]),
                                record_desk=desk_by_source.get(rec["source_slug"]),
                                cite=record_citation(rec, title, snapshot),
                                **ctx),
@@ -3646,7 +3808,10 @@ def build(out_dir: Path, title: str, db_path: Path,
         machine_records=machine_archive_rows(machine_records),
         english_publications=korea_english_publication_rows, analyses=public_analyses,
         cited=cited_archive_rows(cited_records),
-        title_kinds={rec["id"]: rec["title_kind"] for rec in data["corpus"]})
+        title_kinds={rec["id"]: rec["title_kind"] for rec in data["corpus"]},
+        korea_records={ident: aid for aid, ident in data["korea_publishable"].items()},
+        english_withheld={aid: ENGLISH_STATUS_LABELS[state]
+                          for aid, state in data["korea_english_held"].items()})
     (out_dir / "archive-research-index.json").write_bytes(archive_encoded(research_index))
     written.append("archive-research-index.json")
     ctx["archive_research_digest"] = archive_digest(archive_encoded(research_index))
@@ -3681,6 +3846,7 @@ def build(out_dir: Path, title: str, db_path: Path,
         (Path(__file__).parent / "styles.css").read_text(encoding="utf-8"),
         encoding="utf-8")
     written.append("styles.css")
+    # Keep the original home.css URL available to previously cached HTML.
     for name in ("staff.css", "fonts.css", "support.css", "indonesia-shell.css", "korea-shell.css", "korea-reading.css", "korea-preview.css", "home.css", "archive.css", "record.css", "briefs-catalog.css", "shell.js", "surfaces.css", "desk-map.css", "desk-references.css", "desk-references.js"):
         (out_dir / name).write_bytes((Path(__file__).parent / name).read_bytes())
         written.append(name)
@@ -3706,6 +3872,11 @@ def build(out_dir: Path, title: str, db_path: Path,
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
             written.append(route)
+    for route in ATLAS_ASSETS:
+        target = out_dir / route
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((REPO_ROOT / "site" / route).read_bytes())
+        written.append(route)
     for folder in ("fonts", "identity/selected-ipr", "frontend"):
         source = REPO_ROOT / "site/assets" / folder
         for asset in sorted(source.iterdir()):

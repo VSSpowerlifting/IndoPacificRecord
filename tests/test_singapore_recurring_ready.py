@@ -201,7 +201,12 @@ class FetchLinkEnvelope(unittest.TestCase):
 
 
 class PilotLimitsFollowTheGate(Base):
-    """The one-item limits key on the pilot gate, not on the family name."""
+    """The one-item limits key on the pilot gate, not on the family name.
+
+    The pilot has ended (ATTENDED_PILOT_ENV is empty); tests of the retained
+    mechanism open the gate for the family as a future pilot would."""
+
+    PILOT = {FAMILY: "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}
 
     def setUp(self):
         super().setUp()
@@ -221,16 +226,23 @@ class PilotLimitsFollowTheGate(Base):
                                             out_dir=self.out, **kwargs)
 
     def test_while_the_pilot_is_open_an_unselected_run_is_refused_before_custody(self):
-        self.assertTrue(daily_sources.attended_only(FAMILY))
-        with patch.object(daily_runner, "verified_source") as custody:
+        with patch.dict(daily_sources.ATTENDED_PILOT_ENV, self.PILOT), \
+                patch.object(daily_runner, "verified_source") as custody:
+            self.assertTrue(daily_sources.attended_only(FAMILY))
             with self.assertRaisesRegex(d.IntakeHold, "daily_singapore_pilot_identity_required"):
                 self.private_run()
         custody.assert_not_called()
         self.assertFalse(self.state_path.exists())
 
-    def test_other_families_are_never_treated_as_a_pilot(self):
+    def test_no_family_is_treated_as_a_pilot_now(self):
+        self.assertEqual(daily_sources.ATTENDED_PILOT_ENV, {})
         for family in daily_sources.SOURCES:
-            self.assertEqual(daily_sources.attended_only(family), family == FAMILY)
+            self.assertFalse(daily_sources.attended_only(family), family)
+
+    def test_only_a_family_named_in_the_gate_is_treated_as_a_pilot(self):
+        with patch.dict(daily_sources.ATTENDED_PILOT_ENV, self.PILOT):
+            for family in daily_sources.SOURCES:
+                self.assertEqual(daily_sources.attended_only(family), family == FAMILY)
 
     def test_once_the_pilot_ends_admission_accepts_more_than_one_record(self):
         bound = d.bind_admitted_metadata(self.records, self.connect(), source_repo=self.repo)
@@ -242,13 +254,23 @@ class PilotLimitsFollowTheGate(Base):
         self.assertEqual(sorted(v["status"] for v in state.values()), ["complete", "complete"])
         envelope = d.sign_outputs(state, family=FAMILY, policy=policy_two, key=KEY)
         self.assertEqual(len(envelope["packet"]["records"]), 2)
+        # The pilot has ended: no gate, so the one-item admission limit is gone.
+        self.assertFalse(daily_sources.attended_only(FAMILY))
         with self.connect() as conn:
-            with self.assertRaisesRegex(d.IntakeHold, "daily_singapore_pilot_envelope_exceeds_one"):
-                d.admit(conn, envelope, family=FAMILY, policy=policy_two, key=KEY)
-        with patch.dict(daily_sources.ATTENDED_PILOT_ENV, clear=True), self.connect() as conn:
-            self.assertFalse(daily_sources.attended_only(FAMILY))
             receipt = d.admit(conn, envelope, family=FAMILY, policy=policy_two, key=KEY)
         self.assertEqual(receipt["admitted"], 2)
+
+    def test_while_the_pilot_is_open_admission_refuses_more_than_one_record(self):
+        bound = d.bind_admitted_metadata(self.records, self.connect(), source_repo=self.repo)
+        bound = [r for r in bound if r["source_identity"] != HELD]
+        policy_two = copy.deepcopy(self.p)
+        policy_two["sources"][FAMILY]["max_records_per_run"] = 2
+        state, _ = d.process(bound, {}, family=FAMILY, policy=policy_two,
+                             analyzer_factory=analyzer)
+        envelope = d.sign_outputs(state, family=FAMILY, policy=policy_two, key=KEY)
+        with patch.dict(daily_sources.ATTENDED_PILOT_ENV, self.PILOT), self.connect() as conn:
+            with self.assertRaisesRegex(d.IntakeHold, "daily_singapore_pilot_envelope_exceeds_one"):
+                d.admit(conn, envelope, family=FAMILY, policy=policy_two, key=KEY)
 
 
 

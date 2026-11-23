@@ -271,7 +271,13 @@ class VNMinistryAdapter(ShadowHttpAdapter):
             if capture.reference.hint_published_date not in (None, published):
                 anomalies.append("listing_date_differs: %s / %s" %
                                  (capture.reference.hint_published_date, published))
-            if selected.get("title") not in (None, title):
+            # RSS titles arrive raw; the page title is squashed. Compare after
+            # the same squash on both sides (observed 18 Nov 2026, mps-vi:
+            # 1794826878: one trailing space only). The raw listing title is
+            # still persisted below, and any wording, word or diacritic
+            # difference is still an anomaly. squash() never normalizes Unicode.
+            listed = selected.get("title")
+            if listed is not None and squash(listed) != title:
                 anomalies.append("listing_title_differs")
             metadata = {"publisher": self.profile.publisher, "issuer": None,
                         "language": "vi", "family": self.profile.family,

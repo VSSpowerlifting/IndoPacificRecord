@@ -105,7 +105,10 @@ def discover(name):
                 (GT_BASE + "/page/202609/1370005.shtml",
                  "2026/10/9 10:00:00"),
             ])
-        expected = [GT_A, GT_B, GT_C]
+        # 1370005's URL month (202609) is not a date gate: its listing date
+        # (10/9) is in the window, so it is collected. The old URL-month
+        # filter that dropped it was the defect fixed for month rollovers.
+        expected = [GT_A, GT_B, GT_C, GT_BASE + "/page/202609/1370005.shtml"]
     else:
         raise AssertionError("Unexpected source name")
     with patch.object(s, "fetch", side_effect=fetch):

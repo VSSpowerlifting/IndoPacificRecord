@@ -1,9 +1,8 @@
 """Phase 4A browser gate for the rendered eight-desk directory (2026-11-16).
 
-The map is retired; the directory is the page. Builds into a disposable
-folder from the tracked DB through the renderer's safe path, never touching
-output/ or production state. Every state and count is checked against the
-registry and the build's own data, at phone through wide desktop widths.
+Builds the atlas and directory into a disposable folder from the tracked DB
+through the renderer's safe path. Every state and count is checked against
+the registry and the build's own data, at phone through wide desktop widths.
 """
 from __future__ import annotations
 
@@ -106,6 +105,125 @@ class DesksDirectoryBrowser(unittest.TestCase):
                     self.assertNotIn("0", row["records"])
                 if entry.status == "shadow":
                     self.assertNotRegex(row["records"], r"\d")
+
+    def test_atlas_labels_stay_clear_of_each_other_and_inside_the_map(self):
+        # The regional atlas (2026-11-17): no name overlaps another name or
+        # another desk's mark, and none leaves the map, at any width.
+        probe = """() => {const m=document.querySelector('.atlas-map').getBoundingClientRect();
+          const r=[...document.querySelectorAll('.atlas .seat')].map(a=>{
+            const t=a.querySelector('.seat-text').getBoundingClientRect(),k=a.querySelector('.seat-mark').getBoundingClientRect();
+            return {n:a.querySelector('b').textContent,t:[t.left,t.top,t.right,t.bottom],
+                    k:[k.left+12,k.top+12,k.right-12,k.bottom-12],h:a.getBoundingClientRect().height}});
+          const hit=(a,b)=>a[0]<b[2]&&b[0]<a[2]&&a[1]<b[3]&&b[1]<a[3],out=[];
+          for(let i=0;i<r.length;i++)for(let j=0;j<r.length;j++){if(i===j)continue;
+            if(j>i&&hit(r[i].t,r[j].t))out.push(r[i].n+' / '+r[j].n);
+            if(hit(r[i].t,r[j].k))out.push(r[i].n+' over the mark of '+r[j].n)}
+          for(const x of r){if(x.t[0]<m.left-1||x.t[2]>m.right+1||x.t[1]<m.top-1||x.t[3]>m.bottom+1)out.push(x.n+' outside the map');
+            if(x.h<40)out.push(x.n+' target under 40px')}
+          return {count:r.length,problems:out}}"""
+        for width in WIDTHS + (414, 1024):
+            ctx = self.browser.new_context(viewport={"width": width, "height": 900})
+            page = ctx.new_page()
+            try:
+                page.goto((self.out / "desks.html").as_uri(), wait_until="load")
+                result = page.evaluate(probe)
+            finally:
+                ctx.close()
+            with self.subTest(width=width):
+                self.assertEqual(result["count"], len(self.registry))
+                self.assertEqual(result["problems"], [])
+
+    def test_atlas_navigation_pairs_and_responsive_order(self):
+        """The introductory index links to the existing register, with the
+        map using the same desk order, at phone, tablet and desktop widths."""
+        for width in WIDTHS + (1024,):
+            ctx = self.browser.new_context(viewport={"width": width, "height": 900},
+                                           reduced_motion="reduce")
+            page = ctx.new_page()
+            try:
+                page.goto((self.out / "desks.html").as_uri(), wait_until="load")
+                links = page.locator(".desk-jump-list a")
+                maps = page.locator(".atlas-seats a")
+                self.assertEqual(links.count(), len(self.registry))
+                self.assertEqual(maps.count(), links.count())
+                jump_targets = links.evaluate_all(
+                    "(n) => n.map(a => a.getAttribute('href'))")
+                map_targets = maps.evaluate_all(
+                    "(n) => n.map(a => a.getAttribute('href'))")
+                self.assertEqual(jump_targets, map_targets)
+                for slug, target in [(a.removeprefix("#desk-"), a)
+                                     for a in jump_targets]:
+                    self.assertIn(slug, self.registry)
+                    self.assertEqual(page.locator(target).count(), 1)
+                    self.assertIn(self.registry[slug].status_label,
+                                  page.locator('.desk-jump-list a[data-desk="%s"]' % slug).inner_text())
+                atlas = page.locator(".atlas").bounding_box()
+                jump = page.locator(".desk-jump").bounding_box()
+                if width >= 1140:
+                    self.assertLessEqual(jump["x"] + jump["width"],
+                                         atlas["x"] + 2)
+                else:
+                    self.assertGreaterEqual(jump["y"], atlas["y"] + atlas["height"] - 2)
+                self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"),
+                                     width + 1)
+                # The matched highlight is a progressive enhancement: both
+                # lists remain ordinary working links without JavaScript.
+                links.first.hover()
+                decoration = maps.first.locator("b").evaluate(
+                    "(n) => getComputedStyle(n).textDecorationLine")
+                self.assertIn("underline", decoration)
+                maps.first.hover()
+                bg = links.first.evaluate("(n) => getComputedStyle(n).backgroundColor")
+                self.assertNotEqual(bg, "rgba(0, 0, 0, 0)")
+            finally:
+                ctx.close()
+
+    def test_desks_atlas_links_are_reachable_at_small_widths_and_zoom(self):
+        # A box can sit inside the map while a neighbouring link intercepts
+        # its label or marker. Check the browser's actual hit target.
+        hit_targets = """() => {
+          const failures = [];
+          for (const link of document.querySelectorAll('.atlas-seats a')) {
+            link.scrollIntoView({block:'center'});
+            for (const part of link.querySelectorAll('.seat-mark,.seat-text')) {
+              const {x,y,width,height} = part.getBoundingClientRect();
+              const hit = document.elementFromPoint(x+width/2,y+height/2);
+              if (!link.contains(hit)) failures.push(link.getAttribute('href'));
+            }
+          }
+          return failures;
+        }"""
+        for width, enlarged in ((320, False), (375, False), (375, True),
+                                (680, False), (768, True), (1280, False), (1280, True)):
+            with self.subTest(width=width, enlarged=enlarged):
+                page = self.browser.new_page(viewport={"width": width, "height": 900},
+                                             reduced_motion="reduce")
+                try:
+                    page.goto((self.out / "desks.html").as_uri(), wait_until="load")
+                    if enlarged:
+                        page.add_style_tag(content="html{font-size:200%}")
+                    seats = page.locator(".atlas-seats a")
+                    self.assertEqual(seats.count(), len(self.registry))
+                    self.assertEqual(page.evaluate(hit_targets), [])
+                    self.assertLessEqual(page.evaluate("document.documentElement.scrollWidth"),
+                                         width + 1)
+                    if width == 320 or (width == 375 and enlarged):
+                        self.assertEqual(seats.first.evaluate(
+                            "(link) => getComputedStyle(link).position"), "relative")
+
+                    seats.first.focus()
+                    for i in range(seats.count()):
+                        seat = seats.nth(i)
+                        self.assertTrue(seat.evaluate("(a) => a === document.activeElement"))
+                        self.assertTrue(seat.evaluate("(a) => a.matches(':focus-visible')"))
+                        if i < seats.count() - 1:
+                            page.keyboard.press("Tab")
+                    target = seats.last.get_attribute("href")
+                    page.keyboard.press("Enter")
+                    self.assertEqual(page.evaluate("location.hash"), target)
+                    self.assertTrue(page.locator(target).evaluate("(section) => section.matches(':target')"))
+                finally:
+                    page.close()
 
     def test_no_javascript_still_exposes_every_public_desk(self):
         rows, doc_width = self._rows(viewport={"width": 375, "height": 812},

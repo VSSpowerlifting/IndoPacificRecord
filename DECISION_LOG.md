@@ -1,4 +1,266 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-22 — Founder: Global Times custody in the private evidence repo (action D)
+
+**Decision.** On 22 November 2026 the founder chose action D for
+`global_times_mil`: collection and custody of Global Times pages move to the
+private evidence repository, and the public Daily stops requesting the
+publisher. The public side only replays what the private collector signed.
+This entry records the public half; the private collector is a separate change.
+
+**Design.**
+- Private `core.collection.global_times_handoff collect` (cron `'17 1 * * *'`,
+  window [target-2, target]) runs the unchanged scraper and records every
+  observation in `capture_versions`, append-only and ordered by `version_seq`:
+  a new version whenever `(capture_sha256, text_held)` differs from the
+  article's latest one. It keeps the exact wire bytes as
+  `captures/<sha>.bin`. A held page (`text_held`, another agency's byline) keeps
+  no bytes and a blank body.
+- Every attempt writes an `ipr-collection-attempts/1` ledger, initialised as a
+  failure, plus an exit receipt. The private `IPR_CHINA_SOURCE_USE_HOLD`
+  governs collection. It must be exactly `true` (hold) or `false` (allow).
+  A private hold or invalid setting makes no publisher request. The public
+  variable of the same name independently governs public admission.
+- `verify` checks the fresh clone's hashes and append-only history. `sign` builds the envelope
+  from that clone only: the latest version per article fetched in the last
+  3 days, with HMAC key `DAILY_GLOBAL_TIMES_MIL_KEY`, at most 512,000 bytes.
+  The running parser must reproduce each candidate from verified bytes.
+  Parser mismatches and holds without bytes are excluded and counted. It
+  is published as `global_times_mil.captures.json` on
+  `state/global-times-captures`.
+- Public: the fetch step copies the envelope only when
+  `CN_GLOBAL_TIMES_HANDOFF_ENABLED` is exactly `true`.
+  `adapters.global_times_handoff` authenticates it, imports no network
+  library, and yields the legacy `parse_article` dicts. Source-run receipts
+  bind replay to the signed envelope digest and custody commit, which identify
+  the exact capture even when distinct HTML versions normalize identically.
+- An absent, unauthenticated, unattested, failed or stale envelope fails the
+  source closed with a named status. Stale means the slot plus 14 hours has
+  passed.
+- A held row's `content_hash` folds in its URL, so two held pages with one
+  headline are not reposts of each other. No existing hash changes: the old
+  scraper never set `text_held` on a stored row.
+
+**Unchanged.** Every spend cap, word or character limit, rights flag, factual
+check, model and retry ceiling is unchanged. `IPR_CHINA_SOURCE_USE_HOLD` still
+skips the source before its adapter is built, and `insert_article` still
+asserts it. URL dedup, content-hash dedup and the id allocator are unchanged,
+so existing record ids and Record URLs are unchanged. A canonical URL must
+match `https://www.globaltimes.cn/page/YYYYMM/<id>.shtml` exactly and is
+refused, never rewritten. The public database gains no custody table, migration
+or write path.
+
+**Release and rollback order.** This public PR merges first. Until the private
+collector is live and the variable is `true`, the Daily records
+`global_times_mil` as `listing_failure` `gt_handoff_not_delivered`, which
+degrades it exactly as an unreachable listing did. Rollback order:
+1. Turn off `CN_GLOBAL_TIMES_PRIVATE_COLLECTION_ENABLED` in the private
+   repository, stop dispatches and wait for any in-flight collection to finish.
+2. Revert the public manifest `adapter` through the reviewed PR path to
+   `scraper.sources.global_times_mil:GlobalTimesMilScraper`.
+3. Unset the public `CN_GLOBAL_TIMES_HANDOFF_ENABLED`.
+
+Legacy collection keeps reporting the parser's hold reasons. Recovery reports
+the matched version's hold even when an unheld version references the same
+bytes. Preserve private custody and attempt history throughout rollback.
+
+## 2026-11-22 — Founder: USCC press releases first activation approved
+
+**Authority.** On 22 November 2026 the founder approved, in chat, "USCC first
+activation of us_uscc_press_en: policy flags, owner decision,
+US_USCC_LINKS_ENABLED, key and desk registration". It builds on the founder
+decisions of 3, 4 and 7 November already quoted in
+`config/philippines_daily_policy.json` (`owner_decision` for
+`us_uscc_press_en`) and on the shared-Daily path recorded on 14 November.
+
+**Ceilings (unchanged).** USD 0.35 estimated per run; 1 record per run; 16,000
+input characters; 5 attempts per version (the existing retry budget);
+independently worded, USCC-attributed machine explanations of at most 90 words.
+Exclusions, factual checks and rights limits are unchanged, including the
+individually held identities and the six-check qualifier.
+
+**What this change does.**
+- Sets `private_model_processing`, `public_machine_explanation` and
+  `unattended_release` to true for `us_uscc_press_en` and appends this decision
+  to its `owner_decision`; the earlier text stays as history and its activation
+  hold is superseded.
+- Registers the source in `desks/us-indopacific/manifest.json` (manual, English
+  release text, existing `us_uscc` institution) and sets `desk_registered=True`.
+  It does not declare a collection cadence. The private collector,
+  `uscc_private_first_collector.yml` `'35 11 * * *'`
+  (VSSpowerlifting/ipr-source-evidence-private#50, merge commit `37b4aa2`), writes
+  ledger results `success`/`hold` without `target_date`, `target_date_source` or
+  `health`. The shared reader cannot read that shape, so a declared cron would
+  report `collection_not_attested` on every Daily. USCC keeps signing `/1`
+  (no freshness verdict) until the collector writes the shared ledger schema.
+- Desk status is unchanged: `us-indopacific` stays `shadow`, inactive and
+  `access_blocked` in the registry.
+
+**What goes live, and behind which variable.** Nothing runs until the variables
+are set:
+- private collection by the private collector: `US_USCC_PRIVATE_COLLECTION_ENABLED`;
+- the signed official-link bridge: `US_USCC_LINKS_BRIDGE_ENABLED`;
+- private processing (model input and signed outputs): `US_USCC_DAILY_ENABLED`;
+- public admission of parent links and machine explanations:
+  `US_USCC_LINKS_ENABLED`.
+
+**Rollback.** Unset or set any of those variables to anything but `true`.
+`US_USCC_LINKS_ENABLED` withholds both public halves (links and machine
+explanations); the others stop collection, link signing and model use.
+
+**Not authorized.** No backfill of older releases; no PDFs, media, linked
+reports, testimony or attachments; no change to any ceiling, word limit,
+exclusion, factual check or rights limit; no second record per run. This entry
+does not itself set a variable, run a collector, spend, deploy or publish.
+
+## 2026-11-22 — Singapore MINDEF: attended-pilot gate removed; recurring processing begins
+
+**Authority.** Action B of the founder's 22 November approval (entry below):
+recurring unattended processing and release of eligible MINDEF-owned official
+releases inside the existing per-run limits. This change merges only after
+action A's single attended run has been signed.
+
+**Action A result (attended run, held).** Private run 44993720678
+(dispatch, 06:26Z) made exactly 2 model calls, estimated USD 0.013113
+(3,537 input and 392 output tokens). The other five family jobs made no
+model calls. State commit `093f8e7a86` (after `a00eaf7503`) changed only
+the MINDEF queue and envelope. `sg_mindef_releases:6nov26-nr2` is
+`retriable`, 3 of 5 attempts, hold `daily_quantity_or_date_unsupported`
+(reading file `6b65918e…`). The hold is genuine: one sentence carries a date
+that its cited passage does not contain. The date appears elsewhere in the
+original, but the check binds every number to the sentence's own passage, and
+prompt v5 already says so. No check, prompt or policy was changed. Nothing was
+admitted. MINDEF still has no live machine explanation, and its processing gate
+is not met. `SG_MINDEF_DAILY_ENABLED` was set back to `false` at 06:29:39Z.
+
+**Queue order after this change.** The private runner sorts eligible
+releases newest first, and only releases whose links are already admitted
+publicly are eligible. With one record per run, a newer unprocessed release
+takes the slot ahead of the 6 November retry. On the first recurring day, new
+links are admitted only by that evening's Daily. That day's processing will
+therefore very likely spend attempt 4 of 5 on `6nov26-nr2`, inside the
+existing caps.
+
+**What changed in this PR.**
+- `core/daily_sources.ATTENDED_PILOT_ENV` is empty. Scheduled and ordinary
+  runs now handle `sg_mindef_releases` under its policy ceilings: one record,
+  $0.35 estimated, 16,000 input characters, 90 words, five attempts per
+  version. The gate mechanism stays in place for any future pilot.
+- `sg_mindef_releases` declares its private collector cron, `10:37` UTC
+  (`singapore_mindef_private_first_collector.yml`, `37 10 * * *`). Its
+  envelopes therefore carry a signed collection block, and the family gets a
+  freshness verdict.
+- A private run that names one identity (an operator recovery dispatch) keeps
+  the per-identity ledger view. Without the pilot flag it would otherwise
+  hold every other MINDEF row as `source_missing_or_metadata_changed`.
+- Liveness: a shared-Daily family never writes `articles`. MINDEF's 102
+  article rows are the closed corpus of the pre-cutover public scraper (scraped
+  19 August to 29 October), so the family is judged on governed runs only.
+  It reads UNHEALTHY until its first healthy governed run, which is accurate:
+  nothing has been admitted since 29 October.
+- The policy object, `owner_decision` and prompt (`sg-analysis-v5`) are
+  byte-identical to the A change.
+
+**Runtime switches (private repository variables).**
+`SG_MINDEF_PRIVATE_COLLECTION_ENABLED`, `SG_MINDEF_LINKS_BRIDGE_ENABLED`,
+`SG_MINDEF_DAILY_ENABLED` and `SG_MINDEF_RECURRING_ENABLED`, plus the public
+`SG_MINDEF_LINKS_ENABLED`. Rollback, fastest first:
+1. `SG_MINDEF_RECURRING_ENABLED=false` stops model processing and spend.
+2. `SG_MINDEF_PRIVATE_COLLECTION_ENABLED=false` stops collection.
+3. The links variables stop new parents.
+
+**Not authorized here.** No backfill, no change to the excluded speech
+identities, and no ledger or attempt reset. Original text and media stay
+private.
+
+## 2026-11-22 — Founder: third attended Singapore MINDEF pilot and recurring release approved
+
+**Authority.** Founder chat reply of 22 November, "Approve all four", to the
+lead's list of four reserved actions. Two of them concern Singapore:
+
+- **A.** One attended processing run of `6nov26-nr2` on
+  `sg-relevance-v2+sg-analysis-v5`: at most one private dispatch, two model
+  calls and $0.35 estimated spend. The exclusions are unchanged.
+- **B.** Recurring unattended processing and release of eligible
+  MINDEF-owned official releases, inside the existing per-run limits: one
+  record, $0.35, 16,000 input characters and the 90-word explanation maximum.
+
+This supersedes the 11 November "pilot ended" entry and the 12 November
+"retry held; switches off" entry. It also supersedes the earlier
+instructions to return the switches to false after readback or a hold, and
+the earlier no-recurrence limit.
+
+**What changed in this PR.**
+- The three Singapore policy switches are true.
+- `owner_decision` records the approval.
+- Caps, exclusions, factual QA, retry history and the attempt ledger are
+  unchanged. The committed private ledger stands at two attempts, retriable at
+  `daily_explanation_word_limit`. The second attempt was recovered from run
+  43276741401 in private commit `1543be4`.
+- The attended-pilot gate in `core/daily_sources.py` still limits scheduled
+  runs to the named original. Lifting it is B's separate reviewed change.
+  "Revert" after A's run means the private run variable, not these policy
+  switches.
+
+**Two engineering fixes ship with A.**
+- **Private attribution check before signing (Singapore only).**
+  `processing/daily_intake.py` now applies the family's public attribution
+  check (`output_check`, the same one admission's `validate_output` applies)
+  before signing an output "complete", for a family that sets
+  `output_check_before_signing`. Only `sg_mindef_releases` sets it. An output that public admission would hold for attribution
+  becomes a retriable private QA hold and counts an attempt. Before this, it
+  would use the item's completion and never publish. A model flag stays a
+  public editorial disposition, as before.
+  - No check is loosened. The public Singapore check still requires
+    `MINDEF` and an unflagged output.
+  - No other family's private attempt behaviour changes.
+- **Liveness.** `scripts/check_source_liveness.py` now reports a family as
+  paused while the attended-pilot gate holds it, as well as when its policy
+  has recurring release off. With the switches on and the gate still in
+  place, MINDEF reads PAUSED rather than UNHEALTHY.
+
+**Not authorized here.** No backfill, no second record per run, no change
+to the excluded identities or the word limit, and no ledger or attempt reset.
+
+## 2026-11-17 — Regional atlas: geography returns as real coastline, seats and waterlines
+
+**Authority.** Founder brief of 17 November ("Take ownership of the next
+visual evolution of Indo-Pacific Record"), which authorizes this bounded
+visual phase through merge and deployment under repository governance.
+
+**What changed.**
+- One drawing of real geography, `site/assets/geo/atlas.svg`, built by
+  `scripts/build_atlas.py`. Its source, `site/assets/geo/atlas-50m.json`, is
+  cut from the retired Desks map's committed generated SVG (commit
+  `46f7431982`, SHA-256 pinned): Natural Earth 1:50m via world-atlas 2.0.2,
+  generalized by `scripts/desk_map.py`. No new data was downloaded. Singapore
+  island, dropped from that map's land by its smallest-ring cut, is restored
+  from the same file's Singapore polygon.
+- The sea is drawn with waterlines: the coastline repeated at five fixed
+  distances. They mean distance from the drawn coast, not depth. The retired
+  page terrain (invented contours) is not revived.
+- Desks page: the atlas sits beside the opening; each seat is a link to its
+  row and carries the registry state glyph; rows gain "Seat: <place>".
+- Desk pages: a regional locator beside the head, captioned with the seat.
+- Page heads: the 2px rule gains two waterline hairlines (`surfaces.css`).
+
+**Placement decisions.**
+- Indonesia is placed at Jakarta, where its declared institution (Kemhan)
+  is based. It was left unplaced while its status page was new.
+- The US Indo-Pacific Reference Desk is no longer drawn at Hawaii. Its
+  registered sources are the USCC and the Treasury; nothing from U.S. Pacific
+  Command, the Hawaii institution, is configured. The atlas shows an edge
+  pointer, "United States, outside this map", in open sea at 6°N, away from
+  Hawaii's latitude (a test keeps it off land at every width).
+- No country fills: a filled country reads as coverage. A point is a seat.
+- `desks/geography.json` loses the retired plate placements and country ids;
+  `scripts/desk_map.py` loses the plate layout. `scripts/build_geo_assets.py`
+  keeps its Hawaii emblem point as a constant.
+
+**Unchanged.** Every desk state, count, label, limit and scope is read from
+the registry and the record as before; `CONTENT_AND_DATA_RIGHTS.md` (whose
+"Map base" paragraph covers Natural Earth) is untouched. No script, motion,
+source activation or editorial content was added.
+
 ## 2026-11-16 — Owner: temporary 130 KB delivery budget for korea.html
 
 In PR #1064 the owner was asked how the Korea desk page should keep room as

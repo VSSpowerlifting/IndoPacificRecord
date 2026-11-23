@@ -5,14 +5,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.sunday_corpus_readiness import ReadinessError, evaluate, main
+from scripts.sunday_corpus_readiness import MIN_FULL_TEXT, ReadinessError, evaluate, main
 
 
 def row(identity, desk, published, *, chars=350, analyzed=False, passed=None):
     return {
         "id": identity, "desk_id": desk, "published_date": published,
-        "text_original": "Official original text. " * 16 if chars >= 250 else "tiny",
-        "text_english": "E" * chars if chars >= 250 else None,
+        "text_original": "Official original text. " * 16 if chars >= MIN_FULL_TEXT else "tiny",
+        "text_english": "E" * chars if chars >= MIN_FULL_TEXT else None,
         "analyzed_at": "2026-10-08" if analyzed else None,
         "passed_relevance": passed,
     }

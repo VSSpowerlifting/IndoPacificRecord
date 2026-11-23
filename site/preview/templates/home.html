@@ -1,20 +1,12 @@
 {% extends "base.html" %}
 {% from "_records.html" import desk_front %}
-{% from "_catalogue_credit.html" import photo_credit %}
-{# The home page (2026-11-16). It opens on one stable photograph: the U.S.
-   Navy photograph of the Ronald Reagan Carrier Strike Group with Japan
-   Maritime Self-Defense Force ships (`home_hero`, founder direction), set
-   large behind the claim and the title search and credited beneath as
-   illustrative context (it is not a record and carries no record mark).
-   Below it: each public-record desk's newest record as parallel text (the
-   first row of that desk's own page, never a selection), the latest Brief,
-   and the three kinds of text a reader will meet. Every title, date and name
-   here is read from the record or the credit record; nothing is written for
-   the page. Without the verified photograph the opening is plain navy, with
-   the same claim and search. #}
+{# The verified fleet photograph is illustrative. The finder searches the
+   full record snapshot regardless of whether the photograph is admitted.
+   Desk rows follow each desk's own newest record. Brief photographs remain
+   on the catalogue and article surfaces admitted by their manifest. #}
 {% block title %}{{ title }} — Official records, as published{% endblock %}
 {% block main_class %} class="leads-with-hero home-page"{% endblock %}
-{% block head_scripts %}<link rel="stylesheet" href="home.css">{% endblock %}
+{% block head_scripts %}<style>{{ home_css }}</style>{% endblock %}
 {% block hero %}
 {% set hero = home_hero | default(none) %}
 <section class="home-open{% if hero %} home-open--photo{% endif %}" aria-labelledby="home-title">
@@ -26,19 +18,24 @@
   {% endif %}
   <div class="wrap home-open-grid">
     <div class="home-open-copy">
-      <h1 class="claim" id="home-title">The region, in its own words.</h1>
-      <p class="home-dek">Official defense and security texts from across the Indo-Pacific, kept as they were published and set beside a labeled English translation.</p>
-      {# Search starts in the Archive's widest scope, All published material, so a
-         topic finds its Briefs and cited sources as well as the records. The
-         count stays the record count; cited material is never added into it. #}
-      <form action="archive.html" method="get" class="home-search" role="search">
-        <input type="hidden" name="scope" value="published">
-        <label for="home-q">Search titles of records and Briefs, in English or the original language</label>
-        <div class="home-search-row"><input id="home-q" type="search" name="q" autocomplete="off" aria-describedby="home-search-scope"><button class="btn btn--light" type="submit">Search</button></div>
-      </form>
-      <p class="home-open-note" id="home-search-scope">{{ corpus_total | count }} records. Search reads titles only. It also covers Briefs and everything else the Archive lists, including links to official pages and the sources Briefs cite. <a href="#latest-title">Newest from each desk</a> · <a href="archive.html">All records</a></p>
+      <h1 class="claim" id="home-title">The region,<br> in its own words.</h1>
+      <p class="home-dek">Indo-Pacific defense and security records, with original texts and labeled English translations where available.</p>
     </div>
   </div>
+  </div>
+  <div class="wrap home-finder">
+    {# Search starts in the Archive's widest scope, All published material, so a
+       topic finds its Briefs and cited sources as well as the records. The
+       count stays the record count; cited material is never added into it. #}
+    <div class="home-finder-heading">
+      <h2>Search the record</h2>
+      <p class="home-open-note" id="home-search-scope">{{ corpus_total | count }} records. Search reads titles only. It also covers Briefs and everything else the Archive lists, including links to official pages and the sources Briefs cite. <a href="archive.html?scope=all">Browse all records</a></p>
+    </div>
+    <form action="archive.html" method="get" class="home-search" role="search">
+      <input type="hidden" name="scope" value="published">
+      <label for="home-q">Search titles of records and Briefs, in English or the original language</label>
+      <div class="home-search-row"><input id="home-q" type="search" name="q" autocomplete="off" aria-describedby="home-search-scope"><button class="btn btn--primary" type="submit">Search</button></div>
+    </form>
   </div>
   {% if hero %}
   <div class="home-photo-credit" id="home-photo-credit">
@@ -65,24 +62,13 @@
 {% set lead = collection.lead if collection else none %}
 {% set lead_row = collection.lead_row if collection else none %}
 {% set feature = lead %}
-{# The cover follows the catalogue-media decision (core/catalogue_media.py),
-   as the Briefs page does: an admitted photograph, or no picture at all. #}
-{% set feature_media = catalogue_media.get(lead.slug) if lead and catalogue_media else none %}
-{#- Brief covers are granted for the Briefs catalogue and the opened Brief
-    only (manifest `surfaces`), so the home card carries no picture; the home
-    page's one photograph is its stable opening. -#}
-{% set feature_photo = none %}
 {% set thematic = dossiers | selectattr('kind', 'equalto', 'thematic') | list if dossiers else [] %}
-<section id="analysis" class="wrap home-section home-briefs" aria-labelledby="latest-analysis">
+<section id="analysis" class="home-section home-briefs band" aria-labelledby="latest-analysis">
+  <div class="wrap">
   <div class="home-head"><div><p class="evidence evidence--analysis">Human-controlled analysis</p><h2 id="latest-analysis">Briefs</h2></div><a href="analysis.html">All Briefs</a></div>
   {% if feature %}
   <div class="home-briefs-grid">
-    <article class="home-feature{% if feature_photo %} home-feature--photo{% endif %}">
-      {% if feature_photo %}
-      <figure class="home-feature-photo"{% if feature_photo.cover_treatment %} data-treatment="{{ feature_photo.cover_treatment }}"{% endif %}>
-        <a href="{{ feature.url }}"><img src="{{ feature_photo.served }}" width="{{ feature_photo.width }}" height="{{ feature_photo.height }}" alt="{{ feature_photo.alt }}" loading="lazy" decoding="async"></a>
-        <figcaption>{{ photo_credit(feature_photo) }}</figcaption></figure>
-      {% endif %}
+    <article class="home-feature">
       <div class="home-feature-copy">
         {% if feature.synthetic %}<p class="brief-fixture">Synthetic test fixture. Not a published brief.</p>{% endif %}
         <p class="home-label">{% if lead_row and lead_row.kind == 'issue' %}Earlier Brief{% else %}Latest Brief{% endif %}{% if feature.issue %}, No. {{ feature.issue }}{% endif %}</p>
@@ -107,17 +93,18 @@
         <p>{{ item.dek }}</p>
       </article>
       {% endif %}
-      <p class="home-briefs-about">A Brief compares official accounts and says what each source supports. It is kept apart from the records it reads.</p>
+      <p class="home-briefs-about">Briefs compare official accounts and explain what the sources support.</p>
     </div>
   </div>
   {% else %}
   <p class="home-briefs-about">Draft Briefs are withheld until approved. None is published yet.</p>
   {% endif %}
+  </div>
 </section>
 <section class="wrap home-section home-method" aria-labelledby="home-method-title">
-  <div class="home-head"><h2 id="home-method-title">Three kinds of text, kept apart</h2><a href="methodology.html">How this publication works</a></div>
+  <div class="home-head"><h2 id="home-method-title">How to read this site</h2><a href="methodology.html">How this publication works</a></div>
   <dl class="home-legend">
-    <div><dt><span class="evidence evidence--record">Source record</span></dt><dd>What an institution published: its title, its text where that can be shown, the date it gave and a link to the original.</dd></div>
+    <div><dt><span class="evidence evidence--record">Source record</span></dt><dd>The issuing institution’s title, publication date and a link to the original, with the text where we can show it.</dd></div>
     <div><dt><span class="evidence evidence--model">Machine output</span></dt><dd>Translations and summaries made by a model. They are published without human review and can be wrong.</dd></div>
     <div><dt><span class="evidence evidence--analysis">Human-controlled analysis</span></dt><dd>Briefs and dossiers. People make the judgments, and each one shows the sources it rests on.</dd></div>
   </dl>

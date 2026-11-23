@@ -239,14 +239,10 @@ def weeks_from_sql(db_path):
     con = sqlite3.connect(uri, uri=True)
     try:
         # Reproduce the release eligibility rule independently in SQL.
-        # Korea's admitted-but-QA-held rows are stored, not publicly counted.
-        korea_filter = (
-            "(COALESCE(s.desk_id, '') != 'korea' "
-            "AND s.slug != 'kr_policy_mnd_releases') "
-            "OR EXISTS (SELECT 1 FROM korea_corpus_admissions k "
-            "WHERE k.article_id = a.id AND k.state = 'admitted' "
-            "AND k.processing_state IN ('processed', 'not_relevant'))"
-        )
+        # Korea's admitted-but-unfinished rows count only when a released,
+        # hash-matching original backs them (tests/korea_release_rule.py).
+        from tests.korea_release_rule import public_filter
+        korea_filter = public_filter(con)
         rows = con.execute(
             "SELECT date(a.published_date,'weekday 0','-6 days') AS start, "
             "       COUNT(*) AS n "
@@ -1575,7 +1571,7 @@ class TestTrancheOneIdentityAndStructure(PreviewCase):
             self.assertNotIn(total, soup.select_one(selector).get_text())
         # ... it is stated where it is used, beside the search it scopes ...
         note = ' '.join(soup.select_one('.home-open-note').get_text().split())
-        self.assertIn(total + ' records. Search reads titles only.', note)
+        self.assertIn(total + ' records.', note)
         # ... and the dateline ties the same figure to the snapshot's date.
         status = ' '.join(soup.select_one('.masthead .publication-status').get_text(' ').split())
         self.assertIn('%s records, as of %s' % (
@@ -2344,7 +2340,19 @@ class TestRecordPages(PreviewCase):
                                    "label": gp.STATE_LABELS[state]},
                                   index["states"])
                     continue
-                html = self.record(self.first_in_state(state))
+                # A Korean Record shown only for its released original states
+                # its English status (e.g. "English held for QA") instead of
+                # the generic stored-state label; it is checked on its own.
+                rid = next((r["id"] for r in self.data["corpus"]
+                            if r["state"] == state
+                            and not r.get("korea_english_status")), None)
+                if rid is None:
+                    rid = self.first_in_state(state)
+                    rec = next(r for r in self.data["corpus"] if r["id"] == rid)
+                    self.assertIn('<p class="record-state">%s</p>'
+                                  % rec["korea_english_status"], self.record(rid))
+                    continue
+                html = self.record(rid)
                 self.assertIn(gp.STATE_LABELS[state], html)
 
     def test_records_without_english_claim_no_translation_or_summary(self):
@@ -2857,7 +2865,8 @@ class TestWeekShards(PreviewCase):
     def test_run_dates_are_never_presented_as_a_denominator(self):
         pages = dict(self.shard_html)
         pages["corpus.html"] = self.page("corpus.html")
-        ratio = re.compile(r"\d\s*(?:/|of)\s*7\b")
+        # "Page 2 of 7" is shard pagination, not a run-date ratio.
+        ratio = re.compile(r"(?<!Page )(?<!\d)\d+\s*(?:/|of)\s*7\b")
         for name, html in pages.items():
             with self.subTest(page=name):
                 self.assertIsNone(ratio.search(html),
@@ -5697,8 +5706,11 @@ class TestSnapshotScopedCitations(PreviewCase):
 
     def first_in_state(self, state):
         # MINDEF pages are metadata-only and are asserted separately below.
+        # A Korea record whose English is withheld carries its own English
+        # status note instead (tests/test_korea_render_gate.py).
         for rec in self.corpus:
-            if rec["state"] == state and rec["source_slug"] != MINDEF_SOURCE_SLUG:
+            if (rec["state"] == state and rec["source_slug"] != MINDEF_SOURCE_SLUG
+                    and not rec.get("korea_english_state")):
                 return rec["id"]
         raise AssertionError("no record in state %s" % state)
 
@@ -7033,11 +7045,29 @@ class TestStop4RoutesAreIntact(PreviewCase):
         staff = load_staff(REPO_ROOT / "site/preview/staff.json")
         self.assertEqual(sorted(q.name for q in (self.out / "authors").glob("*.html")),
                          sorted(p["slug"] + ".html" for p in staff))
+        # Official-link month pages (2026-11-21) are nested routes under
+        # `<desk>-official-links/`; their hubs are top-level and already in
+        # `top`. Derived from the readbacks' own DB queries, never a literal.
+        from core import official_link_index as link_index
+        from scripts.verify_korea_official_link_index import korea_index_rows
+        from scripts.verify_regional_source_index_readback import (
+            load_admitted_links as regional_admitted)
+        index_months = set()
+        for desk, rows in (("indonesia", regional_admitted(TRACKED_DB, "indonesia")),
+                           ("korea", korea_index_rows(TRACKED_DB))):
+            expected = {r for r in link_index.index_routes(desk, rows) if "/" in r}
+            folder = self.out / link_index.month_dir(desk)
+            built = ({link_index.month_dir(desk) + "/" + q.name
+                      for q in folder.iterdir() if q.is_file()}
+                     if folder.is_dir() else set())
+            self.assertEqual(built, expected,
+                             "official-link month routes must match admitted rows")
+            index_months |= expected
         self.assertEqual(len(files),
                          self.corpus_size + len(top) + len(sources) + len(staff)
                          + len(covers) + len(atmosphere)
                          + registered_korean_originals + reviewed_english_pages
-                         + len(machine_paths)
+                         + len(machine_paths) + len(index_months)
                          + len([q for q in (self.out / "assets").rglob("*") if q.is_file()]))
         # One declared file since 2026-11-16: the withdrawn J-20 derivative,
         # which stays published with its licence record because "do not render

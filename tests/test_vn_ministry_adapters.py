@@ -225,6 +225,37 @@ class MinistryCase(unittest.TestCase):
                 self.assertFalse(result.documents)
 
 
+    def test_rss_listing_title_whitespace_is_not_an_anomaly_but_wording_is(self):
+        # mps-vi:1794826878 (18 Nov 2026): an RSS <title> with one trailing
+        # space was persisted as listing_title_differs and held every MPS
+        # daily bridge. The raw listing title is still recorded unchanged.
+        name = "mps-article-concordia.bin"
+        url = URLS[name]
+        page = adapter(MPS).extract(capture(MPS, name)).documents[0].title_original
+        self.assertTrue(page)
+
+        def anomalies(listed):
+            ministry = adapter(MPS)
+            ministry._listing = {url: {"title": listed}}
+            result = ministry.extract(capture(MPS, name))
+            self.assertEqual(result.status, st.OK)
+            self.assertEqual(result.documents[0].extra["listing_title"], listed)
+            return result.documents[0].extra["anomalies"]
+
+        for label, listed in (("exact", page), ("absent", None),
+                              ("trailing space", page + " "),
+                              ("leading and doubled space", "  " + "  ".join(page.split())),
+                              ("newline and tab", "\n\t".join(page.split()) + "\n")):
+            with self.subTest(label):
+                self.assertEqual(anomalies(listed), [])
+        for label, listed in (("different wording", page + " (cập nhật)"),
+                              ("dropped word", " ".join(page.split()[:-1])),
+                              ("changed diacritic", page.replace("a", "á", 1)),
+                              ("changed case", page.upper())):
+            with self.subTest(label):
+                self.assertNotEqual(listed, page)
+                self.assertEqual(anomalies(listed), ["listing_title_differs"])
+
 class MinistryRunnerCase(unittest.TestCase):
     def setUp(self):
         self.network = patch.object(socket.socket, "connect", side_effect=AssertionError("network"))

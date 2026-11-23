@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_records.html" import original_line, title_attrs %}
+{% from "_geo.html" import atlas_figure %}
 {% block title %}Desks — {{ title }}{% endblock %}
 {% block head_scripts %}<link rel="stylesheet" href="desk-map.css">{% endblock %}
 {% block content %}
@@ -16,22 +17,49 @@
 
    The collection state (from the registry) and "Research published" (IPR
    editorial research on the desk) are separate facts and are shown as
-   separate marks, never one in place of the other. #}
+   separate marks, never one in place of the other.
+
+   The page opens on the regional atlas (2026-11-17, `_geo.html`): where each
+   desk's publishing institutions are based, each point a link to its row.
+   A point is a seat, never an area of coverage; the rows below carry every
+   state, count and limit. #}
 {% set pubd = editorial_published_desks | default([]) %}
+{% set seats = {} %}{% for s in atlas.seats %}{% set _ = seats.update({s.desk.slug: s.seat}) %}{% endfor %}{% for o in atlas.outside %}{% set _ = seats.update({o.desk.slug: o.place}) %}{% endfor %}
 {% set front = {} %}{% for item in home_desks.rows %}{% set _ = front.update({item.desk.slug: item.record}) %}{% endfor %}
 {% macro marks(d) -%}
 {#- The registry's state label, verbatim (core.desk_registry.status_label). -#}
 <span class="desk-state desk-state--{{ d.status }}">{{ d.status_label }}</span>{% if d.slug in pubd %} <span class="desk-pub" title="IPR research is published on this desk. This is separate from collection into the record.">Research published</span>{% endif %}
 {%- endmacro %}
+
 <header class="page-head desks-head">
 <h1 class="page-name">Desks</h1>
-<p class="lede">A desk follows the official sources of one country or one group of institutions. Each has its own sources, its own record of what was collected and its own limits.</p>
+<p class="lede">Each desk follows a defined set of official sources from one country or group of institutions.</p>
 <dl class="desks-tally" aria-label="Desk totals">
   <div><dt>Desks</dt><dd>{{ desks.declared_count }}</dd></div>
   <div><dt>Collecting into the record</dt><dd>{{ desks.collecting_count }}</dd></div>
   <div><dt>Not collecting</dt><dd>{{ desks.not_collecting_count }}</dd></div>
 </dl>
-<p class="desk-count">{{ corpus_total|count }} records as of <time datetime="{{ snapshot.date }}">{{ snapshot.date | reader_date }}</time>. Record counts cover official originals only, never IPR's own articles. <a href="coverage.html">What each collection returned</a></p>
+<p class="desk-count">{{ corpus_total|count }} records as of <time datetime="{{ snapshot.date }}">{{ snapshot.date | reader_date }}</time>. Counts cover official originals. <a href="coverage.html">See what each collection returned</a>.</p>
+{{ atlas_figure(atlas) }}
+{# A compact navigator for the register below; rows and atlas locations share
+   the same authoritative geography and registry desk objects. #}
+{% macro jump_link(d, place) -%}
+<li><a href="#desk-{{ d.slug }}" data-desk="{{ d.slug }}">
+  <span class="desk-jump-mark seat-mark seat-mark--{{ d.status }}" aria-hidden="true"></span>
+  <span class="desk-jump-copy">
+    <span class="desk-jump-name">{{ d.name }}</span>
+    <span class="desk-jump-detail">{{ place }} <span aria-hidden="true">·</span> {{ d.status_label }}</span>
+  </span>
+  <span class="desk-jump-arrow" aria-hidden="true">↓</span>
+</a></li>
+{%- endmacro %}
+<nav class="desk-jump" aria-labelledby="desk-jump-title">
+  <h2 id="desk-jump-title">Explore the desks</h2>
+  <ul class="desk-jump-list">
+    {% for s in atlas.seats %}{{ jump_link(s.desk, s.seat) }}{% endfor %}
+    {% for o in atlas.outside %}{{ jump_link(o.desk, o.place ~ ', outside this map') }}{% endfor %}
+  </ul>
+</nav>
 </header>
 
 <nav class="reader-contents" aria-label="On this page">
@@ -46,6 +74,7 @@
   <div class="desks-id">
     <h3 class="plain"><a href="{{ d.route }}">{{ d.name }}</a></h3>
     <p class="card-meta deskmap-marks">{{ marks(d) }}</p>
+    {% if d.slug in seats %}<p class="desks-seat">Seat: {{ seats[d.slug] }} <a href="#atlas">On the map</a></p>{% endif %}
     <dl class="deskmap-stats">
       <div><dt>Records</dt><dd>{% if d.record_count is not none %}{{ d.record_count|count }}{% else %}{{ 'None in the public record' if d.status == 'shadow' else 'None collected' }}{% endif %}</dd></div>
       {% if d.record_count is not none and d.status != 'shadow' and d.last_successful_run %}
@@ -57,6 +86,7 @@
       {% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}
       <div data-philippines-directory-links="{{ ph_official_link_count }}"><dt>Verified official links</dt><dd>{{ ph_official_link_count }}</dd></div>
       <div data-philippines-directory-machine="{{ ph_machine_explanation_count | default(0) }}"><dt>Machine explanations</dt><dd>{{ ph_machine_explanation_count | default(0) }}</dd></div>
+      {% if ph_original_count | default(0) %}<div><dt>AFP Records with original text</dt><dd>{{ ph_original_count }}</dd></div>{% endif %}
       {% endif %}
     </dl>
   </div>
@@ -66,9 +96,9 @@
     <p class="desks-title"{{ title_attrs(r) }}><a href="record/{{ r.id }}.html">{{ r.title_english or r.title_original }}</a></p>
     {{- original_line(r, standalone=true) }}
     {% else %}
-    <p class="desks-none"><a href="#scope-{{ d.slug }}">What this desk reads, and why it does not collect into the record</a></p>
+    <p class="desks-none"><a href="#scope-{{ d.slug }}">Sources and collection limits</a></p>
     {% endif %}
-    <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Open the {{ d.name }}">Open desk</a></p>
+    <p class="deskmap-enter"><a href="{{ d.route }}" aria-label="Open desk: {{ d.name }}">Open desk</a></p>
   </div>
 </section>
 {% endfor %}
@@ -80,7 +110,7 @@
 {% for d in desks %}
   <div class="scope-entry" id="scope-{{ d.slug }}">
     <dt><a href="{{ d.route }}">{{ d.name }}</a> {{ marks(d) }}</dt>
-    <dd><p>{{ d.scope }}</p>{% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}<p class="meta" data-korea-directory-scope-count="{{ korea_mnd_live_link_count }}">MND: {{ korea_mnd_live_link_count }} verified links. Links to MND and DAPA pages are listed; see the Korea Desk for DAPA links and reuse limits. This is not full coverage of the country.</p>{% endif %}{% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}<p class="meta" data-philippines-directory-scope-count="{{ ph_official_link_count }}">{{ ph_official_link_count }} verified official links and {{ ph_machine_explanation_count | default(0) }} machine explanations. AFP and NSC links and attributed machine explanations are published automatically; original documents are not in the public record. These are separate from records, which stay at none.</p>{% endif %}{% if d.record_count %}<p class="card-foot"><a href="archive.html?desk={{ d.slug }}">Browse its records</a></p>{% endif %}</dd>
+    <dd><p>{{ d.scope }}</p>{% if d.slug == 'korea' and korea_mnd_live_link_count | default(0) > 0 %}<p class="meta" data-korea-directory-scope-count="{{ korea_mnd_live_link_count }}">MND: {{ korea_mnd_live_link_count }} verified links. Links to MND and DAPA pages are listed; see the Korea Desk for DAPA links and reuse limits. This is not full coverage of the country.</p>{% endif %}{% if d.slug == 'philippines' and ph_official_link_count | default(0) > 0 %}<p class="meta" data-philippines-directory-scope-count="{{ ph_official_link_count }}">{{ ph_official_link_count }} verified official links and {{ ph_machine_explanation_count | default(0) }} machine explanations. AFP and NSC links and attributed machine explanations are published automatically.{% if ph_original_count | default(0) %} The Philippines Desk links to selected AFP Records with original text.{% endif %}</p>{% endif %}{% if d.record_count %}<p class="card-foot"><a href="archive.html?desk={{ d.slug }}">Browse its records</a></p>{% endif %}</dd>
   </div>
 {% endfor %}
 </dl>

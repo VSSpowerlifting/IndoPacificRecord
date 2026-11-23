@@ -259,7 +259,8 @@ class Handoff(unittest.TestCase):
         from tests.test_collection_attempts import facts
         good = facts(family=MPS)
         for label, block in (("valid", good), ("malformed", {"schema": "junk"}),
-                             ("leaky", dict(good, error_detail="x")), ("null", None)):
+                             ("leaky", dict(good, error_detail="x")), ("null", None),
+                             ("wrong custody", dict(good, custody_commit="0" * 40))):
             with self.subTest(label):
                 report, _ = self.run_private(source_use=grant())
                 ledger = json.loads(self.ledger.read_text())
@@ -268,12 +269,14 @@ class Handoff(unittest.TestCase):
                 old = self.verify(envelope)
                 self.assertEqual(handoff.collection_by_family(envelope), {MPS: None})
                 for entry in envelope["families"]:
-                    entry["collection"] = block
+                    entry["collection"] = (dict(block, custody_commit=entry["source_git_commit"])
+                                           if label in ("valid", "leaky") else block)
                 body = {k: v for k, v in envelope.items() if k != "mac"}
                 envelope["mac"] = handoff._mac(BRIDGE_KEY, body)
                 self.assertEqual(self.verify(envelope), old)
                 invalid = {"attested": False, "reason": "collection_attestation_invalid"}
-                expected = {MPS: {"valid": good, "null": None}.get(label, invalid)}
+                expected = {MPS: {"valid": envelope["families"][0]["collection"],
+                                  "null": None}.get(label, invalid)}
                 self.assertEqual(handoff.collection_by_family(envelope), expected)
         # A family-mismatched block is a defect too, not an absent block.
         report, _ = self.run_private(source_use=grant())
@@ -287,6 +290,195 @@ class Handoff(unittest.TestCase):
         self.verify(envelope)
         self.assertEqual(handoff.collection_by_family(envelope),
                          {MPS: {"attested": False, "reason": "collection_attestation_invalid"}})
+
+    def test_sign_authenticates_a_failed_sibling_without_changing_accepted_records(self):
+        from tests.test_collection_attempts import facts
+        vpcp = handoff.source_use.VPCP
+        report, _ = self.run_private(source_use=grant())
+        ledgers = {MPS: json.loads(self.ledger.read_text())}
+        fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
+        previous = handoff.sign([report], ledgers, **fields)
+        mps = dict(facts(family=MPS), custody_commit=report["source_git_commit"])
+        vpcp_facts = facts(family=vpcp)
+        envelope = handoff.sign([report], ledgers, **fields,
+                                collection={MPS: mps, vpcp: vpcp_facts},
+                                failed_families={vpcp: (vpcp_facts["custody_commit"], "held_source")})
+        records = self.verify(envelope)
+        self.assertEqual(records, self.verify(previous))
+        self.assertEqual(handoff.collection_by_family(envelope), {MPS: mps, vpcp: vpcp_facts})
+        failed = envelope["families"][1]
+        self.assertEqual((failed["bridge_status"], failed["records"]), ("held_source", []))
+        public = self.public()
+        self.assertEqual(handoff.admit(public, records), {qa.PUBLISHED: 2})
+        self.assertEqual(handoff.admit(public, self.verify(envelope)), {bridge.DUPLICATE: 2})
+        failed["bridge_status"] = "bridge_failed"
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_mac_invalid"):
+            self.verify(envelope)
+        forged = self.resign(envelope, lambda body: body["families"][1]["records"].append({}))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_bridge_status_invalid"):
+            self.verify(forged)
+
+    def test_failed_collection_withholds_projection_without_changing_private_ledger(self):
+        from tests.test_collection_attempts import facts, latest
+
+        report, _ = self.run_private(source_use=grant())
+        ledger_before = self.ledger.read_bytes()
+        ledgers = {MPS: json.loads(ledger_before)}
+        fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
+        good = facts(family=MPS, custody_commit=report["source_git_commit"])
+        failed = dict(good, latest=latest(result=st.FETCH_FAILURE, health="fail", healthy=False))
+
+        envelope = handoff.sign([report], ledgers, **fields, collection={MPS: failed})
+        self.assertEqual(envelope["families"][0]["records"], [])
+        self.assertEqual(self.verify(envelope), [])
+        self.assertEqual(handoff.collection_by_family(envelope), {MPS: failed})
+        self.assertEqual(ledgers[MPS], json.loads(ledger_before))
+        self.assertEqual(self.ledger.read_bytes(), ledger_before)
+
+        recover = handoff.sign([report], ledgers, **fields, collection={MPS: good})
+        records = self.verify(recover)
+        public = self.public()
+        self.assertEqual(handoff.admit(public, records), {qa.PUBLISHED: 2})
+        self.assertEqual(handoff.admit(public, records), {bridge.DUPLICATE: 2})
+        conflicting = self.resign(recover, lambda body: body["families"][0].update(collection=failed))
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_collection_failure_has_records"):
+            self.verify(conflicting)
+
+    # -- dispositions: signed counts of this run's bridge outcomes ----------
+
+    #: SIMULATED: the 22 November shape (4 held for review, 3 screened out,
+    #: 6 already in the corpus) plus one settled item; identities are synthetic.
+    MIXED = ([qa.HELD_REVIEW] * 4 + [qa.SCREENED_OUT] * 3 + [bridge.DUPLICATE] * 6
+             + [bridge.SETTLED])
+
+    def mixed(self, report, published=True):
+        kept = [o for o in report["outcomes"] if published and o["outcome"] == qa.PUBLISHED]
+        extra = [{"source_identity": "synthetic-identity-%02d" % i, "content_sha256": "0" * 64,
+                  "outcome": outcome, "failures": [], "article_id": None}
+                 for i, outcome in enumerate(self.MIXED)]
+        return dict(report, outcomes=kept + extra)
+
+    @patch.object(handoff, "SIGN_DISPOSITIONS", True)
+    def test_sign_counts_every_disposition_but_carries_only_published_records(self):
+        report, _ = self.run_private(source_use=grant())
+        ledgers = {MPS: json.loads(self.ledger.read_text())}
+        fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
+        plain = handoff.sign([report], ledgers, **fields)
+        envelope = handoff.sign([self.mixed(report)], ledgers, **fields)
+        entry = envelope["families"][0]
+        self.assertEqual(entry["dispositions"], {
+            qa.PUBLISHED: 2, qa.HELD_REVIEW: 4, qa.SCREENED_OUT: 3, bridge.DUPLICATE: 6,
+            bridge.SETTLED: 1})
+        self.assertEqual(entry["records"], plain["families"][0]["records"])
+        self.assertEqual(plain["families"][0]["dispositions"], {qa.PUBLISHED: 2})
+        self.assertNotIn("synthetic-identity", json.dumps(envelope))
+        # Deterministic: the same run signs the same bytes.
+        self.assertEqual(envelope, handoff.sign([self.mixed(report)], ledgers, **fields))
+        self.assertEqual(self.verify(envelope), self.verify(plain))
+        self.assertEqual(handoff.dispositions_by_family(envelope), {MPS: entry["dispositions"]})
+        # The MAC covers the block: a changed count is refused, not read.
+        envelope["families"][0]["dispositions"][qa.HELD_REVIEW] = 0
+        with self.assertRaisesRegex(handoff.HandoffError, "vietnam_handoff_mac_invalid"):
+            self.verify(envelope)
+
+    @patch.object(handoff, "SIGN_DISPOSITIONS", True)
+    def test_failed_and_quiet_families_dispositions(self):
+        from tests.test_collection_attempts import facts
+        vpcp = handoff.source_use.VPCP
+        report, _ = self.run_private(source_use=grant())
+        vpcp_facts = facts(family=vpcp)
+        quiet = dict(report, source_family=ENERGY, outcomes=[],
+                     custody=dict(report["custody"], source_ref=vn.private_ref(ENERGY)))
+        envelope = handoff.sign(
+            [report, quiet], {MPS: json.loads(self.ledger.read_text()), ENERGY: {"items": {}}},
+            key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW,
+            collection={vpcp: vpcp_facts},
+            failed_families={vpcp: (vpcp_facts["custody_commit"], "held_source")})
+        by_family = {e["source_family"]: e for e in envelope["families"]}
+        self.assertNotIn("dispositions", by_family[vpcp])  # its bridge reported nothing
+        self.assertEqual(by_family[ENERGY]["dispositions"], {})
+        self.verify(envelope)
+        self.assertEqual(handoff.dispositions_by_family(envelope),
+                         {MPS: {qa.PUBLISHED: 2}, ENERGY: {}, vpcp: None})
+
+    def test_dispositions_count_toward_the_size_bound(self):
+        report, _ = self.run_private(source_use=grant())
+        ledgers = {MPS: json.loads(self.ledger.read_text())}
+        mixed = self.mixed(report)
+        items = ledgers[MPS]["items"]
+        articles = sum(len(handoff._canonical(items[o["source_identity"]]["article"]))
+                       for o in mixed["outcomes"] if o["outcome"] == qa.PUBLISHED)
+        block = len(handoff._canonical({"dispositions": handoff._dispositions(mixed["outcomes"])}))
+        # Off (the default), an unsigned block costs nothing, so no record waits for it.
+        for emit, exact in ((True, 2048 + block + articles), (False, 2048 + articles)):
+            for bound, deferred in ((exact, 0), (exact - 1, 1)):
+                with self.subTest(emit=emit, bound=bound), \
+                        patch.object(handoff, "SIGN_DISPOSITIONS", emit), \
+                        patch.object(handoff, "MAX_BYTES", bound):
+                    envelope = handoff.sign([mixed], ledgers, key=BRIDGE_KEY, run_id="r",
+                                            generated_utc=NOW)
+                    self.assertEqual(
+                        (envelope["deferred"], len(envelope["families"][0]["records"])),
+                        (deferred, 2 - deferred))
+
+    def test_legacy_envelope_without_dispositions_verifies_unchanged(self):
+        report, _ = self.run_private(source_use=grant())
+        ledgers = {MPS: json.loads(self.ledger.read_text())}
+        fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
+        old = handoff.sign([report], ledgers, **fields)  # the default signs the legacy shape
+        self.assertNotIn("dispositions", old["families"][0])
+        with patch.object(handoff, "SIGN_DISPOSITIONS", True):
+            envelope = handoff.sign([report], ledgers, **fields)
+        self.assertIn("dispositions", envelope["families"][0])
+        self.assertEqual(self.verify(old), self.verify(envelope))
+        self.assertEqual(handoff.dispositions_by_family(old), {MPS: None})
+
+    def test_default_signer_stays_readable_by_the_previous_verifier(self):
+        """Reader first: until SIGN_DISPOSITIONS is flipped, every family entry
+        meets the exact family-key check of the verifier before this change, so a
+        Daily re-run at an older SHA, or a revert, still reads the handoff."""
+        from tests.test_collection_attempts import facts
+        vpcp = handoff.source_use.VPCP
+        report, _ = self.run_private(source_use=grant())
+        quiet = dict(report, source_family=ENERGY, outcomes=[],
+                     custody=dict(report["custody"], source_ref=vn.private_ref(ENERGY)))
+        vpcp_facts = facts(family=vpcp)
+        envelope = handoff.sign(
+            [self.mixed(report), quiet],
+            {MPS: json.loads(self.ledger.read_text()), ENERGY: {"items": {}}},
+            key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW,
+            collection={vpcp: vpcp_facts},
+            failed_families={vpcp: (vpcp_facts["custody_commit"], "held_source")})
+        self.assertFalse(handoff.SIGN_DISPOSITIONS)
+        self.assertEqual(len(envelope["families"]), 3)
+        for entry in envelope["families"]:
+            with self.subTest(family=entry["source_family"]):
+                self.assertEqual(set(entry) - {"collection", "bridge_status"},
+                                 handoff._FAMILY_KEYS)
+        self.verify(envelope)
+        self.assertEqual(handoff.dispositions_by_family(envelope),
+                         {MPS: None, ENERGY: None, vpcp: None})
+
+    def test_malformed_dispositions_are_reported_invalid_and_never_refuse(self):
+        envelope = self.signed()
+        expected = self.verify(envelope)
+        for label, block in (("bool", {qa.HELD_REVIEW: True}), ("negative", {qa.HELD_REVIEW: -1}),
+                             ("float", {qa.HELD_REVIEW: 1.0}), ("text", {qa.HELD_REVIEW: "4"}),
+                             ("unknown code", {"held_unknown": 1}),
+                             ("reason", {"E_ACRONYM": 2}), ("unbounded", {qa.HELD_REVIEW: 10 ** 9}),
+                             ("list", [qa.HELD_REVIEW]), ("null", None), ("string", "4 held")):
+            with self.subTest(label):
+                bad = self.resign(envelope, lambda body: body["families"][0].update(
+                    dispositions=block))
+                self.assertEqual(self.verify(bad), expected)
+                self.assertEqual(handoff.dispositions_by_family(bad),
+                                 {MPS: handoff.DISPOSITIONS_INVALID})
+
+    def test_disposition_codes_are_the_bridge_outcomes(self):
+        self.assertEqual(set(handoff.DISPOSITIONS), {
+            qa.PUBLISHED, qa.SCREENED_OUT, qa.HELD_RETRYABLE, qa.HELD_REVIEW, qa.HELD_RIGHTS,
+            qa.HELD_SOURCE, qa.HELD_ESCALATED, bridge.DUPLICATE, bridge.SETTLED})
+        self.assertEqual(set(qa.CODES.values()) - set(handoff.DISPOSITIONS), set())
 
     def test_verify_still_refuses_unknown_family_entry_keys(self):
         envelope = self.signed()
@@ -331,6 +523,8 @@ class Handoff(unittest.TestCase):
             self.assertEqual((code, out["counts"]), (0, {qa.PUBLISHED: 2}))
             self.assertEqual(out["by_family"], {MPS: {qa.PUBLISHED: 2}})
             self.assertEqual(out["collection_by_family"], {MPS: None})
+            # The default signer carries no block, so the row is exactly as before.
+            self.assertEqual(out["dispositions_by_family"], {MPS: None})
             self.assertEqual(out["generated_utc"], NOW)
             self.assertNotIn("summary_english", json.dumps(out))
             self.assertEqual(reported(out), ipr_pipeline.GovernedOutcome(st.OK, 2, 0))
@@ -342,6 +536,41 @@ class Handoff(unittest.TestCase):
         with closing_ro(db) as conn:
             self.assertEqual(conn.execute("SELECT COUNT(*) FROM articles").fetchone(), (2,))
         self.assertFalse(any(p.name.startswith(".vietnam-handoff-") for p in self.tmp.iterdir()))
+
+    @patch.object(handoff, "SIGN_DISPOSITIONS", True)
+    def test_command_reports_a_run_with_nothing_published_but_holds_and_duplicates(self):
+        """SIMULATED 22 November shape: no published record crosses, yet the
+        row reports what the private bridge held, screened and found unchanged."""
+        report, _ = self.run_private(source_use=grant())
+        envelope = handoff.sign([self.mixed(report, published=False)],
+                                {MPS: json.loads(self.ledger.read_text())}, key=BRIDGE_KEY,
+                                run_id="simulated-private-run", generated_utc=NOW)
+        self.assertEqual(envelope["families"][0]["records"], [])
+        path = self.tmp / "handoff.json"
+        path.write_text(json.dumps(envelope))
+        public = self.public()
+        public.close()
+        db = self.tmp / "public.db"
+        before = hashlib.sha256(db.read_bytes()).hexdigest()
+        out = io.StringIO()
+        with patch.dict(os.environ, {"VIETNAM_PRIVATE_BRIDGE_KEY": BRIDGE_KEY.decode(),
+                                     "VIETNAM_SOURCE_USE_REVIEW_KEY": KEY.decode()}), \
+                contextlib.redirect_stdout(out):
+            self.assertEqual(handoff.main(["--database", str(db), "--handoff", str(path)]), 0)
+        printed = json.loads(out.getvalue())
+        self.assertEqual(printed["by_family"], {MPS: {}})
+        self.assertEqual(printed["dispositions_by_family"], {MPS: {
+            qa.HELD_REVIEW: 4, qa.SCREENED_OUT: 3, bridge.DUPLICATE: 6, bridge.SETTLED: 1}})
+        self.assertNotIn("synthetic-identity", out.getvalue())
+        self.assertEqual(hashlib.sha256(db.read_bytes()).hexdigest(), before)
+        receipt = self.tmp / "receipt.json"
+        receipt.write_text(out.getvalue())
+        with patch.dict(os.environ, {"IPR_VIETNAM_HANDOFF_RECEIPT": str(receipt)}):
+            self.assertEqual(ipr_pipeline._vn_handoff_outcome(MPS, RECEIVED),
+                             ipr_pipeline.GovernedOutcome(
+                                 st.OK_NO_PUBLICATIONS, 0, 0,
+                                 "private bridge: 4 held_review, 3 screened_out, "
+                                 "1 settled, 6 duplicate"))
 
 
 def closing_ro(path):

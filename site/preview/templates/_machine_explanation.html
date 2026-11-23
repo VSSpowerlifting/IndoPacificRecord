@@ -1,14 +1,11 @@
-{# A record IPR may explain but not reproduce: the original title and text
-   stay private, and this page carries IPR's own machine explanation plus a
-   link to the official publication. #}
 {% from "_atlas.html" import breadcrumb %}
 {% set desk = record.desk_id | default('philippines') %}
 {% set desk_name = {'indonesia': 'Indonesia', 'korea': 'South Korea', 'singapore': 'Singapore', 'japan': 'Japan', 'us-indopacific': 'US Indo-Pacific Reference'}.get(desk, 'Philippines') ~ ' Desk' %}
 <article class="record-page">
   <header class="page-head record-head">
-    {{ breadcrumb([('Records', '../archive.html'), (desk_name, '../' ~ desk ~ '.html'), ('Machine explanation', none)]) }}
-    <p class="record-mark record-mark--english"><span class="evidence evidence--model">Machine explanation</span> <span>Not reviewed by a human.</span></p>
-    <h1>{{ record.source_label }} official source — machine explanation</h1>
+    {{ breadcrumb([('Records', '../archive.html'), (desk_name, '../' ~ desk ~ '.html'), ('Source record' if record.original_title else 'Machine explanation', none)]) }}
+    {% if record.original_title %}<p class="record-mark record-mark--original"><span class="evidence evidence--record">As published</span></p>{% else %}<p class="record-mark record-mark--english"><span class="evidence evidence--model">Machine explanation</span> <span>Not reviewed by a human.</span></p>{% endif %}
+    <h1>{{ display_title }}</h1>
     <p class="record-source-line">Publisher: <b>{{ record.source_label }}</b> · Date stated by the source: <time datetime="{{ record.published_date }}">{{ record.published_date }}</time></p>
     <div class="record-actions"><a class="btn btn--primary" href="{{ record.url }}" rel="noopener nofollow">Read the official publication</a><a href="#record-citation">Cite this page</a></div>
   </header>
@@ -18,12 +15,20 @@
     <p class="meta">{% if desk in ('indonesia', 'korea') %}Machine-generated from {{ 'Korean' if desk == 'korea' else 'Indonesian' }} source evidence, with cited passages translated privately for processing; not reviewed by a human. This is not an official translation.{% else %}Machine-generated from the English source; not reviewed by a human. No translation was needed.{% endif %} This is a reading of an institutional account, not independent verification of its claims.</p>
     <p class="meta">{% if record.model_flagged %}Model-flagged for closer reading: {{ record.flag_reason }}{% else %}Not model-flagged for closer reading.{% endif %} A software triage cue, not an editorial judgment.</p>
   </section>
+  {% if record.original_text %}
+  <section class="record-section" lang="en" aria-labelledby="record-text">
+    <div class="layer-head"><span class="evidence evidence--record">As published</span><h2 id="record-text">Original text</h2></div>
+    <div class="original as-published">{% for paragraph in record.original_text.split('\n\n') %}<p>{{ paragraph }}</p>{% endfor %}</div>
+    <p class="meta">Text reproduced with permission from {{ record.publisher }}. Media and media credits are omitted.</p>
+  </section>
+  {% else %}
   <section class="record-section" aria-labelledby="page-holds"><div class="layer-head"><h2 id="page-holds">What this page holds</h2></div>
     <p class="record-lead">IPR keeps the original title and text privately and does not publish them here. This page publishes IPR's own machine explanation, which is permitted separately, and a link to the official source.</p>
     {% if record.source_family == 'jp_jcg_press_en' %}<p data-pdl-attribution>Source: Japan Coast Guard website (<a href="{{ record.url }}" rel="noopener nofollow">{{ record.url }}</a>). The summary above was created by Indo-Pacific Record by machine-processing and condensing the English text of that page, which the Japan Coast Guard makes available under the <a href="https://www.digital.go.jp/resources/open_data/public_data_license_v1.0" rel="noopener nofollow">Public Data License (Version 1.0)</a>. It is edited content: it was not created by the Government of Japan or the Japan Coast Guard and is not their statement. Linked documents, photographs and other media on that page were not collected or used.</p>{% endif %}
     {% if record.source_family == 'us_uscc_press_en' %}<p data-uscc-source-note>The summary above was written by Indo-Pacific Record by machine-processing only the unquoted institutional narrative of this U.S.-China Economic and Security Review Commission press release. Quotations, linked reports and studies, testimony, attachments, photographs and other media were excluded before processing. It is not USCC text, not a USCC statement, and not U.S. government policy.</p>{% endif %}
     <p class="meta">Publication dates describe when the source published, not necessarily when an event happened. Exercises do not independently establish readiness; announcements do not establish delivery or completed implementation.</p>
   </section>
+  {% endif %}
   {% if record.cited_in %}<aside class="record-rail" aria-label="Where IPR analysis cites this source"><div class="rail-block trail-panel">
     <h2 id="cited-in"><span class="evidence evidence--analysis">Human-controlled analysis</span> Cited in</h2>
     <ul>
@@ -33,7 +38,7 @@
     </ul>
     <p class="meta">The Brief identifies which of its claims rest on this source. This machine explanation is not the Brief's evidence.</p>
   </div></aside>{% endif %}
-  <section class="record-section" id="record-citation"><div class="layer-head"><h2>Cite this record</h2></div><p class="cite-text">Indo-Pacific Record. Machine explanation of {{ record.source_identity }} (source published {{ record.published_date }}). <a href="{{ record.url }}">Official source</a>.</p></section>
+  <section class="record-section" id="record-citation"><div class="layer-head"><h2>Cite this record</h2></div>{% if record.original_title %}<p class="cite-text">{{ record.publisher }}. “{{ record.original_title }}.” {{ record.published_date }}. Indo-Pacific Record, <a href="../{{ record.record_path }}">{{ record.source_identity }}</a>. <a href="{{ record.url }}">Official source</a>.</p>{% endif %}<p class="cite-text">Indo-Pacific Record. Machine explanation of {{ record.source_identity }} (source published {{ record.published_date }}). <a href="{{ record.url }}">Official source</a>.</p></section>
   <details class="record-provenance">
     <summary><span class="record-provenance-title">Where this came from</span>
       <span class="layer-note">The source, the private copy it was read from, and the software that read it</span></summary>

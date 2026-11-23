@@ -169,11 +169,76 @@ class VietnamDispatch(unittest.TestCase):
                        detail="signed handoff (run 41399999999-1) carried no report "
                               "for this family")
 
+    # -- private bridge dispositions (reporting only) ---------------------
+
+    def test_22_november_shape_reports_private_holds_without_changing_status(self):
+        """Run 44966015935-1 shape: nothing published, 4 held for review, 3
+        screened out, 6 unchanged. Status and counts stay what today's row says."""
+        self.write(ok_receipt({MPS: {}}))
+        self.assertRow(self.dispatch(MPS)[0], st.OK_NO_PUBLICATIONS)
+        self.write(dict(ok_receipt({MPS: {}}), dispositions_by_family={
+            MPS: {"held_review": 4, "screened_out": 3, "duplicate": 6}}))
+        r, errors = self.dispatch(MPS)
+        self.assertRow(r, st.OK_NO_PUBLICATIONS,
+                       detail="private bridge: 4 held_review, 3 screened_out, 6 duplicate")
+        self.assertEqual(errors, [])
+
+    def test_published_families_keep_their_admitted_counts(self):
+        self.write(dict(ok_receipt({MPS: {"published": 2}}),
+                        dispositions_by_family={MPS: {"published": 2}}))
+        self.assertRow(self.dispatch(MPS)[0], st.OK, new=2)
+        self.write(dict(ok_receipt({MPS: {"published": 2, "duplicate": 1}}),
+                        dispositions_by_family={MPS: {"published": 3, "held_review": 1,
+                                                      "held_escalated": 0}}))
+        self.assertRow(self.dispatch(MPS)[0], st.OK, new=2, dups=1,
+                       detail="private bridge: 1 held_review")
+        self.write(dict(ok_receipt({MPS: {"held_source": 1}}),
+                        dispositions_by_family={MPS: {"published": 1, "held_rights": 2}}))
+        self.assertRow(self.dispatch(MPS)[0], st.OK_ALL_FILTERED,
+                       detail="held: held_source; private bridge: 2 held_rights")
+
+    def test_absent_dispositions_are_unchanged_and_malformed_ones_are_reported(self):
+        for absent in ({}, {"dispositions_by_family": {MPS: None}},
+                       {"dispositions_by_family": {"vn_vpcp_official_documents_vi": {}}},
+                       {"dispositions_by_family": None}, {"dispositions_by_family": {MPS: {}}}):
+            with self.subTest(absent=absent):
+                self.write(dict(ok_receipt({MPS: {"duplicate": 2}}), **absent))
+                self.assertRow(self.dispatch(MPS)[0], st.OK_ALL_DUPLICATES, dups=2)
+        for block in ({"valid": False, "reason": "dispositions_invalid"},
+                      {"held_review": True}, {"held_review": -1}, {"E_ACRONYM": 1},
+                      {"held_review": "4"}, ["held_review"], "4 held_review"):
+            with self.subTest(block=block):
+                self.write(dict(ok_receipt({MPS: {"duplicate": 2}}),
+                                dispositions_by_family={MPS: block}))
+                self.assertRow(self.dispatch(MPS)[0], st.OK_ALL_DUPLICATES, dups=2,
+                               detail="private bridge: dispositions_invalid")
+
+    def test_a_failed_bridge_reports_its_status_not_dispositions(self):
+        self.write(dict(ok_receipt({MPS: {}}), bridge_by_family={MPS: "bridge_failed"},
+                        dispositions_by_family={MPS: {"held_review": 1}}))
+        self.assertRow(self.dispatch(MPS)[0], st.ANALYSIS_FAILURE,
+                       detail="Vietnam bridge: bridge_failed (run 41399999999-1)")
+
     # -- collection attestation ------------------------------------------
 
     def test_receipts_without_collection_by_family_are_unchanged(self):
         self.write(ok_receipt({MPS: {"published": 2}}))
         self.assertRow(self.dispatch(MPS)[0], st.OK, new=2)
+
+    def test_signed_mixed_outcome_distinguishes_quiet_bridge_hold_and_unavailable(self):
+        from tests.test_collection_attempts import facts
+        healthy = facts(family=VPCP, latest_healthy_target_date="2026-11-01")
+        for bridge_status, expected in (("held_source", st.ANALYSIS_FAILURE),
+                                        ("bridge_failed", st.ANALYSIS_FAILURE),
+                                        ("private_source_unavailable", st.FETCH_FAILURE)):
+            with self.subTest(bridge_status=bridge_status):
+                self.write(dict(ok_receipt({MPS: {}, VPCP: {}}),
+                                collection_by_family={VPCP: healthy},
+                                bridge_by_family={MPS: bridge_status}))
+                self.assertRow(self.dispatch(MPS)[0], expected,
+                               detail="Vietnam bridge: %s (run 41399999999-1)" % bridge_status)
+                self.assertRow(self.dispatch(VPCP, env=dict(ACTIVE, VIETNAM_VPCP_METADATA_ENABLED=""))[0],
+                               st.OK_NO_PUBLICATIONS)
 
     def test_a_replayed_envelope_with_a_stale_collection_is_a_failure_not_a_quiet_day(self):
         """MPS replay of 14 Nov: signed 23:57Z, collection target 13 Nov, read 15 Nov 13:00Z."""
@@ -192,6 +257,13 @@ class VietnamDispatch(unittest.TestCase):
         self.assertEqual(r.error_detail, "collection stale: last healthy target 2026-11-13 "
                          "(latest run 43949292737-1); expected slot 2026-11-14")
         self.assertEqual(len(errors), 1)
+        # The collection verdict keeps the private bridge's detail after its own.
+        self.write(dict(receipt, dispositions_by_family={MPS: {"held_review": 4}}))
+        with mock.patch.dict(os.environ, ACTIVE):
+            self.assertEqual(pipeline._vn_handoff_outcome(MPS, now).error_detail,
+                             "collection stale: last healthy target 2026-11-13 (latest run "
+                             "43949292737-1); expected slot 2026-11-14; "
+                             "private bridge: 4 held_review")
         self.write(dict(receipt, collection_by_family={MPS: None}))
         with mock.patch.dict(os.environ, ACTIVE):
             self.assertEqual(pipeline._vn_handoff_outcome(MPS, now).status, st.OK_NO_PUBLICATIONS)

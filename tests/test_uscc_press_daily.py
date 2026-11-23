@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -95,8 +96,15 @@ def init_custody(root, *, remote=REMOTE, branch=BRANCH):
     return repo
 
 
-def commit_custody(repo, releases, *, run_id="uscc-1", robots=ROBOTS, provenance=None):
-    """Write (slug or identity, day, raw[, access]) captures into custody; return the pin."""
+def commit_custody(repo, releases, *, run_id="uscc-1", robots=ROBOTS, provenance=None,
+                   ledgers=None):
+    """Write (slug or identity, day, raw[, access]) captures into custody; return the pin.
+
+    ``ledgers`` ({basename: dict}) are collector attempt ledgers under state/ledger.
+    """
+    for name, body in (ledgers or {}).items():
+        (repo / "state" / "ledger").mkdir(parents=True, exist_ok=True)
+        (repo / "state" / "ledger" / name).write_text(json.dumps(body))
     rows, captures = [], {}
     for item in releases:
         key, day, raw = item[:3]
@@ -169,8 +177,9 @@ class Lane:
     runs for a registered family. Policy and switch values are synthetic.
     """
 
-    def __init__(self, case, db, tmp, p=None):
+    def __init__(self, case, db, tmp, p=None, clock=None):
         self.case, self.db, self.tmp = case, Path(db), Path(tmp)
+        self.clock = clock  # the public Daily's clock for the freshness verdict
         self.p = p or policy()
         self.handoff = self.tmp / "handoff"
         self.queue = self.handoff / "queues" / (FAMILY + ".json")
@@ -232,7 +241,7 @@ class Lane:
                 patch.object(d, "load_policy", return_value=self.p), \
                 patch.object(daily_runner, "load_policy", return_value=self.p), \
                 patch.object(pipeline, "DB_PATH", self.db):
-            admission = pipeline._daily_admission(FAMILY)
+            admission = pipeline._daily_admission(FAMILY, clock=self.clock)
             self.case.assertIsNone(admission.inactive_reason())
             return admission.admit(1)
 
@@ -290,31 +299,47 @@ def leaks(needles, blobs):
 
 
 class Definition(unittest.TestCase):
-    def test_family_is_disabled_unregistered_and_switch_gated(self):
+    def test_family_is_activated_registered_and_switch_gated(self):
         s = SOURCES[FAMILY]
         self.assertEqual((s.desk_id, s.label, s.custody_ref, s.language, s.identity_max_length),
                          ("us-indopacific", "USCC", BRANCH, "en", links.IDENTITY_MAX))
         self.assertEqual(s.publisher, "U.S.-China Economic and Security Review Commission")
         self.assertEqual((s.key_env, s.public_switch), (links.KEY_ENV, "US_USCC_LINKS_ENABLED"))
-        self.assertFalse(s.desk_registered)
+        self.assertTrue(s.desk_registered)
+        # Private collector cron '35 11 * * *': the family signs /2 and gets a
+        # freshness verdict, reading only ledgers above its pre-schema floor.
+        from core.daily_sources import USCC_LEDGER_AFTER
+        self.assertEqual(s.collection_expectation(), ("11:35", 14))
+        self.assertTrue(s.signs_collection())
+        self.assertEqual(s.collection_ledger_after, USCC_LEDGER_AFTER)
+        self.assertEqual(s.collection_receipt_dirs, ("state/private_attempts",))
         committed = d.load_policy()["sources"][FAMILY]
+        # 2026-11-22 founder first activation, within unchanged ceilings.
         for switch in ("private_model_processing", "public_machine_explanation",
                        "unattended_release"):
-            self.assertIs(committed[switch], False)
-        self.assertIn("NOT authorized", committed["owner_decision"])
+            self.assertIs(committed[switch], True)
+        self.assertIn("2026-11-22 founder", committed["owner_decision"])
+        self.assertIn("US_USCC_LINKS_ENABLED rolls back both public halves",
+                      committed["owner_decision"])
         self.assertEqual((committed["max_records_per_run"],
-                          committed["max_estimated_cost_usd_per_run"]), (1, 0.35))
+                          committed["max_estimated_cost_usd_per_run"],
+                          committed["max_input_characters"],
+                          committed["excluded_source_identities"]), (1, 0.35, 16000, []))
         import pipeline
-        self.assertNotIn(FAMILY, pipeline._governed_admissions())
-        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
-                                     "US_USCC_LINKS_ENABLED": "true"}):
-            self.assertEqual(pipeline._daily_admission(FAMILY).inactive_reason(),
-                             "source-use policy withholds unattended release")
-        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true"}), \
-                patch.object(d, "load_policy", return_value=policy()):
+        self.assertIn(FAMILY, pipeline._governed_admissions())
+        # The committed policy is open; the owner switch alone withholds it.
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true"}):
             os.environ.pop("US_USCC_LINKS_ENABLED", None)
             self.assertEqual(pipeline._daily_admission(FAMILY).inactive_reason(),
                              "owner public switch is off")
+            os.environ["US_USCC_LINKS_ENABLED"] = "true"
+            self.assertIsNone(pipeline._daily_admission(FAMILY).inactive_reason())
+        # A policy with any flag withheld still stops it.
+        with patch.dict(os.environ, {"IPR_PRIVATE_DAILY_ENABLED": "true",
+                                     "US_USCC_LINKS_ENABLED": "true"}), \
+                patch.object(d, "load_policy", return_value=policy(enabled=False)):
+            self.assertEqual(pipeline._daily_admission(FAMILY).inactive_reason(),
+                             "source-use policy withholds unattended release")
 
     def test_profile_is_source_level_and_evidence_bound(self):
         from analysis.analyzer import _evidence_bound, _fact_only
@@ -363,16 +388,16 @@ class Definition(unittest.TestCase):
             os.environ.pop("US_USCC_LINKS_ENABLED", None)
             call.return_value = "fetched"
             result = fetch.main()
-            self.assertEqual(result[FAMILY], "policy_disabled")
+            self.assertEqual(result[FAMILY], "public_switch_off")
             self.assertNotIn(links.LINKS_NAME, result)
             os.environ["US_USCC_LINKS_ENABLED"] = "true"
             result = fetch.main()
-            # The committed policy still withholds the machine envelope.
-            self.assertEqual(result[FAMILY], "policy_disabled")
+            # The committed policy is open: the owner switch releases both halves.
+            self.assertEqual(result[FAMILY], "fetched")
             self.assertEqual(result[links.LINKS_NAME], "fetched")
             self.assertEqual(call.call_args.args[2], links.LINKS_REF)
-            self.assertNotIn("envelopes/" + FAMILY + ".json",
-                             [c.args[0] for c in call.call_args_list])
+            self.assertIn("envelopes/" + FAMILY + ".json",
+                          [c.args[0] for c in call.call_args_list])
 
 
 class Migration(unittest.TestCase):
@@ -536,7 +561,7 @@ class Custody(unittest.TestCase):
                                           (dalai, "2026-08-26", release_page(dalai, "2026-08-26"))])
         records = d.verified_source(self.repo, head, FAMILY)
         factory = Mock()
-        state, _ = d.process(records, {}, family=FAMILY, policy=d.load_policy(),
+        state, _ = d.process(records, {}, family=FAMILY, policy=policy(enabled=False),
                              analyzer_factory=factory)
         factory.assert_not_called()
         self.assertEqual(state[FAMILY + ":" + ident(SLUG_A)]["reason"], "model_rights_held")
@@ -544,6 +569,10 @@ class Custody(unittest.TestCase):
         state, _ = d.process(held, {}, family=FAMILY, policy=policy(), analyzer_factory=factory)
         factory.assert_not_called()
         self.assertNotEqual(state.get(FAMILY + ":" + ident(dalai), {}).get("status"), "complete")
+
+
+# A public Daily start at which the 2026-11-23 11:35 slot is the expected one.
+LIFECYCLE_NOW = datetime(2026, 11, 24, 14, 23, tzinfo=timezone.utc)
 
 
 class Lifecycle(unittest.TestCase):
@@ -561,10 +590,16 @@ class Lifecycle(unittest.TestCase):
             list_metadata(conn, ident(SLUG_B), DAY_B)
         conn.close()
         self.repo = init_custody(self.tmp)
+        # The collector's attempt ledgers: a pre-schema one at the declared floor
+        # (never read) and a healthy schedule-slot one current at LIFECYCLE_NOW.
+        from core.daily_sources import USCC_LEDGER_AFTER
+        from tests.test_collection_attempts import legacy, new_shape
         self.head = commit_custody(self.repo, [
             (SLUG_A, DAY_A, release_page(SLUG_A, DAY_A)),
-            (SLUG_B, DAY_B, release_page(SLUG_B, DAY_B, narrative=(N3, N4)))])
-        self.lane = Lane(self, self.db, self.tmp)
+            (SLUG_B, DAY_B, release_page(SLUG_B, DAY_B, narrative=(N3, N4)))],
+            ledgers={USCC_LEDGER_AFTER: legacy(),
+                     "20261123T190244Z-45100000000-1.json": new_shape()})
+        self.lane = Lane(self, self.db, self.tmp, clock=lambda: LIFECYCLE_NOW)
 
     def deliver(self, head=None):
         """One Daily cycle; returns (state, envelope, governed outcome)."""

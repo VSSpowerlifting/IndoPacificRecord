@@ -100,7 +100,11 @@ class KoreaAdditionalPublicLinkReleaseTests(unittest.TestCase):
             # fixed bibliography and released original exhibits stay intact.
             corpus = set(gp.load_corpus(ROOT / "pla_watch.db")["korea_publishable"].values())
             auto = load_live_korea_official_links(ROOT / "pla_watch.db", exclude=fixed | corpus)
-            self.assertEqual(page.count('data-korea-auto-official-link='), len(auto))
+            # The desk lists the newest DESK_LINK_LIMIT auto rows; the full
+            # official-link index lists every one of them.
+            from core import official_link_index as link_index
+            shown = link_index.latest("korea", auto)
+            self.assertEqual(page.count('data-korea-auto-official-link='), len(shown))
             from core.korea_published_originals import read_release_index
             # The 14 static official outbound links remain exactly fixed.
             # Owner-released Korean original-text cards add independent
@@ -108,8 +112,8 @@ class KoreaAdditionalPublicLinkReleaseTests(unittest.TestCase):
             originals = read_release_index()
             self.assertEqual(page.count(
                 "https://www.korea.kr/briefing/pressReleaseView.do?newsId="),
-                14 + len(auto) + len(originals))
-            for row in auto:
+                14 + len(shown) + len(originals))
+            for row in shown:
                 self.assertIn(row["source_url"], page)
             self.assertIn("unresolved excavation-year discrepancy", page)
             self.assertIn("not IPR archived records", page)

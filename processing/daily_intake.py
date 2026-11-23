@@ -16,7 +16,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from core import processing_state
+from core import daily_record_originals, processing_state
 from core.crossdesk_official_metadata_candidates import canonical
 from core.daily_sources import SOURCES, attended_only, source_for
 from processing.screening import profile_for_source
@@ -35,8 +35,16 @@ DOMAIN = b"ipr-shared-daily-machine-output/1\n"
 DOMAIN_V2 = b"ipr-shared-daily-machine-output/2\n"
 SCHEMA_V1 = "ipr-shared-daily-machine-output/1"
 SCHEMA_V2 = "ipr-shared-daily-machine-output/2"
+SCHEMA_V3 = "ipr-shared-daily-machine-output/3"
+DOMAIN_V3 = (SCHEMA_V3 + "\n").encode()
 _BASE_KEYS = {"schema", "family", "source_repository", "source_ref", "processor_commit",
               "records", "held"}
+PACKET_FIELDS = {
+    SCHEMA_V1: _BASE_KEYS,
+    SCHEMA_V2: _BASE_KEYS | {"collection"},
+    SCHEMA_V3: _BASE_KEYS | {"collection", "originals"},
+}
+PACKET_DOMAINS = {SCHEMA_V1: DOMAIN, SCHEMA_V2: DOMAIN_V2, SCHEMA_V3: DOMAIN_V3}
 PUBLIC_FIELDS = (
     "source_family", "source_identity", "metadata_version_sha256",
     "content_sha256", "capture_sha256", "source_git_commit", "source_run",
@@ -359,6 +367,10 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
     result = json.loads(json.dumps(state))
     used, analyzer, budget, exhausted = 0, None, None, False
     present = {family + ":" + r["source_identity"] for r in records}
+    if source.first_attempts_first:
+        # Stable sort: never-attempted entries first, input order within groups.
+        records = sorted(records, key=lambda r: bool(
+            result.get(family + ":" + r["source_identity"], {}).get("attempts")))
     for key, entry in result.items():
         if key.startswith(family + ":") and key not in present:
             entry.update(status="held", reason="source_missing_or_metadata_changed")
@@ -445,7 +457,7 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
                 entry.update(status="not_selected")
                 continue
             quality = quality_check(r, reading)
-            entry.update(status="complete", output={
+            output = {
                 **{k: r[k] for k in PUBLIC_FIELDS[:7]},
                 "summary": reading["summary_english"], "categories": reading["categories"],
                 "model_flagged": reading["is_significant"],
@@ -453,7 +465,19 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
                 "flag_reason": reading.get("significance_reasoning") if reading["is_significant"] else None,
                 "model_id": reading["model_id"], "prompt_version": reading["prompt_version"],
                 "quality_sha256": quality, "policy_sha256": policy_binding(p),
-            })
+            }
+            # For a family that opts in, its public attribution check is applied
+            # before signing. Public admission runs the same check
+            # (validate_output). An output it would hold for attribution is then
+            # a QA failure, not signed "complete" here, where it would use the
+            # item's completion and never publish. A model flag stays a public
+            # editorial disposition: it completes here and admission holds it.
+            if source.output_check_before_signing:
+                attribution_hold = source.output_hold(dict(output, model_flagged=False,
+                                                           flag_reason=None))
+                if attribution_hold:
+                    raise IntakeHold(attribution_hold)
+            entry.update(status="complete", output=output)
         except FatalAPIError:
             entry.update(status="pending", reason="account_blocked")
             break
@@ -486,7 +510,13 @@ def process(records, state, *, family, policy, analyzer_factory=None, reading_ob
     return result, usage_record or []
 
 
-def sign_outputs(state, *, family, policy, key, selected_record=None):
+def sign_outputs(state, *, family, policy, key, selected_record=None, collection=None,
+                 verified_records=()):
+    """Sign the family's outputs. ``collection=None`` emits the exact /1 packet
+    and MAC; a facts dict emits /2 with that block, MACed under DOMAIN_V2. A
+    block that fails validation is replaced by a not-attested one, never
+    dropped or signed as given. A packet with eligible optional title and text
+    components uses /3 with a separate MAC domain."""
     p = policy["sources"][family]
     need(p["private_model_processing"] and p["public_machine_explanation"]
          and p["unattended_release"], "daily_output_rights_held")
@@ -521,13 +551,30 @@ def sign_outputs(state, *, family, policy, key, selected_record=None):
                     "metadata_version_sha256", "content_sha256", "capture_sha256")
         need(all(out.get(k) == selected_record.get(k) for out in outputs for k in expected),
              "daily_singapore_pilot_version_mismatch")
-    packet = {"schema": "ipr-shared-daily-machine-output/1", "family": family,
+    packet = {"schema": SCHEMA_V1, "family": family,
               "source_repository": PRIVATE_REPO, "source_ref": REFS[family],
               "processor_commit": git(ROOT, "rev-parse", "HEAD").decode().strip(), "records": outputs,
               "held": held}
+    domain = DOMAIN
+    if collection is not None:
+        from core.collection import attempts
+        facts = attempts.validate(collection)
+        if facts is None or facts["family"] != family:
+            commit = collection.get("custody_commit") if isinstance(collection, dict) else None
+            facts = attempts.unattested(
+                family, commit if isinstance(commit, str) and COMMIT.fullmatch(commit)
+                else "0" * 40, "collection_attestation_invalid")
+        packet["schema"], packet["collection"], domain = SCHEMA_V2, facts, DOMAIN_V2
+    if family == daily_record_originals.AFP and collection is not None and verified_records:
+        publishable = {out["source_identity"] for out in outputs}
+        originals = daily_record_originals.project(
+            (r for r in verified_records if r["source_identity"] in publishable),
+            state, family, daily_record_originals.load_pins())
+        if originals:
+            packet["schema"], packet["originals"], domain = SCHEMA_V3, originals, DOMAIN_V3
     raw = canonical(packet)
     need(len(raw) <= 512000, "daily_envelope_too_large")
-    return {"packet": packet, "mac": hmac.new(key.encode(), DOMAIN + raw, hashlib.sha256).hexdigest()}
+    return {"packet": packet, "mac": hmac.new(key.encode(), domain + raw, hashlib.sha256).hexdigest()}
 
 
 def admit(conn, envelope, *, family, policy, key):
@@ -538,9 +585,9 @@ def admit(conn, envelope, *, family, policy, key):
     packet = envelope["packet"]
     need(type(packet) is dict, "daily_envelope_invalid")
     raw = canonical(packet)
-    # The schema string selects the MAC domain; any other value keeps the /1
-    # domain and is refused by the shape check below, as before.
-    domain = DOMAIN_V2 if packet.get("schema") == SCHEMA_V2 else DOMAIN
+    schema = packet.get("schema")
+    need(type(schema) is str and schema in PACKET_DOMAINS, "daily_envelope_source_mismatch")
+    domain = PACKET_DOMAINS[schema]
     need(len(raw) <= 512000 and type(envelope["mac"]) is str
          and hmac.compare_digest(hmac.new(key.encode(), domain + raw, hashlib.sha256).hexdigest(),
                                  envelope["mac"]), "daily_envelope_mac_invalid")
@@ -549,12 +596,18 @@ def admit(conn, envelope, *, family, policy, key):
          "daily_output_rights_held")
     # The `collection` block is deliberately not read here: admission of the
     # records never depends on it. See collection_facts().
-    need(set(packet) == (_BASE_KEYS | {"collection"} if packet.get("schema") == SCHEMA_V2 else _BASE_KEYS)
-         and packet.get("schema") in (SCHEMA_V1, SCHEMA_V2)
-         and packet["family"] == family and packet["source_repository"] == PRIVATE_REPO
+    need(set(packet) == PACKET_FIELDS[schema] and packet["family"] == family and packet["source_repository"] == PRIVATE_REPO
          and packet["source_ref"] == REFS[family] and type(packet["records"]) is list
          and type(packet["held"]) is list and all(type(s) is str for s in packet["held"]),
          "daily_envelope_source_mismatch")
+    if schema == SCHEMA_V3:
+        originals = packet["originals"]
+        need(family == daily_record_originals.AFP and type(originals) is list
+             and 0 < len(originals) <= len(packet["records"])
+             and daily_record_originals.is_already_applied(conn),
+             "daily_original_components_invalid")
+    else:
+        originals = ()
     if attended_only(family):
         # A one-item pilot is limited at public admission too. The MAC alone
         # authenticates the signer, but cannot compensate for an old multi-row
@@ -570,6 +623,8 @@ def admit(conn, envelope, *, family, policy, key):
     from migrations.versions.m0015_daily_machine_records import is_already_applied
     need(is_already_applied(conn) and source.admission_ready(conn), "daily_migration_required")
     accepted, held = 0, []
+    accepted_identities = set()
+    originals_admitted = 0
     with conn:
         for ident in packet["held"]:
             conn.execute("UPDATE daily_machine_records SET publication_state='held' "
@@ -587,6 +642,7 @@ def admit(conn, envelope, *, family, policy, key):
                     (family, r.get("source_identity") if type(r) is dict else None,
                      r.get("prompt_version") if type(r) is dict else None)).fetchone()
                 validate_output(r, family, p, released=stored is not None)
+                need(r["source_identity"] not in packet["held"], "daily_output_also_held")
                 if source.parent:
                     link = source.parent_link(conn, r["source_identity"])
                     need(link is not None and link["metadata_version_sha256"] == r["metadata_version_sha256"]
@@ -608,24 +664,55 @@ def admit(conn, envelope, *, family, policy, key):
                         conn.execute("UPDATE daily_machine_records SET policy_sha256=? "
                                      "WHERE source_family=? AND source_identity=?",
                                      (r["policy_sha256"], family, r["source_identity"]))
+                    accepted_identities.add(r["source_identity"])
                     continue
                 values = [canonical(r[k]).decode() if k == "categories" else r[k] for k in PUBLIC_FIELDS]
                 columns = ["categories_json" if k == "categories" else k for k in PUBLIC_FIELDS]
                 conn.execute("INSERT INTO daily_machine_records (" + ",".join(columns) + ") VALUES (" + ",".join("?" for _ in values) + ")", values)
                 accepted += 1
+                accepted_identities.add(r["source_identity"])
             except IntakeHold as exc:
                 held.append(str(exc))
-    return {"admitted": accepted, "holds": held}
+        if family == daily_record_originals.AFP:
+            pins = daily_record_originals.load_pins()
+            daily_record_originals.prune(conn, pins)
+            for component in originals:
+                identity = component.get("source_identity") if type(component) is dict else None
+                if (type(identity) is not str or identity not in accepted_identities
+                        or component.get("source_family") != family):
+                    held.append("daily_original_parent_unaccepted")
+                    continue
+                disposition = daily_record_originals.store(conn, component, pins)
+                if disposition == "held":
+                    held.append("daily_original_version_or_policy_held")
+                elif disposition == "inserted":
+                    originals_admitted += 1
+    # Signed paused holds are applied above as withdrawals only. Report which
+    # of them are not currently released (identities only), so the receipt
+    # does not silently drop them. Status semantics are unchanged.
+    still_held = []
+    for ident in sorted(set(packet["held"])):
+        if conn.execute("SELECT 1 FROM daily_machine_records WHERE source_family=? "
+                        "AND source_identity=? AND publication_state='released'",
+                        (family, ident)).fetchone() is None:
+            still_held.append(ident)
+    result = {"admitted": accepted, "holds": held}
+    if still_held:
+        # Present only when non-empty, so the receipt shape is otherwise unchanged.
+        result["signed_held"] = still_held
+    if originals:
+        result["originals_admitted"] = originals_admitted
+    return result
 
 
 def collection_facts(packet) -> Optional[dict]:
     """The packet's validated collection facts, from an already admitted packet.
 
-    None for a /1 packet (no facts). For /2, the validated block, or a
+    None for a /1 packet (no facts). For /2 or /3, the validated block, or a
     not-attested marker when the signed block is malformed: a defect in the
     attestation never blocks the records, it is reported instead.
     """
-    if not (isinstance(packet, dict) and packet.get("schema") == SCHEMA_V2):
+    if not (isinstance(packet, dict) and packet.get("schema") in (SCHEMA_V2, SCHEMA_V3)):
         return None
     from core.collection import attempts
     facts = attempts.validate(packet.get("collection"))

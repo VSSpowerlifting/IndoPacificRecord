@@ -10,6 +10,7 @@
 /* The finder: a full-width title box, then one row of the filters most
    searches need. Everything else waits behind "More filters". */
 .archive-page #browse{margin:0 0 1.5rem}
+.archive-page .finder{padding:clamp(.8rem,2.2vw,1.7rem);background:var(--surface);border:1px solid var(--rule);border-top:2px solid var(--ink)}
 .finder-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:0 .6rem;align-items:end}
 .finder-field{min-width:0}
 .finder-field label{display:block;margin:0 0 .35rem}
@@ -125,7 +126,7 @@ body:has(#f-scope option[value="focus"]:not(:checked)) .focus-note{display:none}
 .states-list li{display:flex;flex-direction:column;align-items:flex-start;max-width:none;padding:1rem 1.3rem 1.1rem 0}
 .states-list li+li{padding-left:1.3rem;border-left:1px solid var(--rule)}
 .states-count{font:400 2.75rem/1 var(--display);font-variant-numeric:lining-nums;color:var(--ink)}
-.states-list a{display:inline-flex;align-items:center;min-height:40px;font-size:.9375rem;font-weight:600;line-height:1.3}
+.states-list a{overflow-wrap:anywhere;display:inline-flex;align-items:center;min-height:40px;font-size:.9375rem;font-weight:600;line-height:1.3}
 .states-track{display:block;align-self:stretch;height:4px;margin:.2rem 0 .45rem;background:var(--rule-soft)}
 .states-fill{display:block;height:100%;background:var(--ink)}
 .states-share{font-size:.8125rem;color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
@@ -161,8 +162,8 @@ body:has(#f-scope option[value="focus"]:not(:checked)) .focus-note{display:none}
 .finder-quick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
 .finder-quick .finder-field--scope{grid-column:1/-1}
 .finder-quick .finder-field:not(.finder-field--scope){display:block}
-.finder-quick .finder-field--scope select{flex:1}
-.finder-quick select,.finder-quick #f-scope,.finder-quick #f-desk,.finder-quick #f-sort{width:100%;max-width:none;min-height:44px;font-size:1rem}
+.finder-quick .finder-field--scope select{flex:1;overflow:hidden}
+.finder-quick select,.finder-quick #f-scope,.finder-quick #f-desk,.finder-quick #f-sort{width:100%;overflow:hidden;text-overflow:ellipsis;max-width:none;min-height:44px;font-size:1rem}
 .finder-more-body{grid-template-columns:minmax(0,1fr)}
 .finder-field--wide{grid-column:auto}
 .finder-more-body :is(input,select){font-size:1rem}

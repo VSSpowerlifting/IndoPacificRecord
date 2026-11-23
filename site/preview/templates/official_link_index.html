@@ -1,0 +1,91 @@
+{# Full index of a desk's admitted official-link metadata. The desk page shows
+   only the newest rows; this hub (by month) and its month pages carry every
+   admitted row exactly once, in the same newest-first order and markup. No
+   headline, body, translation, media or analysis enters these pages. #}
+{% extends "base.html" %}
+{% from "_atlas.html" import breadcrumb %}
+{% block title %}{% if index_kind == 'hub' %}{{ desk.name }} official links by month{% else %}{{ desk.name }} official links, {{ index_month.label }}{% endif %} — {{ title }}{% endblock %}
+{% block description %}{% if index_kind == 'hub' %}Every admitted {{ desk.name }} official-link metadata record, grouped by month of its official date.{% else %}Admitted {{ desk.name }} official-link metadata records dated {{ index_month.label }}.{% endif %}{% endblock %}
+{% block head_scripts %}<link rel="stylesheet" href="{{ root }}desk-references.css">{% endblock %}
+{% block content %}
+{% if index_kind == 'hub' %}
+{{ breadcrumb([('Desks', root ~ 'desks.html'), (desk.name, root ~ desk.route), ('Official links by month', none)]) }}
+<header class="page-head">
+  <h1 class="page-name">{{ desk.name }} official links by month</h1>
+  {% if index_desk == 'indonesia' %}
+  <p class="lede">All {{ index_total }} admitted official-link metadata
+  {{ 'record' if index_total == 1 else 'records' }}, grouped by the month of
+  the official date.
+  {% else %}
+  <p class="lede">All {{ index_total }} automatically admitted official
+  {{ 'link' if index_total == 1 else 'links' }} not already listed among the
+  desk's historical references or published records, grouped by the month of
+  the portal posting date.
+  {% endif %}
+  The <a href="{{ root }}{{ desk.route }}">desk page</a> lists
+  {{ 'the latest %d' % index_shown if index_shown < index_total else 'all of them' }}.</p>
+</header>
+<section class="desk-references" aria-labelledby="official-link-months-title">
+  <h2 id="official-link-months-title">Months</h2>
+  <ol class="desk-reference-list" data-official-link-index="{{ index_desk }}"
+      data-official-link-total="{{ index_total }}">
+    {% for month in index_months %}
+    <li data-official-link-month="{{ month.month }}" data-official-link-month-count="{{ month.count }}"><a href="{{ root }}{{ month.route }}">{{ month.label }}</a> · {{ month.count }} {{ 'link' if month.count == 1 else 'links' }}</li>
+    {% endfor %}
+  </ol>
+  <p class="meta">These are publisher links with dates only. Original
+  headlines, article bodies, photos, documents, translations and automatic
+  analysis are excluded. Held records cannot appear in this index.</p>
+</section>
+{% else %}
+{{ breadcrumb([('Desks', root ~ 'desks.html'), (desk.name, root ~ desk.route), ('Official links by month', root ~ index_hub), (index_month.label, none)]) }}
+<header class="page-head">
+  <h1 class="page-name">{{ desk.name }} official links · {{ index_month.label }}</h1>
+  <p class="lede">{{ index_month.count }} admitted official-link metadata
+  {{ 'record' if index_month.count == 1 else 'records' }}, newest first.</p>
+</header>
+<nav class="official-link-month-nav" aria-label="Official-link months">
+  <p class="meta">{% if index_newer %}<a href="{{ root }}{{ index_newer.route }}">Newer: {{ index_newer.label }}</a> · {% endif %}<a href="{{ root }}{{ index_hub }}">All months</a>{% if index_older %} · <a href="{{ root }}{{ index_older.route }}">Older: {{ index_older.label }}</a>{% endif %}</p>
+</nav>
+{% if index_desk == 'indonesia' %}
+<section class="desk-references regional-official-live-links"
+         data-source-scope="official-link-only"
+         aria-labelledby="regional-official-live-links-title">
+  <p class="eyebrow">Verified official sources · publisher links only</p>
+  <h2 id="regional-official-live-links-title">Verified official-source links admitted — original publisher references</h2>
+  <p>These links come from a guarded production metadata index, not the
+  original-text archive. The publisher's statements are not independently
+  verified claims, and this is not comprehensive national defense coverage.</p>
+  <ol class="desk-reference-list" aria-label="Admitted official publisher references">
+    {% for ref in index_rows %}
+    <li data-regional-official-source-id="{{ ref.source_identity }}">
+      <h3><a href="{{ ref.canonical_official_url }}" target="_blank"
+             rel="noopener noreferrer">{{ ref.label }}</a></h3>
+      <p class="meta">Publisher: {{ ref.publisher_label }} · Official date <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time> · Official-link metadata only</p>
+    </li>
+    {% endfor %}
+  </ol>
+  <p class="meta">Article bodies, photos, document files, translations and
+  automatic analysis are excluded. Held records cannot appear in this index.</p>
+</section>
+{% else %}
+<section class="korea-automatically-admitted-official-links" aria-labelledby="korea-auto-official-title">
+  <p class="eyebrow">Continuously collected · official government links only</p>
+  <h2 id="korea-auto-official-title">Verified Korean government references</h2>
+  <p>Official Korea Policy Briefing republications of Korean government
+  releases, admitted to IPR's production metadata database under the standing
+  link-only publication policies. No human editor has verified the underlying
+  event claims, and this list does not contain original headlines, translated
+  text, document bodies, photographs or analysis.</p>
+  <ol class="korea-public-source-list" aria-label="Automatically admitted official Korean source links">
+  {% for ref in index_rows -%}
+    <li data-korea-auto-official-link="{{ ref.source_identity }}">
+      <h3><a href="{{ ref.source_url }}" rel="noopener noreferrer" target="_blank">{{ ref.neutral_label }}</a></h3>
+      <p class="meta">Issuer: {{ ref.issuer_label }} ({{ ref.issuer_original_label }}) · Republication: {{ ref.republisher_label }} (대한민국 정책브리핑) · Portal posted: <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Official link only</p>
+    </li>
+  {% endfor %}
+  </ol>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

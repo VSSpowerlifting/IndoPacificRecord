@@ -159,6 +159,8 @@ def build_custody(root, rows=None, *, remote=REMOTE, branch="archive/japan-jcg",
         requests_.insert(0, request(rights.POLICY_URL, raw, policy_at or now))
     (repo / "state/ledger" / ("20261101T000000-" + RUN + ".json")).write_text(json.dumps({
         "run_id": RUN, "result": ledger_result, "finished_utc": iso(now),
+        "target_date": now.strftime("%Y-%m-%d"), "target_date_source": "schedule-slot",
+        "health": "ok" if ledger_result == "ok" else "fail",
         "requests": requests_}))
     git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
     subprocess.run(git + ["init", "-q"], check=True)
@@ -214,7 +216,8 @@ class JcgDefinition(unittest.TestCase):
         self.assertFalse(_fact_only(JAPAN_JCG_DAILY_PROFILE))
         pair = (JAPAN_JCG_DAILY_PROFILE.prompt_version + "+"
                 + JAPAN_JCG_DAILY_PROFILE.analysis_prompt_version)
-        self.assertEqual((pair,), SOURCES[FAMILY].prompt_versions)
+        self.assertEqual(pair, SOURCES[FAMILY].prompt_versions[0])
+        self.assertEqual(pair, "jp-jcg-relevance-v1+jp-jcg-analysis-v3")
 
     def test_prompts_name_only_the_coast_guard_and_exclude_attachments(self):
         from analysis import japan_jcg_prompts as prompts
@@ -790,7 +793,8 @@ def commit_run(repo, run_id, *, terms, raw=None):
         attempts = [dict(request(rights.POLICY_URL, b"<html></html>", now), http_status=503)]
     (repo / "state/ledger" / (now.strftime("%Y%m%dT%H%M%S%f") + "-" + run_id + ".json")).write_text(
         json.dumps({"run_id": run_id, "result": "ok_no_publications", "finished_utc": iso(now),
-                    "listing_report": {"site_terms": terms}, "requests": attempts}))
+                    "target_date": now.strftime("%Y-%m-%d"), "target_date_source": "schedule-slot",
+                    "health": "ok", "listing_report": {"site_terms": terms}, "requests": attempts}))
     git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
     subprocess.run(git + ["add", "state"], check=True)
     subprocess.run(git + ["commit", "-qm", "run " + run_id], check=True)

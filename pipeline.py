@@ -40,6 +40,7 @@ from typing import Callable, NamedTuple, Optional
 
 from config import (
     ANTHROPIC_API_KEY, BACKLOG_RESERVE_FRACTION, CACHE_DIR, DAILY_ANALYSIS_CAP,
+    DAILY_ANALYSIS_WORKERS,
     DB_PATH, LIVE_BACKLOG_DAYS, OUTPUT_DIR, ANALYSIS_MODEL, RELEVANCE_MODEL,
     TRANSLATION_MODEL, SUMMARY_MODEL, CATEGORIZATION_MODEL, FALLBACK_MODEL,
 )
@@ -396,9 +397,17 @@ def _daily_admission(family: str, *, intake=None, clock=None) -> GovernedAdmissi
                                    error_detail="no signed envelope delivered this run")
         admitted = receipt["admitted"]
         unchanged = max(receipt["records"] - admitted, 0)
-        logger.info("%s: governed admission — %d records, %d admitted, %d held",
-                    family, receipt["records"], admitted, len(receipt["holds"]))
+        signed_held = len(receipt.get("signed_held") or ())
+        logger.info("%s: governed admission — %d records, %d admitted, %d held, %d signed_held",
+                    family, receipt["records"], admitted, len(receipt["holds"]), signed_held)
+        if "originals_admitted" in receipt:
+            logger.info("%s: %d original components admitted", family, receipt["originals_admitted"])
         base = _receipt_outcome(admitted, unchanged, holds=receipt["holds"])
+        if signed_held:
+            # Reporting only: persistent paused holds never change the status.
+            base = GovernedOutcome(base.status, base.new_documents, base.duplicates,
+                                   "; ".join(d for d in (base.error_detail,
+                                             "signed_held: %d" % signed_held) if d))
         if attended_only(family):
             # An operator-run pilot has no scheduled collector to attest.
             return base
@@ -557,6 +566,26 @@ def _vn_handoff_inactive() -> Optional[str]:
     return None
 
 
+def _vn_dispositions_detail(family: str, run: str, by_family) -> Optional[str]:
+    """The private bridge's signed outcome counts for this family, as a fixed-code
+    detail; None when the receipt carries none (an older signer) or nothing
+    beyond published records, which by_family already reports."""
+    if not isinstance(by_family, dict) or by_family.get(family) is None:
+        return None
+    from core.vietnam_daily_handoff import DISPOSITIONS, valid_dispositions
+    from core.vietnam_daily_qa import PUBLISHED
+    block = by_family[family]
+    if not valid_dispositions(block):
+        logger.warning("%s: handoff run %s — private bridge dispositions invalid", family, run)
+        return "private bridge: dispositions_invalid"
+    counts = ", ".join("%d %s" % (block[code], code) for code in DISPOSITIONS
+                       if block.get(code))
+    logger.info("%s: handoff run %s — private bridge: %s", family, run, counts or "no outcomes")
+    held = ", ".join("%d %s" % (block[code], code) for code in DISPOSITIONS
+                     if code != PUBLISHED and block.get(code))
+    return "private bridge: " + held if held else None
+
+
 def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
     """This family's share of the handoff step's printed receipt."""
     from pathlib import Path as _Path
@@ -607,9 +636,32 @@ def _vn_handoff_outcome(family: str, now: datetime) -> GovernedOutcome:
     from core.collection import attempts
     by_collection = receipt.get("collection_by_family")
     facts = by_collection.get(family) if isinstance(by_collection, dict) else None
+    bridge_by_family = receipt.get("bridge_by_family", {})
+    bridge_status = bridge_by_family.get(family) if isinstance(bridge_by_family, dict) else None
+    if bridge_status in ("bridge_failed", "bridge_result_invalid", "held_source",
+                         "private_source_unavailable"):
+        status = {
+            "bridge_failed": collection_status.ANALYSIS_FAILURE,
+            "bridge_result_invalid": collection_status.ADAPTER_ERROR,
+            "held_source": collection_status.ANALYSIS_FAILURE,
+            "private_source_unavailable": collection_status.FETCH_FAILURE,
+        }[bridge_status]
+        outcome = GovernedOutcome(status, error_detail="Vietnam bridge: %s (run %s)"
+                                  % (bridge_status, run))
+    else:
+        latest = facts.get("latest") if isinstance(facts, dict) else None
+        if isinstance(latest, dict) and latest.get("result") == collection_status.OK_ALL_FILTERED:
+            holds.append("collection_all_filtered")
+        outcome = _receipt_outcome(admitted, unchanged, holds=holds)
+        private = _vn_dispositions_detail(family, run, receipt.get("dispositions_by_family"))
+        if private:
+            # Reporting only: the private bridge's outcomes never change the
+            # status or the admitted/unchanged counts read from by_family.
+            outcome = GovernedOutcome(outcome.status, outcome.new_documents, outcome.duplicates,
+                                      "; ".join(d for d in (outcome.error_detail, private) if d))
     # private vietnam_private_first_collector.yml: cron '17 18 * * *'
     return _with_collection(
-        _receipt_outcome(admitted, unchanged, holds=holds),
+        outcome,
         attempts.verdict(facts, now=now, cron_utc="18:17", grace_hours=14,
                          require_attestation=_REQUIRE_COLLECTION_ATTESTATION))
 
@@ -1331,40 +1383,30 @@ def run(
         from analysis.analyzer import Analyzer, FatalAPIError
         analyzer = Analyzer()
 
-        for i, (aid, title_zh, body_zh, url) in enumerate(queue, 1):
-            logger.info(
-                "[%d/%d] Analyzing: %s",
-                i, len(queue), title_zh[:70],
-            )
+        from scripts.bounded_analysis import process_bounded
 
-            try:
-                result = analyzer.analyze_record(
-                    title_zh, body_zh, profile_for_desk(queue_desk.get(aid)))
-            except FatalAPIError as exc:
-                # Account-level failure: every remaining call would fail the
-                # same way. On 2026-07-31 the spend limit was reached mid-run
-                # and the loop made 40 further doomed calls before finishing.
-                account_blocked = str(exc)
-                logger.error(
-                    "ABORTING analysis at %d/%d — account-level API failure, not "
-                    "an article-level one: %s\n"
-                    "The %d remaining queued article(s) were NOT attempted; they "
-                    "stay unscored and re-enter the backlog on a later run. "
-                    "Articles scraped this run are already stored.",
-                    i, len(queue), account_blocked, len(queue) - i,
-                )
-                errors.append(f"Analysis aborted: {account_blocked}")
-                break
+        def _analyze_queued(item):
+            i, (aid, title_zh, body_zh, url) = item
+            logger.info("[%d/%d] Analyzing: %s", i, len(queue), title_zh[:70])
+            # A shared Analyzer has an internally synchronized usage ledger.
+            # Its per-task relevance-failure context is isolated by ContextVar.
+            result = analyzer.analyze_record(
+                title_zh, body_zh, profile_for_desk(queue_desk.get(aid)))
+            return result, analyzer.last_relevance_failure
 
+        def _persist_analysis(item, outcome):
+            nonlocal articles_analyzed, passed_relevance_count
+            _index, (aid, title_zh, body_zh, url) = item
+            result, relevance_failure = outcome
+            # Every DB mutation stays on this calling thread, in queue order.
             if result is None:
-                relevance_failure_kinds.append(
-                    getattr(analyzer, "last_relevance_failure", None))
+                relevance_failure_kinds.append(relevance_failure)
                 msg = f"Analysis failed entirely for article {aid} ({url})"
                 logger.error(msg)
                 errors.append(msg)
                 _record_failure(aid, body_zh, "analysis_failed",
                                 attempts_before, content_verdicts)
-                continue
+                return
 
             # Always write relevance result
             db.update_relevance(
@@ -1430,6 +1472,33 @@ def run(
                 errors.append(msg)
                 _record_failure(aid, body_zh, "analysis_incomplete",
                                 attempts_before, content_verdicts)
+
+        def _on_analysis_fatal(item, exc):
+            nonlocal account_blocked
+            i, _article = item
+            account_blocked = str(exc)
+            # With N workers, at most N-1 peers were dispatched before the
+            # fatal result was observed. They may finish and incur charges;
+            # their results are held, never marked complete or published.
+            speculative = min(DAILY_ANALYSIS_WORKERS - 1, len(queue) - i)
+            not_dispatched = len(queue) - i - speculative
+            logger.error(
+                "ABORTING analysis at %d/%d — account-level API failure: %s. "
+                "Up to %d peer article(s) already dispatched; these results "
+                "are not committed. %d article(s) not dispatched. All "
+                "uncommitted records remain retryable.",
+                i, len(queue), account_blocked, speculative, not_dispatched,
+            )
+            errors.append(f"Analysis aborted: {account_blocked}")
+
+        logger.info("Daily article analysis: %d worker(s); cap=%d",
+                    DAILY_ANALYSIS_WORKERS, DAILY_ANALYSIS_CAP)
+        process_bounded(
+            enumerate(queue, 1), _analyze_queued, _persist_analysis,
+            workers=DAILY_ANALYSIS_WORKERS,
+            fatal_error=FatalAPIError,
+            on_fatal=_on_analysis_fatal,
+        )
 
     # Korea MND lane (processing/korea_shared_queue.py): the shared engine's
     # Korea profile over governed admissions, after the China/Singapore queue

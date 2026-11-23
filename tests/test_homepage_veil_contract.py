@@ -204,6 +204,49 @@ class TestTextOverTheVeilIsMeasuredAtItsGlyphs(VeilCase):
             finally:
                 context.close()
 
+    def test_finder_layout_does_not_request_the_mutable_home_stylesheet(self):
+        home = (self.out / "index.html").read_text(encoding="utf-8")
+        self.assertIn("<style>" + CSS.read_text(encoding="utf-8") + "</style>", home)
+        self.assertEqual((self.out / "home.css").read_bytes(), CSS.read_bytes())
+        for width in (375, 1280):
+            with self.subTest(width=width):
+                with self.browser.new_page(
+                    viewport={"width": width, "height": 900},
+                    java_script_enabled=False,
+                ) as page:
+                    page.route("**/home.css", lambda route: route.fulfill(
+                        content_type="text/css",
+                        body=".home-finder{background:transparent;display:block}",
+                    ))
+                    page.goto(self.url)
+                    finder = page.locator(".home-finder")
+                    self.assertEqual(finder.evaluate("(el) => getComputedStyle(el).display"), "grid")
+                    self.assertEqual(finder.evaluate("(el) => getComputedStyle(el).backgroundColor"),
+                                     "rgb(243, 242, 236)")
+                    self.assertNotIn("home.css", page.locator("link[rel=stylesheet]")
+                                     .evaluate_all("(links) => links.map(link => link.getAttribute('href'))"))
+
+    def test_search_focus_draws_the_rule_and_respects_reduced_motion(self):
+        for preference, duration in (("no-preference", "0.24s"), ("reduce", "0s")):
+            with self.subTest(preference=preference):
+                with self.browser.new_page(reduced_motion=preference) as page:
+                    page.goto(self.url)
+                    field = page.locator("#home-q")
+                    field.focus()
+                    self.assertTrue(field.evaluate("(el) => el === document.activeElement"))
+                    finder = page.locator(".home-finder")
+                    rule = "(el) => getComputedStyle(el, '::after')"
+                    self.assertEqual(finder.evaluate(rule + ".transitionDuration"), duration)
+                    page.wait_for_function(
+                        "() => getComputedStyle(document.querySelector('.home-finder'), '::after')"
+                        ".transform === 'matrix(1, 0, 0, 1, 0, 0)'"
+                    )
+                    field.blur()
+                    page.wait_for_function(
+                        "() => getComputedStyle(document.querySelector('.home-finder'), '::after')"
+                        ".transform === 'matrix(0, 0, 0, 1, 0, 0)'"
+                    )
+
     def test_the_only_picture_is_the_credited_homepage_photograph(self):
         """One image, the stable homepage photograph (founder direction, 16
         November), its gradient the only layer, its full credit beneath, and

@@ -46,6 +46,29 @@ def exact_url(family, identity, url):
          "vietnam_source_identity_or_url_invalid")
 
 
+# The one persisted anomaly a replay may resolve: a listing title that equals the
+# re-extracted page title after the collector's whitespace squash. Observed
+# false hold: mps-vi:1794826878, first-seen observation 44212325471-1 (and
+# 44429240061-1, 44647752276-1), an RSS title with one trailing space, which
+# aborted every MPS daily bridge from 18 Nov 2026. First-seen observations are
+# immutable custody, so the replay, not a rewrite, decides it.
+RESOLVABLE_ANOMALIES = ["listing_title_differs"]
+
+
+def anomalies_resolved(anomalies, listing_title, page_title) -> bool:
+    """True only for no anomaly, or a whitespace-only listing-title difference.
+
+    Any other anomaly, a missing listing title, or any wording, word, case or
+    diacritic difference stays unresolved. No Unicode normalization is applied.
+    """
+    from scraper.sources.vn_shadow_http import squash
+    if not anomalies:
+        return True
+    return (anomalies == RESOLVABLE_ANOMALIES and type(listing_title) is str
+            and type(page_title) is str and bool(page_title)
+            and squash(listing_title) == page_title)
+
+
 def prepare(state_repo, commit, family, *, private=False):
     """Local immutable Git replay; return metadata/hashes only, all held."""
     need(family in SOURCES, "unknown_vietnam_source_family")
@@ -72,7 +95,8 @@ def prepare(state_repo, commit, family, *, private=False):
             first = version["first_seen_run"]
             observation = observations[(first, identity)]
             need(runs[first]["health"] == "ok", "version_from_failed_collection")
-            need(not ministry.loads(observation["anomalies_json"]),
+            anomalies = ministry.loads(observation["anomalies_json"])
+            need(not anomalies or anomalies == RESOLVABLE_ANOMALIES,
                  "vietnam_original_has_unresolved_anomalies")
             # Re-extract preserved HTML, not merely the SQLite hash envelope.
             from core.collection.contract import CandidateReference, CaptureResult
@@ -86,6 +110,9 @@ def prepare(state_repo, commit, family, *, private=False):
                  and extracted.documents[0].extra["content_sha256"] == version["content_sha256"]
                  and extracted.documents[0].published_date == record["published_date"],
                  "vietnam_capture_and_extracted_version_differ")
+            need(anomalies_resolved(anomalies, observation.get("listing_title"),
+                                    extracted.documents[0].title_original),
+                 "vietnam_original_has_unresolved_anomalies")
             row = {
                 "source_family": family, "source_identity": identity, "desk": "vietnam",
                 "canonical_official_url": record["url"],

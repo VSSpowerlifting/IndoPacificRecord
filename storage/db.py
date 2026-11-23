@@ -129,6 +129,9 @@ def init_db(apply_migrations: bool = True) -> None:
     conn = connect(DB_PATH)
     try:
         report = apply_all(conn)
+        from core import daily_record_originals
+        with conn:
+            daily_record_originals.prune(conn, daily_record_originals.load_pins())
     finally:
         conn.close()
 

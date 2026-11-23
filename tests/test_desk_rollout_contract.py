@@ -170,16 +170,18 @@ class TestRosterMatchesConfiguration(DeskCase):
         endpoint, the site root, the Press Releases and Readouts listing and
         robots.txt itself all return 403 at the edge. What this test protects is
         unchanged — the desk collects nothing. Since runtime migration 4 its
-        two registered sources are the manual USCC and Treasury listing-metadata
-        families admitted through the governed dispatch; nothing fetches them.
+        first two registered sources are the manual USCC and Treasury listing-metadata
+        families admitted through the governed dispatch; the third is the USCC
+        press-release narrative family `us_uscc_press_en` (founder activation of
+        2026-11-22). Nothing fetches them from public Daily.
         """
         us = load_registry().get("us-indopacific")
         self.assertIsNotNone(us)
         self.assertEqual(us.status, "access_blocked")
         self.assertFalse(us.is_collecting)
         self.assertEqual(us.manifest_path, "desks/us-indopacific/manifest.json")
-        self.assertEqual(us.configured_source_count, 2)
-        self.assertEqual(us.enabled_source_count, 2)
+        self.assertEqual(us.configured_source_count, 3)
+        self.assertEqual(us.enabled_source_count, 3)
         self.assertEqual({s.access_method for s in us.sources}, {"manual"})
         self.assertIn("not collecting", us.status_label.lower())
 
@@ -609,6 +611,11 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                 "SELECT COUNT(*) FROM sources WHERE desk_id = 'philippines' "
                 "AND access_method != 'manual'").fetchone()[0], 0)
 
+    def assertOriginalCount(self, page):
+        from core.daily_machine_records import load
+        count = sum(bool(r["original_text"]) for r in load(TRACKED_DB) if r["desk_id"] == "philippines")
+        self.assertIn("Records with original text</dt><dd>%s</dd>" % (count or "None yet"), page)
+
     def test_countries_have_honest_empty_public_corpus(self):
         # Admitted AFP and NSC link metadata are not general corpus coverage.
         # The renderer publishes both independently authorized families, so
@@ -637,9 +644,7 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                 else:
                     self.assertIn("Shadow evaluation — not in corpus", page)
                 if name == "philippines":
-                    # Link metadata and machine explanations are not corpus
-                    # records; the page says so rather than showing zero-source rows.
-                    self.assertIn("Original documents in the IPR corpus</dt><dd>None", page)
+                    self.assertOriginalCount(page)
                     self.assertNotIn("Sources enabled in production", page)
                     self.assertNotIn('href="archive.html?desk=' + name + '"', page)
                 else:
@@ -674,7 +679,6 @@ class TestPendingDeskReferenceBrowser(DeskCase):
         self.assertNotIn("Individually reviewed official-source references", html)
         self.assertNotIn("No individual source references have completed", html)
         self.assertNotIn('data-reference-list', html)
-        self.assertIn("Original documents in the IPR corpus</dt><dd>None", html)
         self.assertNotIn("archive.html?desk=" + slug, html)
         self.assertIn("Individually reviewed official-source references", self.page("indonesia.html"))
 

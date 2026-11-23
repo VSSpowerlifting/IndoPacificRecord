@@ -1,7 +1,10 @@
-/* The desk index (desks.html): one ruled row per desk, collecting desks first.
-   Name, state and counts at left; the desk's newest record as parallel text
-   at right. The former map is no longer on the page (2026-11-15); the class
-   names on the rows are kept because guards and citations address them. */
+/* The desk index (desks.html): the regional atlas beside the page's opening,
+   then one ruled row per desk, collecting desks first. Name, state, seat and
+   counts at left; the desk's newest record as parallel text at right. The
+   class names on the rows are kept because guards and citations address
+   them. The atlas (2026-11-17) is one waterlined Natural Earth drawing in its
+   day palette (assets/geo/atlas.svg, scripts/build_atlas.py) cropped by
+   the inline size and position; each seat is an HTML link placed in percent. */
 .desk-count{font:400 var(--step-meta)/1.5 var(--sans);color:var(--muted);margin:.9rem 0 0}
 .desks-tally{display:flex;flex-wrap:wrap;gap:.3rem 2rem;margin:1.1rem 0 0;padding:0}
 .desks-tally div{display:flex;align-items:baseline;gap:.45rem}
@@ -10,7 +13,7 @@
 .desks-group{display:flex;align-items:baseline;justify-content:space-between;gap:1rem;margin:2.6rem 0 0;padding:1rem 0 .9rem;border-top:0;border-bottom:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}
 .desks-group:first-child{margin-top:.4rem}
 .desks-group span{font:600 var(--step-meta)/1 var(--sans);color:var(--muted);font-variant-numeric:tabular-nums lining-nums}
-.deskmap-register>.desk{display:grid;grid-template-columns:minmax(0,17rem) minmax(0,1fr);gap:.6rem 2.2rem;padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule);scroll-margin-top:1rem}
+.deskmap-register>.desk{display:grid;position:relative;grid-template-columns:minmax(0,min(17rem,40%)) minmax(0,1fr);gap:.6rem 2.2rem;padding:1.3rem 0 1.4rem;border-bottom:1px solid var(--rule);scroll-margin-top:1rem}
 .deskmap-register .desk h3{margin:0;padding:0;border:0;font:400 2rem/1.05 var(--display)}
 .deskmap-register .desk h3 a{display:inline-flex;align-items:center;min-height:40px;color:var(--ink);text-decoration:none}
 .deskmap-register .desk h3 a:hover{text-decoration:underline;text-decoration-thickness:1px}
@@ -32,8 +35,138 @@
 .desks-latest .meta{grid-column:1;margin-top:.35rem;font-size:.8125rem}
 .desks-none{max-width:56ch}
 .desks-latest .deskmap-enter{margin-top:.5rem}
-.deskmap-enter a,.desks-none a{display:inline-flex;align-items:center;min-height:40px}
+.deskmap-enter a,.desks-none a{display:inline-flex;align-items:center;min-height:40px;max-width:100%}
 .deskmap-enter a{font:600 var(--step-meta)/1.3 var(--sans)}
+.desks-seat{margin:.35rem 0 0;font-size:var(--step-meta);color:var(--muted)}
+.desks-seat a{margin-left:.35rem;font-weight:600}
+.deskmap-register>.desk::before{
+  content:"";position:absolute;inset-block:1.3rem 1.4rem;inset-inline-start:-.65rem;
+  width:3px;background:var(--accent);transform:scaleY(0);transform-origin:top;
+  pointer-events:none
+}
+.deskmap-register>.desk:target::before{transform:scaleY(1)}
+[data-surface] .desks-head{display:grid;grid-template-columns:minmax(0,1fr);column-gap:3.2rem}
+.atlas{margin:1.8rem 0 0;container-type:inline-size}
+.atlas-map{position:relative;width:100%;aspect-ratio:var(--atlas-ratio)}
+/* Keep the drawing separate from its links so the links can reflow below it. */
+.atlas-map::before{content:"";position:absolute;inset:0;background:var(--accent-tint) url(assets/geo/atlas.svg) var(--crop-at)/var(--crop-size) no-repeat;outline:1px solid var(--rule);outline-offset:-1px;pointer-events:none}
+.atlas-seats{list-style:none;margin:0;padding:0}
+/* A label is cut out of the drawing: the name and place stand on a plate of
+   paper and the mark on a disc of it so the chart leaves each label legible. */
+.seat{position:absolute;left:var(--x,auto);top:var(--y);display:flex;align-items:center;min-height:40px;transform:translate(-20px,-50%);color:var(--ink);text-decoration:none;font:400 .8125rem/1.15 var(--sans)}
+.seat-text{display:block;color:var(--ink-2);padding:.22em .45em .28em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent)}
+.seat-text b{display:block;font-weight:600;font-size:.9375rem;color:var(--ink)}
+.seat:hover b{text-decoration:underline;text-decoration-thickness:1px}
+.seat:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.seat--left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
+.seat--below{flex-direction:column;text-align:center;transform:translate(-50%,-20px)}
+.seat--edge{right:0;padding-right:.4rem;transform:translateY(-50%);text-align:right}
+.seat--edge .seat-text{max-width:9.5rem}
+.seat--edge .seat-text::after{content:" →"}
+.seat .seat-mark{position:relative;width:40px;height:40px;font-size:1.125rem;background:radial-gradient(circle,var(--paper) 11px,transparent 12px)}
+.seat-mark{display:inline-grid;place-items:center;flex:none;color:var(--ink);line-height:1}
+.seat-mark::before{content:"◐"}
+.seat-mark--live{color:var(--positive)}.seat-mark--live::before{content:"■";font-size:.85em}
+.seat-mark--access_blocked{color:var(--warning)}.seat-mark--access_blocked::before{content:"▣"}
+.seat-mark--research::before{content:"◻"}.seat-mark--planned::before{content:"▫"}.seat-mark--paused::before{content:"□"}
+/* The ring answers a pointer or the keyboard; it never moves on its own. */
+.seat .seat-mark::after{content:"";position:absolute;inset:5px;border:1px solid currentColor;border-radius:50%;opacity:0;transform:scale(.78);pointer-events:none}
+.seat:is(:hover,:focus-visible) .seat-mark::after{opacity:.9;transform:none}
+.atlas-grat span{position:absolute;padding:.2em .35em;border-radius:3px;background:color-mix(in srgb,var(--paper) 90%,transparent);font:400 .6875rem/1 var(--sans);color:var(--muted);pointer-events:none}
+.g-lon{bottom:.35rem;transform:translateX(-50%)}
+.g-lat{left:.4rem;transform:translateY(-50%)}
+.atlas figcaption{margin:.7rem 0 0;font:400 .8125rem/1.5 var(--sans);color:var(--muted);max-width:68ch}
+.atlas figcaption p{margin:0 0 .35rem}
+.atlas-key{display:flex;flex-wrap:wrap;gap:.2rem 1.4rem;color:var(--ink)}
+.atlas-key .seat-mark{margin-right:.2rem}
+/* One compact navigation rail belongs to the atlas, not to a second data
+   directory. The detailed, citable desk register stays below unchanged. */
+.desk-jump{min-width:0;margin:1.6rem 0 0}
+.desk-jump h2{margin:0 0 .55rem;font:400 clamp(1.5rem,1.25rem + .85vw,1.875rem)/1.15 var(--display)}
+.desk-jump-list{list-style:none;margin:0;padding:0}
+.desk-jump-list li{border-top:1px solid var(--rule)}
+.desk-jump-list li:last-child{border-bottom:1px solid var(--rule)}
+.desk-jump-list a{display:grid;grid-template-columns:1.5rem minmax(0,1fr) 1rem;gap:.65rem;align-items:center;min-height:48px;padding:.42rem .35rem;color:var(--ink);text-decoration:none}
+.desk-jump-list a:hover,.desk-jump-list a:focus-visible{background:var(--accent-tint)}
+.desk-jump-list a:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.desk-jump-mark{width:1.5rem;height:1.5rem}
+.desk-jump-copy{min-width:0}
+.desk-jump-name{display:block;font:600 .9375rem/1.3 var(--sans)}
+.desk-jump-detail{display:block;font:400 .75rem/1.35 var(--sans);color:var(--muted);overflow-wrap:anywhere}
+.desk-jump-arrow{justify-self:end;color:var(--muted);font:400 1rem/1 var(--sans)}
+@media(min-width:1140px){
+  [data-surface] .desks-head{grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);grid-template-rows:auto auto auto auto minmax(0,1fr);column-gap:clamp(1.6rem,4vw,3.2rem)}
+  .desks-head>*{grid-column:1}
+  .desks-head>.atlas{grid-column:2;grid-row:1/span 5;margin:.4rem 0 0}
+  .desks-head>.desk-jump{grid-column:1;grid-row:5;align-self:end}
+}
+@media(min-width:680px) and (max-width:1139px){
+  .desk-jump-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:1.25rem}
+  .desk-jump-list li:nth-last-child(2){border-bottom:1px solid var(--rule)}
+}
+/* Both navigation surfaces share an order, computed from atlas.seats followed
+   by atlas.outside. Pointing at a desk in either one highlights its match in the other. The matching works without scripts. */
+.desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(1) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(1) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(1) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(1) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(2) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(2) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(2) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(2) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(2) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(2) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(3) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(3) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(3) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(3) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(3) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(3) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(4) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(4) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(4) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(4) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(4) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(4) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(5) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(5) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(5) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(5) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(5) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(5) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(6) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(6) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(6) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(6) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(6) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(6) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(7) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(7) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(7) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(7) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(7) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(7) a{background:var(--accent-tint)}
+.desks-head:has(.desk-jump-list li:nth-child(8) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(8) b{text-decoration:underline;text-decoration-thickness:2px}
+.desks-head:has(.desk-jump-list li:nth-child(8) a:is(:hover,:focus-visible)) .atlas-seats li:nth-child(8) .seat-mark::after{opacity:.9;transform:none}
+.desks-head:has(.atlas-seats li:nth-child(8) a:is(:hover,:focus-visible)) .desk-jump-list li:nth-child(8) a{background:var(--accent-tint)}
+/* In rem, so enlarged text also takes the compact labels. */
+@container (max-width:34rem){
+  .seat{font-size:.75rem}.seat-text b{font-size:.8125rem}
+  .seat--n-left{flex-direction:row-reverse;text-align:right;transform:translate(calc(-100% + 20px),-50%)}
+  .seat--n-right{flex-direction:row;text-align:left;transform:translate(-20px,-50%)}
+  .seat--n-below{flex-direction:column;text-align:center;transform:translate(-50%,-20px)}
+  .seat-place{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  .atlas-grat{display:none}
+}
+/* The same links reflow below the drawing when there is too little room
+   to keep the seat targets apart, including with enlarged text. */
+@container (max-width:20rem){
+  .atlas-map{aspect-ratio:auto}
+  .atlas-map::before{position:relative;display:block;aspect-ratio:var(--atlas-ratio)}
+  .atlas-seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(8.5rem,100%),1fr));border-top:1px solid var(--rule);gap:.25rem}
+  .atlas-seats .seat{position:relative;inset:auto;transform:none;flex-direction:row;text-align:left}
+  .atlas-seats .seat-text{padding-inline:0;min-width:0;overflow-wrap:anywhere}
+  .atlas-seats .seat--edge .seat-mark{order:-1}
+  .seat--edge .seat-text::after{display:none}
+}
+@media screen and (prefers-reduced-motion:no-preference) and (scripting:enabled) {
+  .atlas-seats .seat-mark::after{transition:opacity var(--dur-fast) var(--ease-rule),transform var(--dur-fast) var(--ease-rule)}
+  .desk-jump-arrow{transition:transform var(--dur-fast) var(--ease-rule)}
+  .desk-jump-list a:is(:hover,:focus-visible) .desk-jump-arrow{transform:translateY(2px)}
+  .deskmap-register>.desk::before{transition:transform var(--dur-base) var(--ease-rule)}
+}
+@media (forced-colors:active) {
+  .atlas-map{aspect-ratio:auto}
+  .atlas-map::before,.atlas-grat{display:none}
+  .atlas-seats{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(8.5rem,100%),1fr));border-top:1px solid var(--rule);gap:.25rem}
+  .atlas-seats .seat{position:relative;inset:auto;transform:none;flex-direction:row;text-align:left}
+  .atlas-seats .seat-text{padding-inline:0;min-width:0;overflow-wrap:anywhere}
+  .atlas-seats .seat--edge .seat-mark{order:-1}
+  .seat--edge .seat-text::after{display:none}
+  .seat-text b{color:LinkText}
+  .seat-text,.atlas-grat span,.seat .seat-mark{background:none}
+}
 .desks-section{margin:3rem 0 0}
 .desks-section>h2{margin:0 0 .8rem;padding:1rem 0 0;border-top:2px solid var(--rule-hard);font:400 clamp(1.625rem,1.35rem + 1vw,2.125rem)/1.1 var(--display)}
 .scope-register{margin:0;padding:0}

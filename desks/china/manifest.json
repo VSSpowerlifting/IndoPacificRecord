@@ -113,7 +113,7 @@
       "silence_threshold_days": 7,
       "enabled": true,
       "notes": "State-linked rather than official. Signals PLA messaging to foreign audiences; an officially tolerated nationalist line is not an authorized institutional position.",
-      "adapter": "scraper.sources.global_times_mil:GlobalTimesMilScraper"
+      "adapter": "adapters.global_times_handoff:GlobalTimesHandoffAdapter"
     },
     {
       "slug": "china_mil_online",

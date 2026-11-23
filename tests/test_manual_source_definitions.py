@@ -57,6 +57,7 @@ MANUAL_FAMILIES = {
     "id_kemhan_news": "indonesia",
     "jp_mod_news_ja": "japan",
     "jp_jcg_press_en": "japan",
+    "us_uscc_press_en": "us-indopacific",
     "uscc_press_official_metadata": "us-indopacific",
     "us_treasury_press_official_metadata": "us-indopacific",
 }
@@ -82,7 +83,8 @@ class TestRegistration(unittest.TestCase):
         registered = {f for f, s in SOURCES.items() if s.desk_registered}
         # DAPA remains unregistered until its separate activation; Singapore's
         # manual route is registered, but its model/release policy is still disabled.
-        unregistered = {"kr_policy_dapa_releases", "us_uscc_press_en"}
+        # USCC is registered by the founder's 2026-11-22 first activation.
+        unregistered = {"kr_policy_dapa_releases"}
         self.assertEqual(set(SOURCES) - registered, unregistered)
         for family in unregistered:
             self.assertNotIn(family, pipeline._governed_admissions())
@@ -404,10 +406,22 @@ class TestGovernedDispatch(unittest.TestCase):
                 r, _ = self.dispatch("ph_afp_articles", self.daily_at("ph_afp_articles", plain, now))
                 self.assertEqual((r.status, r.error_detail),
                                  (st.FETCH_FAILURE, "collection_not_attested"))
-                # No declared cadence (USCC, DAPA) and the attended pilot never need it.
-                for fam in ("us_uscc_press_en", "kr_policy_dapa_releases", "sg_mindef_releases"):
+                # No declared cadence (DAPA) never needs it.
+                for fam in ("kr_policy_dapa_releases",):
                     out = self.daily_at(fam, plain, now).admit(1)
                     self.assertEqual((out.status, out.error_detail), (st.OK, None), fam)
+                # Singapore MINDEF (10:37 UTC) and USCC (11:35 UTC) declare their
+                # private collector crons: attested like the other scheduled families.
+                for fam in ("sg_mindef_releases", "us_uscc_press_en"):
+                    out = self.daily_at(fam, plain, now).admit(1)
+                    self.assertEqual((out.status, out.error_detail),
+                                     (st.FETCH_FAILURE, "collection_not_attested"), fam)
+                # An attended-only family (the retained pilot mechanism) never needs it.
+                with mock.patch.dict(
+                        "core.daily_sources.ATTENDED_PILOT_ENV",
+                        {"sg_mindef_releases": "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}):
+                    out = self.daily_at("sg_mindef_releases", plain, now).admit(1)
+                self.assertEqual((out.status, out.error_detail), (st.OK, None))
 
     # -- Japan official links --------------------------------------------
 

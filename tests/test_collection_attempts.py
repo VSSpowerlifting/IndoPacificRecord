@@ -105,7 +105,7 @@ class Verdict(unittest.TestCase):
         self.assertIsNone(verdict(None, self.NOW))
         self.assertEqual(verdict(None, self.NOW, require=True),
                          (st.FETCH_FAILURE, "collection_not_attested"))
-        # No declared cadence (attended pilot, unscheduled family): never required.
+        # No declared cadence (an attended-only family, an unscheduled family): never required.
         self.assertIsNone(verdict(None, self.NOW, cron=None, require=True))
 
     def test_not_attested_reports_only_a_fixed_code(self):
@@ -171,7 +171,7 @@ class Verdict(unittest.TestCase):
     def test_boundary_clocks_never_fail_a_run_within_its_observed_lag(self):
         """A collector that finished its previous slot is never stale at any Daily
         start from 03:34Z to 22:56Z, and a slot older than that always is."""
-        for cron in ("06:40", "10:10", "17:17", "19:13", "18:17"):
+        for cron in ("06:40", "10:10", "10:37", "11:35", "17:17", "19:13", "18:17"):
             for hhmm in ("03:34", "12:23", "14:23", "22:56"):
                 now = at(16, hhmm)
                 from core.shadow_schedule import scheduled_slot_date
@@ -201,8 +201,400 @@ class DeclaredCadence(unittest.TestCase):
         self.assertEqual(got["ph_nsc_official_statements"], ("10:10", 14))
         self.assertEqual(got["id_kemhan_news"], ("17:17", 14))
         self.assertEqual(got["jp_jcg_press_en"], ("19:13", 14))
-        for family in ("sg_mindef_releases", "us_uscc_press_en", "kr_policy_dapa_releases"):
-            self.assertIsNone(got[family][0], family)
+        # Singapore MINDEF is recurring (22 Nov approval): private collector 10:37 UTC.
+        self.assertEqual(got["sg_mindef_releases"], ("10:37", 14))
+        # USCC private collector: cron '35 11 * * *', read above its ledger floor.
+        self.assertEqual(got["us_uscc_press_en"], ("11:35", 14))
+        # DAPA has no scheduled private collector, so it declares no cadence.
+        self.assertIsNone(got["kr_policy_dapa_releases"][0])
+
+    def test_only_uscc_declares_a_ledger_floor(self):
+        from core.daily_sources import USCC_LEDGER_AFTER
+        floors = {f: s.collection_ledger_after for f, s in SOURCES.items()
+                  if s.collection_ledger_after is not None}
+        self.assertEqual(floors, {"us_uscc_press_en": USCC_LEDGER_AFTER})
+        # A ledger basename in the collector's own naming, so newer names sort after it.
+        self.assertRegex(USCC_LEDGER_AFTER, r"^[0-9]{8}T[0-9]{6}Z-[0-9]+-[0-9]+\.json$")
+
+
+FAMILY = "ph_nsc_official_statements"
+SENTINELS = ("SENTINEL-error-detail", "SENTINEL-endpoint", "SENTINEL-requested-url",
+             "SENTINEL-listing-url", "SENTINEL-failure-detail", "SENTINEL-identity")
+
+
+def ledger(run_id, target, finished, result="ok", health="ok", **extra):
+    out = {"run_id": run_id, "target_date": target, "target_date_source": "schedule-slot",
+           "finished_utc": finished, "result": result, "health": health}
+    out.update(extra)
+    return out
+
+
+def noisy(**over):
+    """A ledger carrying private material that must never reach a signed block."""
+    return ledger("90-1", "2026-11-17", "2026-11-17T10:00:00+00:00", **dict({
+        "error_detail": SENTINELS[0], "failed_endpoints": [SENTINELS[1]],
+        "requests": [{"requested_url": "https://example.invalid/" + SENTINELS[2]}],
+        "observed": {"listing_url": "https://example.invalid/" + SENTINELS[3]},
+        "failures": [{"detail": SENTINELS[4]}],
+        "collector_identity": {"name": SENTINELS[5]},
+        "listing_report": {"x": 1}, "attachment_hold_items": ["https://example.invalid/a"]},
+        **over))
+
+
+def custody(root, files):
+    """A synthetic git checkout holding ``files`` ({path: dict | str}); its head."""
+    import json
+    import subprocess
+    from pathlib import Path
+    repo = Path(root) / "custody"
+    repo.mkdir()
+    for path, body in files.items():
+        target = repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body if isinstance(body, str) else json.dumps(body))
+    git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+    subprocess.run(git + ["init", "-q"], check=True)
+    subprocess.run(git + ["add", "-A"], check=True)
+    subprocess.run(git + ["commit", "-qm", "synthetic", "--allow-empty"], check=True)
+    head = subprocess.run(git + ["rev-parse", "HEAD"], check=True, capture_output=True,
+                          text=True).stdout.strip()
+    return repo, head
+
+
+class ReadCustody(unittest.TestCase):
+    def setUp(self):
+        import tempfile
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = tmp.name
+        self._n = 0
+
+    def read(self, files, receipt_dirs=(), ledger_after=None):
+        import shutil
+        self._n += 1
+        root = "%s/%d" % (self.tmp, self._n)
+        __import__("os").makedirs(root)
+        repo, head = custody(root, files)
+        out = attempts.read_custody(repo, head, FAMILY, receipt_dirs=receipt_dirs,
+                                    ledger_after=ledger_after)
+        self.assertIsNotNone(attempts.validate(out), out)
+        self.assertEqual((out["family"], out["custody_commit"]), (FAMILY, head))
+        return out
+
+    def led(self, name, **kw):
+        return "state/ledger/" + name + ".json", ledger(**kw)
+
+    def test_orders_by_parsed_instant_not_run_id_or_precision(self):
+        files = dict([
+            self.led("20261116T000000+0000-9", run_id="9-1", target="2026-11-15",
+                     finished="2026-11-16T00:00:00+00:00"),
+            self.led("20261116T000001+0000-1", run_id="100-1", target="2026-11-16",
+                     finished="2026-11-17T00:50:13.490049+00:00"),
+            self.led("20261116T000002+0000-5", run_id="5-1", target="2026-11-16",
+                     finished="2026-11-17T00:50:13Z", result="timeout", health="fail")])
+        out = self.read(files)
+        # Second precision sorts before the same second with microseconds.
+        self.assertEqual(out["latest"]["run_id"], "100-1")
+        self.assertTrue(out["attested"] and out["latest"]["healthy"])
+
+    def test_failed_latest_stays_latest_and_rerun_sets_healthy_date(self):
+        files = dict([
+            self.led("a", run_id="1-1", target="2026-11-15", finished="2026-11-15T10:00:00+00:00"),
+            self.led("b", run_id="2-1", target="2026-11-16", finished="2026-11-16T10:00:00+00:00",
+                     result="access_challenged", health="fail"),
+            # An explicit recovery rerun of an older slot finished earlier than b.
+            self.led("c", run_id="1-2", target="2026-11-16", finished="2026-11-16T09:00:00+00:00")])
+        out = self.read(files)
+        self.assertEqual((out["latest"]["run_id"], out["latest"]["healthy"]), ("2-1", False))
+        self.assertEqual(out["latest_healthy_target_date"], "2026-11-16")
+
+    def test_unhealthy_results_and_health_fail_do_not_count(self):
+        files = dict([
+            self.led("a", run_id="1-1", target="2026-11-15", finished="2026-11-15T10:00:00+00:00"),
+            self.led("b", run_id="2-1", target="2026-11-16", finished="2026-11-16T10:00:00+00:00",
+                     health="fail"),
+            self.led("c", run_id="3-1", target="2026-11-17", finished="2026-11-17T10:00:00+00:00",
+                     result="fetch_failure", health=None)])
+        out = self.read(files)
+        self.assertEqual(out["latest_healthy_target_date"], "2026-11-15")
+        self.assertFalse(out["latest"]["healthy"])
+        self.assertIsNone(out["latest"]["health"])
+
+    def test_a_switched_off_day_is_unhealthy_but_never_poisons_custody(self):
+        # The collectors write result=skipped_disabled, health="skipped" for a
+        # disabled day (shadow_collect_desk.py, shadow_collect_ph_nsc.py). It
+        # must not make the next twenty healthy runs unattested.
+        files = dict([
+            self.led("a", run_id="1-1", target="2026-11-14", finished="2026-11-14T20:00:00+00:00"),
+            self.led("b", run_id="2-1", target="2026-11-15", finished="2026-11-15T20:00:00+00:00",
+                     result="skipped_disabled", health="skipped"),
+            self.led("c", run_id="3-1", target="2026-11-16", finished="2026-11-16T20:00:00+00:00",
+                     result="access_challenged", health="degraded")]
+            + [self.led("d%02d" % i, run_id="%d-1" % (10 + i), target="2026-11-17",
+                        finished="2026-11-17T%02d:00:00+00:00" % i) for i in range(3)])
+        out = self.read(files)
+        self.assertTrue(out["attested"], out)
+        self.assertTrue(out["latest"]["healthy"])
+        self.assertEqual(out["latest_healthy_target_date"], "2026-11-17")
+        self.assertIsNone(verdict(out, at(17, "23:00")))
+        # A skipped latest is valid, never healthy, and is judged by staleness.
+        out = self.read(dict([
+            self.led("a", run_id="1-1", target="2026-11-14", finished="2026-11-14T20:00:00+00:00"),
+            self.led("b", run_id="2-1", target="2026-11-17", finished="2026-11-17T20:00:00+00:00",
+                     result="skipped_disabled", health="skipped")]))
+        self.assertTrue(out["attested"])
+        self.assertFalse(out["latest"]["healthy"])
+        self.assertEqual(out["latest_healthy_target_date"], "2026-11-14")
+        self.assertEqual(verdict(out, at(17, "23:00"))[0], "fetch_failure")
+
+    def test_rehearsal_ledgers_are_skipped(self):
+        files = dict([
+            self.led("a", run_id="1-1", target="2026-11-15", finished="2026-11-15T10:00:00+00:00"),
+            ("state/ledger/b.json", dict(ledger("2-1", "2026-11-16", "2026-11-16T10:00:00+00:00",
+                                                result="timeout", health="fail"), rehearsal=True))])
+        self.assertEqual(self.read(files)["latest"]["run_id"], "1-1")
+        only = {"state/ledger/b.json": dict(ledger("2-1", "2026-11-16", "2026-11-16T10:00:00+00:00"),
+                                            rehearsal=True)}
+        self.assertEqual(self.read(only)["reason"], "no_ledger")
+
+    def test_only_the_newest_twenty_ledgers_are_read(self):
+        files = {"state/ledger/%03d.json" % i: ledger(
+            "%d-1" % (i + 1), "2026-10-%02d" % (i % 28 + 1), "2026-10-%02dT10:00:00+00:00" % (i % 28 + 1))
+            for i in range(25)}
+        files["state/ledger/000.json"] = "not json"  # outside the window
+        self.assertTrue(self.read(files)["attested"])
+        files["state/ledger/024.json"] = "not json"  # inside it
+        self.assertEqual(self.read(files)["reason"], "ledger_unreadable")
+
+    def test_unledgered_exit_rules_across_both_receipt_dirs(self):
+        base = dict([self.led("a", run_id="100-1", target="2026-11-16",
+                              finished="2026-11-16T10:00:00+00:00")])
+        dirs = ("private_attempts", "state/private_attempts")
+        receipt = lambda code: {"collector_exit_status": code, "schema": "x"}
+        # Newer non-zero receipt, in either directory.
+        for where in dirs:
+            out = self.read(dict(base, **{where + "/101-1.json": receipt(1)}), dirs)
+            self.assertEqual(out["unledgered_exit"], {"run_id": "101-1", "collector_exit_status": 1})
+        # The newest of several non-zero receipts wins; zero exits are ignored.
+        out = self.read(dict(base, **{"private_attempts/101-1.json": receipt(1),
+                                       "state/private_attempts/103-1.json": receipt(2),
+                                       "private_attempts/104-1.json": receipt(0)}), dirs)
+        self.assertEqual(out["unledgered_exit"]["run_id"], "103-1")
+        # Older, equal-run, matching-ledger and zero-exit receipts are not reported.
+        files = dict(base, **{"private_attempts/99-1.json": receipt(1),
+                              "private_attempts/100-1.json": receipt(1)})
+        self.assertIsNone(self.read(files, dirs)["unledgered_exit"])
+        files = dict(base, **dict([self.led("b", run_id="101-1", target="2026-11-17",
+                                            finished="2026-11-17T10:00:00+00:00")]),
+                     **{"private_attempts/101-1.json": receipt(1)})
+        self.assertIsNone(self.read(files, dirs)["unledgered_exit"])
+        # No receipt directory declared: nothing is read.
+        self.assertIsNone(self.read(dict(base, **{"private_attempts/101-1.json": receipt(1)}))
+                          ["unledgered_exit"])
+        # A later attempt of the latest run, with no ledger, is a failed attempt.
+        out = self.read(dict(base, **{"private_attempts/100-2.json": receipt(3)}), dirs)
+        self.assertEqual(out["unledgered_exit"]["run_id"], "100-2")
+
+    def test_a_newer_receipt_that_cannot_be_read_is_unattested(self):
+        base = dict([self.led("a", run_id="100-1", target="2026-11-16",
+                              finished="2026-11-16T10:00:00+00:00")])
+        for body in ("not json", {"collector_exit_status": "1"}, {"collector_exit_status": True},
+                     {}, []):
+            out = self.read(dict(base, **{"private_attempts/101-1.json": body}), ("private_attempts",))
+            self.assertEqual((out["attested"], out["reason"]), (False, "ledger_unreadable"), body)
+        # An older unreadable receipt is never opened.
+        out = self.read(dict(base, **{"private_attempts/50-1.json": "not json"}), ("private_attempts",))
+        self.assertTrue(out["attested"])
+
+    def test_total_and_fail_closed(self):
+        import os
+        good = dict([self.led("a", run_id="1-1", target="2026-11-15",
+                              finished="2026-11-15T10:00:00+00:00")])
+        for label, files in {
+                "empty custody": {"README": "x"},
+                "corrupt json": {"state/ledger/a.json": "{"},
+                "not an object": {"state/ledger/a.json": "[1]"},
+                "bad result": dict([self.led("a", run_id="1-1", target="2026-11-15",
+                                             finished="2026-11-15T10:00:00+00:00",
+                                             result="surprise")]),
+                "bad date": dict([self.led("a", run_id="1-1", target="2026-13-45",
+                                           finished="2026-11-15T10:00:00+00:00")]),
+                "naive stamp": dict([self.led("a", run_id="1-1", target="2026-11-15",
+                                              finished="2026-11-15T10:00:00")]),
+                "bad run id": dict([self.led("a", run_id="a b/../c", target="2026-11-15",
+                                             finished="2026-11-15T10:00:00+00:00")]),
+                "bad health": dict([self.led("a", run_id="1-1", target="2026-11-15",
+                                             finished="2026-11-15T10:00:00+00:00", health="great")]),
+                "missing source": {"state/ledger/a.json": {"run_id": "1-1", "result": "ok"}},
+                "good plus bad": dict(good, **{"state/ledger/b.json": "{"}),
+        }.items():
+            with self.subTest(label):
+                out = self.read(files)
+                self.assertFalse(out["attested"])
+                self.assertEqual(out["reason"], "no_ledger" if label == "empty custody"
+                                 else "ledger_unreadable")
+                self.assertIsNone(out["latest"])
+        # A missing repository or an unknown commit never raises either.
+        out = attempts.read_custody(os.path.join(self.tmp, "nowhere"), COMMIT, FAMILY)
+        self.assertEqual((out["attested"], out["reason"]), (False, "ledger_unreadable"))
+        self.assertIsNotNone(attempts.validate(out))
+
+    def test_only_allowlisted_fields_are_copied(self):
+        import json
+        out = self.read(dict([("state/ledger/a.json", noisy())]), ("private_attempts",))
+        self.assertTrue(out["attested"])
+        self.assertEqual(set(out["latest"]), {"run_id", "target_date", "target_date_source",
+                                              "finished_utc", "result", "health", "healthy"})
+        blob = json.dumps(out)
+        for sentinel in SENTINELS + ("example.invalid",):
+            self.assertNotIn(sentinel, blob)
+
+    def test_real_shapes_afp_nsc_kemhan(self):
+        files = dict([
+            ("state/ledger/20261117T191008+0000-44155431133-1.json",
+             ledger("44155431133-1", "2026-11-17", "2026-11-17T19:10:08+00:00",
+                    result="access_challenged", health="fail", requests=[{"x": 1}])),
+            ("state/ledger/20261116T191008+0000-44100000000-1.json",
+             ledger("44100000000-1", "2026-11-16", "2026-11-16T19:10:08+00:00"))])
+        out = self.read(files)
+        self.assertEqual((out["latest"]["result"], out["latest_healthy_target_date"]),
+                         ("access_challenged", "2026-11-16"))
+
+
+# The pre-schema shape the first USCC collector wrote (fictional values):
+# "success"/"hold" results and no target_date, target_date_source or health.
+LEGACY_NAME = "20261122T080917Z-45001379646-1.json"
+
+
+def legacy(run_id="45001379646-1", result="success"):
+    return {"desk": "us-uscc", "run_id": run_id, "run_attempt": 1,
+            "collector": "uscc_private_collector/1", "event_name": "workflow_dispatch",
+            "started_utc": "2026-11-22T08:09:01Z", "finished_utc": "2026-11-22T08:09:17Z",
+            "result": result, "hold_code": None, "listing_rows": 3, "written": 1,
+            "release_holds": {}, "receipts": []}
+
+
+def new_shape(run_id="45100000000-1", target="2026-11-23"):
+    return ledger(run_id, target, target + "T19:02:44Z", result="ok_all_duplicates",
+                  health="ok", hold_code=None, written=0)
+
+
+class LedgerFloor(unittest.TestCase):
+    """A family-scoped cutover floor: ledgers named at or below it are not read."""
+
+    setUp = ReadCustody.setUp
+    read = ReadCustody.read
+
+    def test_floor_ignores_older_malformed_ledgers_and_reads_newer_good_ones(self):
+        files = {"state/ledger/" + LEGACY_NAME: legacy(),
+                 "state/ledger/20261121T080000Z-44900000000-1.json": "not json",
+                 "state/ledger/20261123T190244Z-45100000000-1.json": new_shape()}
+        out = self.read(files, ledger_after=LEGACY_NAME)
+        self.assertTrue(out["attested"], out)
+        self.assertEqual(out["latest"]["run_id"], "45100000000-1")
+        self.assertEqual((out["latest"]["result"], out["latest"]["healthy"]),
+                         ("ok_all_duplicates", True))
+        self.assertEqual(out["latest_healthy_target_date"], "2026-11-23")
+
+    def test_no_floor_is_unchanged_and_fails_closed(self):
+        files = {"state/ledger/" + LEGACY_NAME: legacy(),
+                 "state/ledger/20261123T190244Z-45100000000-1.json": new_shape()}
+        out = self.read(files)
+        self.assertEqual((out["attested"], out["reason"]), (False, "ledger_unreadable"))
+        # Each read builds its own custody, so compare everything but the commit.
+        same = lambda f: dict(f, custody_commit=None)
+        self.assertEqual(same(self.read(files, ledger_after=None)), same(out))
+        good = {"state/ledger/a.json": ledger("1-1", "2026-11-15", "2026-11-15T10:00:00+00:00")}
+        self.assertTrue(self.read(good)["attested"])
+        self.assertEqual(same(self.read(good)), same(self.read(good, ledger_after=None)))
+
+    def test_a_malformed_ledger_above_the_floor_still_fails_closed(self):
+        for body in (legacy(run_id="45100000000-1", result="hold"), "not json"):
+            files = {"state/ledger/" + LEGACY_NAME: legacy(),
+                     "state/ledger/20261123T190244Z-45100000000-1.json": new_shape(),
+                     "state/ledger/20261124T190244Z-45200000000-1.json": body}
+            out = self.read(files, ledger_after=LEGACY_NAME)
+            self.assertEqual((out["attested"], out["reason"]), (False, "ledger_unreadable"))
+
+    def test_a_floor_covering_every_ledger_reads_as_no_ledger(self):
+        out = self.read({"state/ledger/" + LEGACY_NAME: legacy()}, ledger_after=LEGACY_NAME)
+        self.assertEqual((out["attested"], out["reason"]), (False, "no_ledger"))
+
+    def test_uscc_definition_threads_its_floor_to_read_custody(self):
+        from core.daily_sources import USCC_LEDGER_AFTER
+        root = self.tmp + "/uscc"
+        __import__("os").makedirs(root)
+        repo, head = custody(root, {
+            "state/ledger/" + USCC_LEDGER_AFTER: legacy(),
+            "state/ledger/20261123T190244Z-45100000000-1.json": new_shape()})
+        out = source_for("us_uscc_press_en").collection_attempt(repo, head)
+        self.assertIsNotNone(attempts.validate(out), out)
+        self.assertEqual((out["family"], out["attested"], out["latest"]["run_id"]),
+                         ("us_uscc_press_en", True, "45100000000-1"))
+        # The same custody read without the floor is unreadable.
+        self.assertEqual(attempts.read_custody(repo, head, "us_uscc_press_en")["reason"],
+                         "ledger_unreadable")
+
+    def test_uscc_definition_reports_a_receipt_only_refused_attempt(self):
+        # The private collector writes state/private_attempts/<run>-<attempt>.json
+        # on every attempt (fictional values, the workflow's key set). A refused
+        # rerun that left only its receipt above a healthy ledger must reach the
+        # verdict through the production DailySource path.
+        from core.daily_sources import USCC_LEDGER_AFTER
+        src = source_for("us_uscc_press_en")
+
+        def receipt(attempt, code):
+            return {"schema": "ipr-uscc-private-attempt/1", "run_attempt": attempt,
+                    "collector_commit": "b" * 40, "collector_exit_status": code,
+                    "recorded_at_utc": "2026-11-23T19:02:50Z",
+                    "collection_success_claim": False,
+                    "source_or_publication_rights_granted": False}
+
+        healthy = {
+            "state/ledger/" + USCC_LEDGER_AFTER: legacy(),
+            "state/ledger/20261123T190244Z-45100000000-1.json": new_shape(),
+            # Receipts at or below the latest ledger's run are never reported,
+            # including a pre-floor refusal.
+            "state/private_attempts/45001379646-2.json": receipt("45001379646-2", 2),
+            "state/private_attempts/45100000000-1.json": receipt("45100000000-1", 0)}
+        refused = dict(healthy, **{
+            "state/private_attempts/45200000000-2.json": receipt("45200000000-2", 2)})
+        now = datetime(2026, 11, 24, 3, 0, tzinfo=timezone.utc)
+        cron, grace = src.collection_expectation()
+        got = {}
+        for name, files in (("healthy", healthy), ("refused", refused)):
+            root = "%s/uscc-%s" % (self.tmp, name)
+            __import__("os").makedirs(root)
+            repo, head = custody(root, files)
+            out = src.collection_attempt(repo, head)
+            self.assertIsNotNone(attempts.validate(out), out)
+            self.assertEqual((out["attested"], out["latest"]["run_id"]),
+                             (True, "45100000000-1"))
+            got[name] = (out["unledgered_exit"],
+                         attempts.verdict(out, now=now, cron_utc=cron, grace_hours=grace,
+                                          require_attestation=True))
+        self.assertEqual(got["healthy"], (None, None))
+        self.assertEqual(got["refused"], (
+            {"run_id": "45200000000-2", "collector_exit_status": 2},
+            (st.FETCH_FAILURE, "collector exited 2 without a ledger (run 45200000000-2)")))
+
+
+class DeclaredReceiptDirs(unittest.TestCase):
+    def test_receipt_dirs_and_signing_rule(self):
+        self.assertEqual(source_for("ph_afp_articles").collection_receipt_dirs, ("private_attempts",))
+        self.assertEqual(source_for("ph_nsc_official_statements").collection_receipt_dirs,
+                         ("private_attempts",))
+        for family in ("id_kemhan_news", "us_uscc_press_en"):
+            self.assertEqual(source_for(family).collection_receipt_dirs,
+                             ("state/private_attempts",))
+        signs = {f for f, s in SOURCES.items() if s.signs_collection()}
+        self.assertEqual(signs, {"ph_afp_articles", "ph_nsc_official_statements",
+                                 "id_kemhan_news", "jp_jcg_press_en", "sg_mindef_releases",
+                                 "us_uscc_press_en"})
+        # JCG and Singapore write state/ledger/<run>.json and declare no receipt
+        # dir; DAPA has no scheduled collector.
+        for family in ("sg_mindef_releases", "jp_jcg_press_en", "kr_policy_dapa_releases"):
+            self.assertEqual(source_for(family).collection_receipt_dirs, ())
 
 
 if __name__ == "__main__":

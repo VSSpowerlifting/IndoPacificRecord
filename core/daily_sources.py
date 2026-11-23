@@ -36,7 +36,9 @@ _THIRD_PARTY_CREDIT = re.compile(r"(?im)^\s*(?:sumber|source|credit)\s*:")
 # ordinary manual Daily runs, whatever its source-policy flags say. The gate is
 # open only for a deliberately dispatched run that names the one identity; the
 # identity then bounds both the envelope fetch and governed admission.
-ATTENDED_PILOT_ENV = {"sg_mindef_releases": "IPR_SG_MINDEF_ATTENDED_PILOT_IDENTITY"}
+# Empty since Singapore MINDEF recurring activation (DECISION_LOG 2026-11-22):
+# no family is attended-only now; the mechanism stays for a future pilot.
+ATTENDED_PILOT_ENV = {}
 _PILOT_IDENTITY = re.compile(r"[a-z0-9][a-z0-9-]{0,62}")
 
 
@@ -88,6 +90,10 @@ class DailySource:
     release_gate: Optional[str] = None  # adapter: () -> hold reason | None
     known_hold: Optional[str] = None    # adapter: record -> bool
     output_check: Optional[str] = None  # adapter: output -> hold reason | None
+    # Apply output_check in private processing too, before signing, so an output
+    # admission would hold for attribution is a retriable QA hold rather than a
+    # signed item that never publishes. Opt-in per family.
+    output_check_before_signing: bool = False
     # Families whose candidate builder narrows the original to an approved prose
     # scope: (private link fields, shadow row) -> model input body. Unset, the
     # whole preserved original is the input, as before.
@@ -122,6 +128,12 @@ class DailySource:
     # restores them once the hold clears; the signer neither releases nor
     # withdraws the identity meanwhile. Item-specific holds never resume.
     resumable_holds: Tuple[str, ...] = ()
+    # Queue order within one private processing run. False keeps newest-first.
+    # True tries never-attempted entries before retriable ones (newest-first
+    # within each group), so a one-record-per-run cap cannot keep a fresh
+    # version waiting behind a version still spending its retry budget. It
+    # changes order only: no attempt count, budget, hold or check changes.
+    first_attempts_first: bool = False
     # adapter: intake_dir -> (run-result status, fixed detail) | None. Lets a
     # family report source-wide evidence (a refused terms page) on its own
     # run-result row when the envelope alone would read as "nothing new".
@@ -134,6 +146,14 @@ class DailySource:
     # Hours after the cron slot during which the previous slot is still the
     # expected one. Observed cron-to-finish lags are 4 to 10.5 hours.
     collection_grace_hours: int = 14
+    # Receipt directories (at the custody commit) holding "<run_id>.json" files
+    # with the collector's exit status, written even when no ledger is.
+    collection_receipt_dirs: Tuple[str, ...] = ()
+    # Cutover floor for a family whose custody holds ledgers written before its
+    # collector adopted the shared schema: ledger file names that sort at or
+    # below it are not read (core.collection.attempts.read_custody). None reads
+    # every ledger.
+    collection_ledger_after: Optional[str] = None
 
     def collection_expectation(self) -> Tuple[Optional[str], int]:
         """(cron, grace hours) for the freshness verdict; no cron for an
@@ -141,6 +161,19 @@ class DailySource:
         if attended_only(self.family):
             return None, self.collection_grace_hours
         return self.collection_cron_utc, self.collection_grace_hours
+
+    def signs_collection(self) -> bool:
+        """True when the private signer emits schema /2 with a signed
+        collection block: exactly the families with a declared, unattended
+        cadence. Others (attended pilot, no cadence) keep signing /1."""
+        return self.collection_expectation()[0] is not None
+
+    def collection_attempt(self, repo, commit) -> dict:
+        """Signed-facts block read from custody at ``commit``; never raises."""
+        from core.collection import attempts
+        return attempts.read_custody(repo, commit, self.family,
+                                     receipt_dirs=self.collection_receipt_dirs,
+                                     ledger_after=self.collection_ledger_after)
 
     def evidence_outcome(self, intake_dir) -> Optional[Tuple[str, str]]:
         return _call(self.evidence_report)(intake_dir) if self.evidence_report else None
@@ -490,6 +523,15 @@ def _uscc_parent(conn, identity) -> Optional[dict]:
     from core import uscc_press_links
     return uscc_press_links.read_parent(conn, identity)
 
+# Cutover floor for archive/uscc-press: the lead-verified basename of the last
+# pre-schema ledger in custody at release time. Pre-schema ledgers carry result
+# "success"/"hold" and no target_date, target_date_source or health, so
+# read_custody would report the whole custody unreadable. Shared-schema ledgers
+# (named "%Y%m%dT%H%M%SZ-<run_id>.json") sort after it and are read as usual.
+# If the pre-schema collector writes another ledger before the first
+# shared-schema ledger lands, the lead moves this floor to that ledger.
+USCC_LEDGER_AFTER = "20261122T183844Z-45056204824-1.json"
+
 SOURCES: Dict[str, DailySource] = {s.family: s for s in (
     DailySource(
         family="ph_afp_articles", desk_id="philippines", custody_ref="archive/ph-afp",
@@ -497,7 +539,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         public_issuer="Armed Forces of the Philippines", prompt_versions=_PH_PROMPTS,
         identity_max_length=120, first_party=True,
         # private afp_private_first_collector.yml: cron '40 6 * * *'
-        collection_cron_utc="06:40",
+        collection_cron_utc="06:40", collection_receipt_dirs=("private_attempts",),
         links="core.daily_sources:_afp_links",
         quality="processing.daily_intake:english_official_quality"),
     DailySource(
@@ -506,7 +548,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         publisher="National Security Council", public_issuer=None,
         prompt_versions=_PH_PROMPTS, identity_max_length=120,
         # private nsc_private_first_collector.yml: cron '10 10 * * *'
-        collection_cron_utc="10:10",
+        collection_cron_utc="10:10", collection_receipt_dirs=("private_attempts",),
         links="core.daily_sources:_nsc_links",
         quality="processing.daily_intake:english_official_quality",
         release_gate="core.daily_sources:_nsc_category_gate"),
@@ -520,7 +562,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         released_prompt_versions=("id-relevance-v1+id-analysis-v4",),
         first_party=True, reject_credit_line=True,
         # private indonesia_private_first_collector.yml: cron '17 17 * * *'
-        collection_cron_utc="17:17",
+        collection_cron_utc="17:17", collection_receipt_dirs=("state/private_attempts",),
         links="core.daily_sources:_kemhan_links",
         quality="processing.indonesia_quality:quality_check",
         known_hold="core.daily_sources:_kemhan_known_hold",
@@ -554,10 +596,14 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         quality="processing.daily_intake:english_official_quality",
         known_hold="core.daily_sources:_sg_known_hold",
         output_check="core.daily_sources:_sg_output_check",
+        output_check_before_signing=True,
         parent="core.daily_sources:_sg_parent",
         admission_migration="migrations.versions.m0022_singapore_mindef_source_records:is_already_applied",
-        # A manifest-registered manual source: public Daily admits signed outputs,
-        # never fetches MINDEF originals. Runtime source-use gates stay off.
+        # private singapore_mindef_private_first_collector.yml: cron '37 10 * * *'
+        collection_cron_utc="10:37",
+        # A manifest-registered manual source: public Daily admits signed links
+        # and outputs, never fetches MINDEF originals. Recurring since the
+        # founder's 22 Nov approval (DECISION_LOG 2026-11-22).
         desk_registered=True),
     DailySource(
         # Standing first-party text family (PR #1015, Public Data License 1.0):
@@ -566,7 +612,11 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         family="jp_jcg_press_en", desk_id="japan", custody_ref="archive/japan-jcg",
         language="en", label="JCG", publisher="Japan Coast Guard",
         public_issuer="Japan Coast Guard",
-        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v1",),
+        # v3 is what the processor now emits; v2 and v1 stay admissible for
+        # any output signed before each switch (none was complete at either).
+        prompt_versions=("jp-jcg-relevance-v1+jp-jcg-analysis-v3",
+                         "jp-jcg-relevance-v1+jp-jcg-analysis-v2",
+                         "jp-jcg-relevance-v1+jp-jcg-analysis-v1"),
         identity_max_length=64,
         # private japan_jcg_private_first_collector.yml: cron '13 19 * * *'
         collection_cron_utc="19:13",
@@ -575,6 +625,7 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         known_hold="core.daily_sources:_jcg_known_hold",
         known_hold_reason="core.daily_sources:_jcg_known_hold_reason",
         resumable_holds=JCG_RESUMABLE_HOLDS,
+        first_attempts_first=True,
         evidence_report="core.daily_sources:_jcg_evidence_report",
         output_check="core.daily_sources:_jcg_output_check",
         parent="core.daily_sources:_jcg_parent",
@@ -606,9 +657,16 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         admission_migration="migrations.versions.m0024_uscc_press_source_records:is_already_applied",
         # One owner switch for both public halves, off by default.
         public_switch="US_USCC_LINKS_ENABLED",
-        # Not registered: the U.S. desk has no governed Daily admission or
-        # run-result row until a founder activation decision registers it.
-        desk_registered=False),
+        # A manifest-registered manual source (2026-11-22 founder activation):
+        # public Daily admits signed links and outputs, never fetches uscc.gov.
+        desk_registered=True,
+        # private uscc_private_first_collector.yml: cron '35 11 * * *'. Every
+        # attempt writes state/private_attempts/<run_id>-<attempt>.json with its
+        # exit status, so a refusal or crash that wrote no ledger is reported.
+        collection_cron_utc="11:35", collection_receipt_dirs=("state/private_attempts",),
+        # Custody keeps the pre-schema ledger(s) of the first collector forever
+        # (the collector refuses to modify or delete under state/ledger).
+        collection_ledger_after=USCC_LEDGER_AFTER),
 )}
 
 
