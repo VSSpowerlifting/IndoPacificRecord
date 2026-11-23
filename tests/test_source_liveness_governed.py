@@ -639,7 +639,18 @@ class GovernedSourcesAreJudgedByTheirRuns(unittest.TestCase):
                                           runs=runs["fetched_mil"]))
 
     def test_the_live_corpus_never_gets_more_lenient(self):
-        """Over the tracked database: run evidence only ever adds a verdict."""
+        """Over the tracked database: run evidence only ever adds a verdict.
+
+        The one deliberate exception is a shared-Daily family
+        (``articles_closed``) with runs that attempted collection. #1093 stops
+        judging its closed pre-cutover article rows (see
+        test_a_shared_daily_family_is_judged_on_governed_runs_not_its_closed_articles),
+        so for it the property is the stronger one: its article rows have no
+        influence at all, and its verdict equals the article-free verdict on
+        the same runs. Every other source, including every manual source that
+        still writes articles, keeps the original property: stale articles
+        are never rescued by a recent run.
+        """
         if not liveness.DEFAULT_DB.exists():
             self.skipTest("tracked database not present")
         runs = liveness.governed_runs(liveness.DEFAULT_DB)
@@ -649,14 +660,51 @@ class GovernedSourcesAreJudgedByTheirRuns(unittest.TestCase):
         today = date.today()
         for slug, name, total, last_seen in liveness.rows(liveness.DEFAULT_DB, today):
             exp = expected.get(slug, liveness.UNDECLARED)
-            old = liveness.classify(slug, total, last_seen, today, 7, exp)
+            source_runs = runs.get(slug, liveness.NO_GOVERNED_RUNS)
             new = liveness.classify(slug, total, last_seen, today, 7, exp,
-                                    runs=runs.get(slug, liveness.NO_GOVERNED_RUNS))
+                                    runs=source_runs)
             with self.subTest(source=slug):
+                if exp.articles_closed and source_runs.collected:
+                    self.assertEqual(
+                        liveness.classify(slug, 0, None, today, 7, exp,
+                                          runs=source_runs),
+                        new)
+                    continue
+                old = liveness.classify(slug, total, last_seen, today, 7, exp)
                 if old[0] in {"UNHEALTHY", "PAUSED"}:
                     self.assertEqual(old[0], new[0])
                 if not exp.manual:
                     self.assertEqual(old, new)
+
+    def test_closed_articles_are_ignored_only_once_a_run_attempted_collection(self):
+        closed = liveness.Expectation(manual=True, articles_closed=True)
+        stale = ("gov_mil", 3, "2026-09-05")
+        both = self.history(
+            ("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None),
+            ("idle_mil", "2026-09-19 23:00:00", st.SKIPPED_DISABLED, 0, None))
+        healthy, skipped = both["gov_mil"], both["idle_mil"]
+        self.assertTrue(healthy.collected)
+        self.assertFalse(skipped.collected)
+        # A closed family with a collecting run: articles have no influence.
+        self.assertEqual(
+            liveness.classify("gov_mil", 0, None, TODAY, 7, closed, runs=healthy),
+            liveness.classify(*stale, TODAY, 7, closed, runs=healthy))
+        # Skipped rows only (awaiting activation): the stale articles still decide.
+        self.assertEqual(
+            "UNHEALTHY",
+            liveness.classify(*stale, TODAY, 7, closed, runs=skipped)[0])
+        self.assertEqual(
+            "UNHEALTHY",
+            liveness.classify(*stale, TODAY, 7, closed)[0])
+        # Without the closed flag, a recent run never rescues stale articles.
+        for exp in (self.MANUAL, liveness.UNDECLARED):
+            with self.subTest(exp=exp):
+                self.assertEqual(
+                    liveness.classify(*stale, TODAY, 7, exp)[0],
+                    liveness.classify(*stale, TODAY, 7, exp, runs=healthy)[0])
+        self.assertEqual(
+            "UNHEALTHY",
+            liveness.classify(*stale, TODAY, 7, self.MANUAL, runs=healthy)[0])
 
 
 # ── Against the live corpus ───────────────────────────────────────────────────

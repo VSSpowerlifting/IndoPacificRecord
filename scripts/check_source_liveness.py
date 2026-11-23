@@ -56,7 +56,10 @@ Otherwise it is UNHEALTHY when its last healthy run is older than its
 threshold. When it also holds articles, the article-recency verdict is still
 applied and the worse of the two wins: the signal can turn an INERT source
 into a judged one, or a HEALTHY one UNHEALTHY when its admission has stopped,
-but it never turns an UNHEALTHY verdict HEALTHY. A latest failed run is shown
+but it never turns an UNHEALTHY verdict HEALTHY. The one exception is a
+shared-Daily family (``articles_closed``): once any run has attempted
+collection, its closed pre-cutover article rows are ignored and its runs alone
+decide, so stale pre-cutover articles do not keep it UNHEALTHY. A latest failed run is shown
 in the detail even when the state is HEALTHY. A run whose Daily has no
 parseable date is ignored. A database without the run tables is judged
 exactly as before.
