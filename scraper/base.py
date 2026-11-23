@@ -127,6 +127,9 @@ class BaseScraper(ABC):
         path.parent.mkdir(parents=True, exist_ok=True)
         return path
 
+    def _on_response(self, url: str, resp: requests.Response) -> None:
+        """Hook for adapters that must keep the wire bytes. No-op by default."""
+
     # ── Public API ────────────────────────────────────────────────────────────
 
     def fetch(self, url: str, force_refresh: bool = False) -> Optional[str]:
@@ -148,6 +151,7 @@ class BaseScraper(ABC):
                 resp = self._session.get(url, timeout=REQUEST_TIMEOUT_SECONDS)
                 self._last_request_at = time.monotonic()
                 resp.raise_for_status()
+                self._on_response(url, resp)
                 html = _decode_response(resp)
                 cache_path.write_text(html, encoding="utf-8")
                 self.logger.debug("Fetched: %s", url)

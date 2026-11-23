@@ -1,4 +1,68 @@
 # DECISION_LOG — Indo-Pacific Record
+## 2026-11-22 — Founder: Global Times custody in the private evidence repo (action D)
+
+**Decision.** On 22 November 2026 the founder chose action D for
+`global_times_mil`: collection and custody of Global Times pages move to the
+private evidence repository, and the public Daily stops requesting the
+publisher. The public side only replays what the private collector signed.
+This entry records the public half; the private collector is a separate change.
+
+**Design.**
+- Private `core.collection.global_times_handoff collect` (cron `'17 1 * * *'`,
+  window [target-2, target]) runs the unchanged scraper and records every
+  observation in `capture_versions`, append-only and ordered by `version_seq`:
+  a new version whenever `(capture_sha256, text_held)` differs from the
+  article's latest one. It keeps the exact wire bytes as
+  `captures/<sha>.bin`. A held page (`text_held`, another agency's byline) keeps
+  no bytes and a blank body.
+- Every attempt writes an `ipr-collection-attempts/1` ledger, initialised as a
+  failure, plus an exit receipt. The private `IPR_CHINA_SOURCE_USE_HOLD`
+  governs collection. It must be exactly `true` (hold) or `false` (allow).
+  A private hold or invalid setting makes no publisher request. The public
+  variable of the same name independently governs public admission.
+- `verify` checks the fresh clone's hashes and append-only history. `sign` builds the envelope
+  from that clone only: the latest version per article fetched in the last
+  3 days, with HMAC key `DAILY_GLOBAL_TIMES_MIL_KEY`, at most 512,000 bytes.
+  The running parser must reproduce each candidate from verified bytes.
+  Parser mismatches and holds without bytes are excluded and counted. It
+  is published as `global_times_mil.captures.json` on
+  `state/global-times-captures`.
+- Public: the fetch step copies the envelope only when
+  `CN_GLOBAL_TIMES_HANDOFF_ENABLED` is exactly `true`.
+  `adapters.global_times_handoff` authenticates it, imports no network
+  library, and yields the legacy `parse_article` dicts. Source-run receipts
+  bind replay to the signed envelope digest and custody commit, which identify
+  the exact capture even when distinct HTML versions normalize identically.
+- An absent, unauthenticated, unattested, failed or stale envelope fails the
+  source closed with a named status. Stale means the slot plus 14 hours has
+  passed.
+- A held row's `content_hash` folds in its URL, so two held pages with one
+  headline are not reposts of each other. No existing hash changes: the old
+  scraper never set `text_held` on a stored row.
+
+**Unchanged.** Every spend cap, word or character limit, rights flag, factual
+check, model and retry ceiling is unchanged. `IPR_CHINA_SOURCE_USE_HOLD` still
+skips the source before its adapter is built, and `insert_article` still
+asserts it. URL dedup, content-hash dedup and the id allocator are unchanged,
+so existing record ids and Record URLs are unchanged. A canonical URL must
+match `https://www.globaltimes.cn/page/YYYYMM/<id>.shtml` exactly and is
+refused, never rewritten. The public database gains no custody table, migration
+or write path.
+
+**Release and rollback order.** This public PR merges first. Until the private
+collector is live and the variable is `true`, the Daily records
+`global_times_mil` as `listing_failure` `gt_handoff_not_delivered`, which
+degrades it exactly as an unreachable listing did. Rollback order:
+1. Turn off `CN_GLOBAL_TIMES_PRIVATE_COLLECTION_ENABLED` in the private
+   repository, stop dispatches and wait for any in-flight collection to finish.
+2. Revert the public manifest `adapter` through the reviewed PR path to
+   `scraper.sources.global_times_mil:GlobalTimesMilScraper`.
+3. Unset the public `CN_GLOBAL_TIMES_HANDOFF_ENABLED`.
+
+Legacy collection keeps reporting the parser's hold reasons. Recovery reports
+the matched version's hold even when an unheld version references the same
+bytes. Preserve private custody and attempt history throughout rollback.
+
 ## 2026-11-22 — Founder: USCC press releases first activation approved
 
 **Authority.** On 22 November 2026 the founder approved, in chat, "USCC first

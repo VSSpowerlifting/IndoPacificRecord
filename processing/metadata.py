@@ -19,6 +19,21 @@ def compute_content_hash(title: Optional[str], text: Optional[str]) -> str:
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
 
+def compute_held_content_hash(title: Optional[str], url: Optional[str]) -> str:
+    """
+    Hash for a row whose body a parser held on purpose (``text_held``).
+
+    A held body is blank, so ``compute_content_hash`` would reduce to the title
+    alone and a second held page with the same headline would be dropped as a
+    repost of the first. The URL is folded in for held rows only. The layout
+    (two separators) cannot equal any ``compute_content_hash`` input, whose
+    normalized title and text contain no newline, so no other row's hash can
+    collide with it or change.
+    """
+    normalized = _normalize(title or "") + "\n\n" + (url or "")
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
+
+
 def normalize_article(raw: dict) -> dict:
     """
     Ensure a raw article dict has all required fields in expected types.
@@ -32,6 +47,9 @@ def normalize_article(raw: dict) -> dict:
     article["content_hash"]   = compute_content_hash(
         article["title_original"], article["text_original"]
     )
+    if article.get("text_held"):
+        article["content_hash"] = compute_held_content_hash(
+            article["title_original"], article.get("url"))
 
     return article
 

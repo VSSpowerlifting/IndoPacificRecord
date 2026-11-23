@@ -347,6 +347,7 @@ jobs:
           SG_MINDEF_LINKS_ENABLED: ${{ vars.SG_MINDEF_LINKS_ENABLED }}
           JP_JCG_LINKS_ENABLED: ${{ vars.JP_JCG_LINKS_ENABLED }}
           US_USCC_LINKS_ENABLED: ${{ vars.US_USCC_LINKS_ENABLED }}
+          CN_GLOBAL_TIMES_HANDOFF_ENABLED: ${{ vars.CN_GLOBAL_TIMES_HANDOFF_ENABLED }}
         run: python -m scripts.fetch_daily_machine_outputs
 
       # Singapore MINDEF official-link parents: the private collector signs
@@ -498,6 +499,7 @@ jobs:
           DAILY_SG_MINDEF_RELEASES_KEY: ${{ secrets.DAILY_SG_MINDEF_RELEASES_KEY }}
           DAILY_JP_JCG_PRESS_EN_KEY: ${{ secrets.DAILY_JP_JCG_PRESS_EN_KEY }}
           DAILY_US_USCC_PRESS_EN_KEY: ${{ secrets.DAILY_US_USCC_PRESS_EN_KEY }}
+          DAILY_GLOBAL_TIMES_MIL_KEY: ${{ secrets.DAILY_GLOBAL_TIMES_MIL_KEY }}
           VPCP_METADATA_ONLY: ${{ inputs.vpcp_metadata_only }}
           # Vietnam's two steps above write pla_watch.db before this one; the
           # pipeline reports what they recorded under the same activations.

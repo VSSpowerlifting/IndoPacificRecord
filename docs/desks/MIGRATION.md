@@ -480,6 +480,29 @@ Nothing here adopts a publisher grant or restriction, activates the hold, or
 changes the live site. Activation, legacy-record treatment and publisher
 correspondence remain separate founder decisions.
 
+**China Desk: Global Times cutover to private custody (DECISION_LOG
+2026-11-22, action D).** `global_times_mil` in `desks/china/manifest.json` now
+uses `adapters.global_times_handoff:GlobalTimesHandoffAdapter`. Its slug,
+`access_method` (`html`), institution and tier are unchanged. The public Daily
+makes no request to the publisher. It replays the signed
+`global_times_mil.captures.json`, which is fetched from
+`state/global-times-captures` only when `CN_GLOBAL_TIMES_HANDOFF_ENABLED` is
+exactly `true`. The fetch is not in the shared-Daily `SOURCES`. Custody
+(versions, bytes, ledgers) lives only in the private evidence repository.
+
+The public China source-use hold precedes admission. The separately set private
+China hold governs collection and requires an explicit `true` or `false`.
+Existing IDs, URLs and hashes remain stable. Cutover order:
+1. This public PR merges.
+2. Provision the shared signing key, then merge the private collector PR.
+3. Set the private hold explicitly, enable the private schedule and dispatch once.
+4. Verify the signed capture with an independent fresh clone, then enable
+   `CN_GLOBAL_TIMES_HANDOFF_ENABLED` and verify Daily and HTTPS delivery.
+
+Until step 4, the source reports `listing_failure` `gt_handoff_not_delivered`.
+For rollback, disable and drain the private collector, revert the public
+manifest adapter, then unset the public handoff variable.
+
 ## Daily collection attestation (reader first) — 16 November 2026
 
 A fresh signed Daily envelope no longer means a fresh collection: the private
