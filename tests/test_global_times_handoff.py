@@ -885,6 +885,18 @@ class Custody(CollectBase):
         head = commit(self.repo)
         self.assertIsNone(handoff.verify_clone(self.fresh(), head, COLLECTOR))
 
+    def test_verify_refuses_a_shallow_clone_that_hides_the_parent(self):
+        changed = pages(**{A1: page("Fixture headline one", body=BODY + " Corrected.")})
+        self.run_once(FakeSession(changed), run_id="1002-1")
+        head = commit(self.repo)
+        shallow = self.tmp / "shallow"
+        subprocess.run(GIT + ["clone", "-q", "--depth", "1", "file://" + str(self.repo),
+                              str(shallow)], check=True, capture_output=True)
+        self.assertEqual(handoff.verify_clone(shallow, head, COLLECTOR),
+                         "parent_custody_unverifiable")
+        # A full clone of the same commit is sound.
+        self.assertIsNone(handoff.verify_clone(self.fresh(), head, COLLECTOR))
+
     def test_cli_verify(self):
         clone_dir = self.fresh()
         self.assertEqual(handoff.main(["verify", "--clone", str(clone_dir), "--expect-head",

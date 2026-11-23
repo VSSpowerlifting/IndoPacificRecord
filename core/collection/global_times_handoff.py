@@ -639,6 +639,11 @@ def _parent_rows_preserved(clone: Path, rows) -> Optional[str]:
     from collections import Counter
     try:
         parents = _git(clone, "rev-list", "--parents", "-n", "1", "HEAD").decode().split()[1:]
+        # A shallow clone hides the parents: without them nothing could be
+        # compared, so it must never pass as a first custody commit.
+        if not parents and _git(clone, "rev-parse", "--is-shallow-repository"
+                                ).decode().strip() != "false":
+            return "parent_custody_unverifiable"
     except Exception:
         return "git_check_failed"
     for parent in parents:
