@@ -649,14 +649,51 @@ class GovernedSourcesAreJudgedByTheirRuns(unittest.TestCase):
         today = date.today()
         for slug, name, total, last_seen in liveness.rows(liveness.DEFAULT_DB, today):
             exp = expected.get(slug, liveness.UNDECLARED)
-            old = liveness.classify(slug, total, last_seen, today, 7, exp)
+            source_runs = runs.get(slug, liveness.NO_GOVERNED_RUNS)
+            old = liveness.classify(*self._baseline(slug, total, last_seen, exp, source_runs),
+                                    today, 7, exp)
             new = liveness.classify(slug, total, last_seen, today, 7, exp,
-                                    runs=runs.get(slug, liveness.NO_GOVERNED_RUNS))
+                                    runs=source_runs)
             with self.subTest(source=slug):
                 if old[0] in {"UNHEALTHY", "PAUSED"}:
                     self.assertEqual(old[0], new[0])
                 if not exp.manual:
                     self.assertEqual(old, new)
+
+    @staticmethod
+    def _baseline(slug, total, last_seen, exp, source_runs):
+        """The article-only judgement the governed signal is compared against.
+
+        A shared-Daily family (``articles_closed``) never writes ``articles``;
+        once it has governed runs its article rows are a closed pre-cutover
+        corpus that #1093 deliberately stops judging (see
+        test_a_shared_daily_family_is_judged_on_governed_runs_not_its_closed_articles).
+        Its baseline is therefore "nothing admitted": the invariant still holds
+        for every other source, including every manual source that writes
+        articles, whose stale articles a recent run must never rescue.
+        """
+        if exp.articles_closed and source_runs.collected:
+            return slug, 0, None
+        return slug, total, last_seen
+
+    def test_only_a_closed_corpus_with_runs_gets_the_article_free_baseline(self):
+        healthy = self.history(("gov_mil", "2026-09-19 23:00:00", st.OK, 0, None))["gov_mil"]
+        closed = liveness.Expectation(manual=True, articles_closed=True)
+        cases = (
+            (closed, healthy, ("gov_mil", 0, None)),
+            (closed, liveness.NO_GOVERNED_RUNS, ("gov_mil", 3, "2026-09-05")),
+            (self.MANUAL, healthy, ("gov_mil", 3, "2026-09-05")),
+            (liveness.UNDECLARED, healthy, ("gov_mil", 3, "2026-09-05")),
+        )
+        for exp, source_runs, expected in cases:
+            with self.subTest(exp=exp, collected=source_runs.collected):
+                self.assertEqual(expected,
+                                 self._baseline("gov_mil", 3, "2026-09-05", exp, source_runs))
+        # Without the closed flag, a manual source's stale articles still decide.
+        old = liveness.classify("gov_mil", 3, "2026-09-05", TODAY, 7, self.MANUAL)
+        new = liveness.classify("gov_mil", 3, "2026-09-05", TODAY, 7, self.MANUAL,
+                                runs=healthy)
+        self.assertEqual(("UNHEALTHY", "UNHEALTHY"), (old[0], new[0]))
 
 
 # ── Against the live corpus ───────────────────────────────────────────────────
