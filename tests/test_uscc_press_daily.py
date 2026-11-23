@@ -24,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -95,8 +96,15 @@ def init_custody(root, *, remote=REMOTE, branch=BRANCH):
     return repo
 
 
-def commit_custody(repo, releases, *, run_id="uscc-1", robots=ROBOTS, provenance=None):
-    """Write (slug or identity, day, raw[, access]) captures into custody; return the pin."""
+def commit_custody(repo, releases, *, run_id="uscc-1", robots=ROBOTS, provenance=None,
+                   ledgers=None):
+    """Write (slug or identity, day, raw[, access]) captures into custody; return the pin.
+
+    ``ledgers`` ({basename: dict}) are collector attempt ledgers under state/ledger.
+    """
+    for name, body in (ledgers or {}).items():
+        (repo / "state" / "ledger").mkdir(parents=True, exist_ok=True)
+        (repo / "state" / "ledger" / name).write_text(json.dumps(body))
     rows, captures = [], {}
     for item in releases:
         key, day, raw = item[:3]
@@ -169,8 +177,9 @@ class Lane:
     runs for a registered family. Policy and switch values are synthetic.
     """
 
-    def __init__(self, case, db, tmp, p=None):
+    def __init__(self, case, db, tmp, p=None, clock=None):
         self.case, self.db, self.tmp = case, Path(db), Path(tmp)
+        self.clock = clock  # the public Daily's clock for the freshness verdict
         self.p = p or policy()
         self.handoff = self.tmp / "handoff"
         self.queue = self.handoff / "queues" / (FAMILY + ".json")
@@ -232,7 +241,7 @@ class Lane:
                 patch.object(d, "load_policy", return_value=self.p), \
                 patch.object(daily_runner, "load_policy", return_value=self.p), \
                 patch.object(pipeline, "DB_PATH", self.db):
-            admission = pipeline._daily_admission(FAMILY)
+            admission = pipeline._daily_admission(FAMILY, clock=self.clock)
             self.case.assertIsNone(admission.inactive_reason())
             return admission.admit(1)
 
@@ -297,10 +306,13 @@ class Definition(unittest.TestCase):
         self.assertEqual(s.publisher, "U.S.-China Economic and Security Review Commission")
         self.assertEqual((s.key_env, s.public_switch), (links.KEY_ENV, "US_USCC_LINKS_ENABLED"))
         self.assertTrue(s.desk_registered)
-        # No declared cadence until the private collector writes the shared
-        # ledger schema: the family signs /1 and gets no freshness verdict.
-        self.assertIsNone(s.collection_expectation()[0])
-        self.assertFalse(s.signs_collection())
+        # Private collector cron '35 11 * * *': the family signs /2 and gets a
+        # freshness verdict, reading only ledgers above its pre-schema floor.
+        from core.daily_sources import USCC_LEDGER_AFTER
+        self.assertEqual(s.collection_expectation(), ("11:35", 14))
+        self.assertTrue(s.signs_collection())
+        self.assertEqual(s.collection_ledger_after, USCC_LEDGER_AFTER)
+        self.assertEqual(s.collection_receipt_dirs, ("state/private_attempts",))
         committed = d.load_policy()["sources"][FAMILY]
         # 2026-11-22 founder first activation, within unchanged ceilings.
         for switch in ("private_model_processing", "public_machine_explanation",
@@ -559,6 +571,10 @@ class Custody(unittest.TestCase):
         self.assertNotEqual(state.get(FAMILY + ":" + ident(dalai), {}).get("status"), "complete")
 
 
+# A public Daily start at which the 2026-11-23 11:35 slot is the expected one.
+LIFECYCLE_NOW = datetime(2026, 11, 24, 14, 23, tzinfo=timezone.utc)
+
+
 class Lifecycle(unittest.TestCase):
     """Custody -> signed links -> private processing -> signed outputs -> SQLite -> reader."""
 
@@ -574,10 +590,16 @@ class Lifecycle(unittest.TestCase):
             list_metadata(conn, ident(SLUG_B), DAY_B)
         conn.close()
         self.repo = init_custody(self.tmp)
+        # The collector's attempt ledgers: a pre-schema one at the declared floor
+        # (never read) and a healthy schedule-slot one current at LIFECYCLE_NOW.
+        from core.daily_sources import USCC_LEDGER_AFTER
+        from tests.test_collection_attempts import legacy, new_shape
         self.head = commit_custody(self.repo, [
             (SLUG_A, DAY_A, release_page(SLUG_A, DAY_A)),
-            (SLUG_B, DAY_B, release_page(SLUG_B, DAY_B, narrative=(N3, N4)))])
-        self.lane = Lane(self, self.db, self.tmp)
+            (SLUG_B, DAY_B, release_page(SLUG_B, DAY_B, narrative=(N3, N4)))],
+            ledgers={USCC_LEDGER_AFTER: legacy(),
+                     "20261123T190244Z-45100000000-1.json": new_shape()})
+        self.lane = Lane(self, self.db, self.tmp, clock=lambda: LIFECYCLE_NOW)
 
     def deliver(self, head=None):
         """One Daily cycle; returns (state, envelope, governed outcome)."""

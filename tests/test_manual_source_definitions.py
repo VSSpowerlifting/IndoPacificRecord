@@ -406,13 +406,13 @@ class TestGovernedDispatch(unittest.TestCase):
                 r, _ = self.dispatch("ph_afp_articles", self.daily_at("ph_afp_articles", plain, now))
                 self.assertEqual((r.status, r.error_detail),
                                  (st.FETCH_FAILURE, "collection_not_attested"))
-                # No declared cadence (USCC, DAPA) never needs it.
-                for fam in ("us_uscc_press_en", "kr_policy_dapa_releases"):
+                # No declared cadence (DAPA) never needs it.
+                for fam in ("kr_policy_dapa_releases",):
                     out = self.daily_at(fam, plain, now).admit(1)
                     self.assertEqual((out.status, out.error_detail), (st.OK, None), fam)
-                # Singapore MINDEF is recurring (10:37 UTC collector): attested like the
-                # other scheduled families.
-                for fam in ("sg_mindef_releases",):
+                # Singapore MINDEF (10:37 UTC) and USCC (11:35 UTC) declare their
+                # private collector crons: attested like the other scheduled families.
+                for fam in ("sg_mindef_releases", "us_uscc_press_en"):
                     out = self.daily_at(fam, plain, now).admit(1)
                     self.assertEqual((out.status, out.error_detail),
                                      (st.FETCH_FAILURE, "collection_not_attested"), fam)

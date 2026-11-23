@@ -325,8 +325,10 @@ Built with every switch off. **Founder first activation, 22 November 2026**
 ceilings, `desk_registered=True`, the source is registered in
 `desks/us-indopacific/manifest.json`, and the private collector
 (`uscc_private_first_collector.yml`, VSSpowerlifting/ipr-source-evidence-private#50)
-writes custody and its own run ledger on `archive/uscc-press` (not yet the shared
-ledger schema, so USCC has no declared collection cadence). Nothing runs until
+writes custody and its run ledger on `archive/uscc-press`. Ledgers up to
+`20261122T183844Z-45056204824-1.json` are pre-schema and sit below
+`USCC_LEDGER_AFTER`; later ones use the shared schema (see the cadence note
+below). Nothing runs until
 the owner variables are set; `US_USCC_LINKS_ENABLED` unset withholds both public
 halves. Seeding production custody from the 3 November archive and any backfill
 are not authorized.
@@ -517,7 +519,12 @@ row, after admission, keeping its counts and `held:` detail.
   block, so a malformed block never blocks records (it reads as not attested).
   Vietnam family entries may carry the same optional block under the
   existing, unbumped handoff MAC; the printed receipt adds
-  `collection_by_family`.
+  `collection_by_family`. (22 November: the reader accepts an optional signed
+  `dispositions` count per bridge outcome code; the receipt adds
+  `dispositions_by_family`, and the run detail appends `private bridge: N code`
+  for non-published codes without changing status or counts. Signing it stays
+  off behind `SIGN_DISPOSITIONS` until a follow-up flip after one public Daily
+  has run this reader: older verifiers refuse the key.)
 - Order: reader (this change; every live envelope is still `/1`, so every
   disposition is unchanged) -> shared and Vietnam producers, only after one
   public Daily has run reader code -> strict flip -> liveness. Cron values are
@@ -525,11 +532,15 @@ row, after admission, keeping its counts and `held:` detail.
   must be edited together; the attended Singapore pilot never gets a verdict.
   (22 November: Singapore MINDEF is recurring and declares `10:37`; it signs `/2`
   and gets a verdict. See DECISION_LOG 2026-11-22.)
-  USCC declares no cadence yet: its private collector (`'35 11 * * *'`,
-  VSSpowerlifting/ipr-source-evidence-private#50) writes ledger results
-  `success`/`hold` without `target_date`, `target_date_source` or `health`, which
-  `attempts.read_custody` cannot read. It signs `/1` until that collector writes
-  the shared ledger schema; only then is `collection_cron_utc="11:35"` declared.
+  USCC declares `collection_cron_utc="11:35"` (private collector `'35 11 * * *'`)
+  and signs `/2`, read above `collection_ledger_after`: custody keeps the
+  pre-schema ledger(s) of the first collector (results `success`/`hold`, no
+  `target_date`, `target_date_source` or `health`), which `read_custody` would
+  otherwise report unreadable. It follows the private collector's switch to the
+  shared schema (ipr-source-evidence-private#52, `a0ec7e5`). USCC is signed
+  only by its own collector's processing run, so the first `/2` envelope comes
+  from the next USCC collection; until then the Daily keeps the last `/1`
+  envelope, which carries no verdict.
 - Strict-flip condition: set `pipeline._REQUIRE_COLLECTION_ATTESTATION` only
   after a structure-only listing shows `/2` for every enabled, non-attended
   family with a declared cadence. Until then a missing block is "no verdict".
