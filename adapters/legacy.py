@@ -292,7 +292,7 @@ class LegacyScraperAdapter(SourceAdapter):
         held_ids = {id(d) for d in held}
         unusable = [d for d in documents
                     if not d.has_usable_text and id(d) not in held_ids]
-        result.text_unavailable = len(unusable)
+        result.text_unavailable = len(held) + len(unusable)
         result.failed_fetches = len(self.failed_fetches)
         result.completed_at = _now()
 

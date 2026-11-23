@@ -168,20 +168,21 @@ class DeliberateHold(unittest.TestCase):
         self.assertEqual(len(documents), len(docs))
         return result
 
-    def test_a_held_body_is_not_text_unavailable(self):
+    def test_a_held_body_is_reported_without_failing_collection(self):
         result = self.collect([self.doc("", "non_gt_byline"), self.doc("Body.")])
         self.assertEqual(result.status, collection_status.OK)
-        self.assertEqual(result.text_unavailable, 0)
+        self.assertEqual(result.text_unavailable, 1)
         self.assertIn("held by the parser (non_gt_byline)", result.error_detail)
 
     def test_an_all_held_run_is_not_an_extraction_failure(self):
         result = self.collect([self.doc("", "non_gt_byline")])
         self.assertEqual(result.status, collection_status.OK)
-        self.assertEqual(result.text_unavailable, 0)
+        self.assertEqual(result.text_unavailable, 1)
 
     def test_a_genuinely_blank_body_still_counts(self):
         result = self.collect([self.doc(""), self.doc("", "non_gt_byline")])
-        self.assertEqual(result.text_unavailable, 1)
+        self.assertEqual(result.text_unavailable, 2)
+        self.assertIn("held by the parser (non_gt_byline)", result.error_detail)
         result = self.collect([self.doc("")])
         self.assertEqual(result.status, collection_status.EXTRACTION_FAILURE)
 

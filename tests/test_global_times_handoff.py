@@ -152,7 +152,7 @@ def envelope(records, collection="default", commit_sha="d" * 40, key=KEY, **over
            "custody_ref": handoff.CUSTODY_REF, "custody_commit": commit_sha,
            "generated_utc": "2026-11-21T01:40:00Z",
            "collection": facts(commit_sha) if collection == "default" else collection,
-           "records": records}
+           "records": records, "exclusions": dict.fromkeys(handoff.EXCLUSION_KEYS, 0)}
     env.update(over)
     env["mac"] = handoff.mac(key, env)
     return env
@@ -516,6 +516,10 @@ class HeldHashFold(unittest.TestCase):
 
 class CollectBase(Isolated):
 
+    def setUp(self):
+        super().setUp()
+        os.environ["IPR_CHINA_SOURCE_USE_HOLD"] = "false"
+
     def run_once(self, session, run_id="1001-1", target=TARGET):
         state = self.tmp / "custody" / "state"
         code = handoff.run_collect(state, target, SOURCE_EXPLICIT, run_id, COLLECTOR,
@@ -534,6 +538,19 @@ class CollectBase(Isolated):
 
 
 class Collect(CollectBase):
+
+    def test_private_hold_must_be_explicit_to_contact_the_publisher(self):
+        for i, value in enumerate((None, "", "FALSE", "no"), start=1):
+            with self.subTest(value=value):
+                if value is None:
+                    os.environ.pop("IPR_CHINA_SOURCE_USE_HOLD", None)
+                else:
+                    os.environ["IPR_CHINA_SOURCE_USE_HOLD"] = value
+                with patch.object(GlobalTimesMilScraper, "get_article_urls") as discover:
+                    _, code, entry = self.run_once(FakeSession({}), run_id="%d-1" % i)
+                discover.assert_not_called()
+                self.assertEqual((code, entry["result"], entry["error_detail"]),
+                                 (1, st.ADAPTER_ERROR, "private_source_use_hold_unconfigured"))
 
     def test_writes_versions_bins_ledger_and_receipt(self):
         session = FakeSession(pages())
@@ -857,7 +874,21 @@ class Custody(CollectBase):
         self.assertTrue((self.state / "captures" / (rows[1]["capture_sha256"] + ".bin")).is_file())
         head = commit(self.repo)
         self.assertIsNone(self.verify_with(head, "e" * 40, held_by_byline=False))
-        env = handoff.build_envelope(self.fresh(), head, KEY, self.now())
+        fresh = self.fresh()
+        import scraper.sources.global_times_mil as gt
+        with patch.object(gt, "_NON_GT_BYLINE_RE", __import__("re").compile(r"(?!x)x")):
+            env = handoff.build_envelope(fresh, head, KEY, self.now())
+            self.assertEqual(handoff.recover(
+                dict(url=A2, content_hash=rows[1]["content_sha256"],
+                     published_date=rows[1]["published_date"]),
+                fresh / "state/shadow.db", fresh / "state/captures"),
+                {"status": "recovered", "capture_sha256": rows[1]["capture_sha256"]})
+        self.assertEqual(handoff.recover(
+            dict(url=A2, content_hash=rows[0]["content_sha256"],
+                 published_date=rows[0]["published_date"]),
+            fresh / "state/shadow.db", fresh / "state/captures"),
+            {"status": "held_shared_bytes", "capture_sha256": rows[0]["capture_sha256"],
+             "text_held": "non_gt_byline"})
         rec = {r["source_identity"]: r for r in env["records"]}["gt:900002"]
         self.assertEqual((rec["text_held"], rec["raw_retained"], rec["text_original"]),
                          (None, True, BODY))
@@ -1048,11 +1079,25 @@ class Custody(CollectBase):
         self.assertIs(env["collection"]["attested"], True)
         self.assertEqual(env["collection"]["latest_healthy_target_date"], "2026-11-20")
         recs = {r["source_identity"]: r for r in env["records"]}
-        self.assertEqual(set(recs), {"gt:900001", "gt:900002"})
+        self.assertEqual(set(recs), {"gt:900001"})
         self.assertIs(recs["gt:900001"]["raw_retained"], True)
-        self.assertEqual((recs["gt:900002"]["raw_retained"], recs["gt:900002"]["text_original"]),
-                         (False, ""))
+        self.assertEqual(env["exclusions"], {"parser_mismatches": 0, "held_without_bytes": 1})
         self.assertEqual(handoff.verify_envelope(handoff.canonical(env), KEY), env)
+
+    def test_sign_excludes_an_older_capture_that_the_running_parser_now_holds(self):
+        real_parse = handoff.reparse
+
+        def new_parser(wire, row):
+            return dict(real_parse(wire, row), text_original="", text_held="non_gt_byline")
+
+        with patch.object(handoff, "reparse", side_effect=new_parser) as reparse:
+            env = handoff.build_envelope(self.fresh(), self.head, KEY, self.now())
+        self.assertEqual(reparse.call_count, 1)
+        self.assertEqual(env["records"], [])
+        self.assertEqual(env["exclusions"], {"parser_mismatches": 1, "held_without_bytes": 1})
+        records, status, detail = handoff.load_envelope(self.write(env), KEY, now=FRESH)
+        self.assertEqual((records, status), ([], st.EXTRACTION_FAILURE))
+        self.assertIn("1 parser mismatch(es)", detail)
 
     def test_sign_refuses_without_key(self):
         with self.assertRaises(handoff.HandoffError) as ctx:
@@ -1075,7 +1120,7 @@ class Custody(CollectBase):
             A3: page("Fixture headline three")})), run_id="1002-1")
         env = handoff.build_envelope(clone_dir, self.head, KEY, self.now())
         self.assertEqual({r["source_identity"] for r in env["records"]},
-                         {"gt:900001", "gt:900002"})
+                         {"gt:900001"})
         with self.assertRaises(handoff.HandoffError) as ctx:
             handoff.build_envelope(clone_dir, "e" * 40, KEY, self.now())
         self.assertEqual(str(ctx.exception), "clone_head_mismatch")
@@ -1145,8 +1190,10 @@ class Custody(CollectBase):
         db_path, captures = self.state / "shadow.db", self.state / "captures"
         self.assertEqual(handoff.recover(self.public_a1(), db_path, captures),
                          {"status": "recovered", "capture_sha256": self.normal_sha()})
-        self.assertEqual(handoff.recover({"url": A2, "content_hash": "0" * 64},
-                                         db_path, captures)["status"], "held_no_bytes")
+        held = normalize_article(legacy_parse(A2, pages()[A2]))
+        self.assertEqual(handoff.recover(dict(held, url=A2), db_path, captures),
+                         {"status": "held_no_bytes", "capture_sha256": None,
+                          "text_held": "non_gt_byline"})
         self.assertEqual(handoff.recover({"url": A3, "content_hash": "0" * 64},
                                          db_path, captures)["status"], "no_version")
         self.assertEqual(handoff.recover({"url": A1, "content_hash": "0" * 64,

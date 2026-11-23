@@ -84,7 +84,7 @@ class GlobalTimesHandoffAdapter(SourceAdapter):
             CandidateReference(url=r["url"], source_slug=self.slug,
                                discovered_via=handoff.ENVELOPE_NAME,
                                hint_published_date=r["published_date"])
-            for r in records])
+            for r in records], error_detail=detail)
 
     def fetch(self, reference: CandidateReference) -> CaptureResult:
         return CaptureResult(reference, st.FETCH_FAILURE, reference.url,
@@ -182,7 +182,7 @@ class GlobalTimesHandoffAdapter(SourceAdapter):
         unusable = [d for d in documents
                     if not d.has_usable_text and not d.extra.get("text_held")]
         result.text_unavailable = len(held) + len(unusable)
-        notes = []
+        notes = [detail] if detail else []
         if len(unusable) < len(documents):
             result.status = st.OK
             if held:

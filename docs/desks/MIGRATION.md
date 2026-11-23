@@ -488,13 +488,18 @@ makes no request to the publisher. It replays the signed
 exactly `true`. The fetch is not in the shared-Daily `SOURCES`. Custody
 (versions, bytes, ledgers) lives only in the private evidence repository.
 
-The China source-use hold still precedes the adapter. Records, ids, URLs and
-hashes already stored are untouched. Cutover order:
+The public China source-use hold precedes admission. The separately set private
+China hold governs collection and requires an explicit `true` or `false`.
+Existing IDs, URLs and hashes remain stable. Cutover order:
 1. This public PR merges.
-2. The private collector runs and `sign` publishes an envelope.
-3. `CN_GLOBAL_TIMES_HANDOFF_ENABLED` is set to `true`.
+2. Provision the shared signing key, then merge the private collector PR.
+3. Set the private hold explicitly, enable the private schedule and dispatch once.
+4. Verify the signed capture with an independent fresh clone, then enable
+   `CN_GLOBAL_TIMES_HANDOFF_ENABLED` and verify Daily and HTTPS delivery.
 
-Until step 3, the source reports `listing_failure` `gt_handoff_not_delivered`.
+Until step 4, the source reports `listing_failure` `gt_handoff_not_delivered`.
+For rollback, disable and drain the private collector, revert the public
+manifest adapter, then unset the public handoff variable.
 
 ## Daily collection attestation (reader first) — 16 November 2026
 

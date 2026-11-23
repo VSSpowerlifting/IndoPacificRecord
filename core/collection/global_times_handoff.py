@@ -89,7 +89,8 @@ _RUN = re.compile(r"([0-9]{1,20})-([0-9]{1,6})")
 _CODE = re.compile(r"[a-z0-9_]{1,40}")
 
 ENVELOPE_KEYS = frozenset({"schema", "family", "custody_ref", "custody_commit",
-                           "generated_utc", "collection", "records", "mac"})
+                           "generated_utc", "collection", "records", "exclusions", "mac"})
+EXCLUSION_KEYS = ("parser_mismatches", "held_without_bytes")
 RECORD_KEYS = frozenset({"url", "source_slug", "title_original", "text_original",
                          "published_date", "content_verdict", "text_held",
                          "source_identity", "capture_sha256", "content_sha256",
@@ -271,6 +272,10 @@ def verify_envelope(raw: bytes, key) -> dict:
         if attempts.validate(facts) is None or facts["family"] != FAMILY \
                 or facts["custody_commit"] != env["custody_commit"]:
             raise HandoffError("gt_handoff_collection_invalid")
+    exclusions = env["exclusions"]
+    if not (type(exclusions) is dict and set(exclusions) == set(EXCLUSION_KEYS)
+            and all(type(n) is int and n >= 0 for n in exclusions.values())):
+        raise HandoffError("gt_handoff_exclusions_invalid")
     seen = set()
     for rec in env["records"]:
         _check_record(rec)
@@ -308,7 +313,15 @@ def load_envelope(path, key, now: Optional[datetime] = None
                                  grace_hours=GRACE_HOURS, require_attestation=True)
     if objection is not None:
         return [], objection[0], objection[1]
-    return list(env["records"]), None, None
+    counts = env["exclusions"]
+    detail = None
+    if any(counts.values()):
+        detail = "GT signing excluded %d parser mismatch(es) and %d held without bytes" % (
+            counts["parser_mismatches"], counts["held_without_bytes"])
+    if not env["records"] and detail:
+        status = st.EXTRACTION_FAILURE if counts["parser_mismatches"] else st.OK_ALL_FILTERED
+        return [], status, detail
+    return list(env["records"]), None, detail
 
 
 # ── private side: collect ─────────────────────────────────────────────────────
@@ -490,8 +503,13 @@ def run_collect(state: Path, target: date, target_source: str, run_id: str,
     if db_failure is not None:
         entry.update(result=st.STORAGE_FAILURE, health="fail", error_detail=db_failure)
         return _finish(entry, state, skeleton)
-    if hold.is_held_source(FAMILY):
-        # Mirror of the public hold: no publisher request at all.
+    private_hold = os.environ.get(hold.HOLD_ENV)
+    if private_hold not in ("true", "false"):
+        entry.update(result=st.ADAPTER_ERROR, health="fail",
+                     error_detail="private_source_use_hold_unconfigured")
+        return _finish(entry, state, skeleton)
+    if private_hold == "true":
+        # The private setting governs collection. Public admission has its own hold.
         entry.update(result=st.SKIPPED_DISABLED, health="skipped",
                      error_detail="source_use_hold")
         return _finish(entry, state, skeleton)
@@ -568,6 +586,13 @@ def reparse(wire: bytes, row) -> Optional[dict]:
     return public_raw(article) if article else None
 
 
+def _matches_reparse(parsed, row) -> bool:
+    return (parsed is not None
+            and all(parsed[k] == row[k] for k in RAW_KEYS)
+            and parsed.get("text_held") == row["text_held"]
+            and content_sha256(parsed) == row["content_sha256"])
+
+
 def _open_ro(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect("file:%s?mode=ro" % db_path, uri=True)
     conn.row_factory = sqlite3.Row
@@ -626,9 +651,7 @@ def verify_clone(clone: Path, expect_head: str, collector_commit: str) -> Option
             parsed = reparse(files[row["capture_sha256"]].read_bytes(), row)
         except Exception:
             return "reparse_raised"
-        if parsed is None or any(parsed[k] != row[k] for k in (
-                "title_original", "text_original", "published_date",
-                "content_verdict")) or content_sha256(parsed) != row["content_sha256"]:
+        if not _matches_reparse(parsed, dict(row, source_slug=SOURCE_SLUG)):
             return "reparse_mismatch"
     return _history_preserved(clone, collector_commit)
 
@@ -775,7 +798,7 @@ def _ledgers_added(clone: Path, commit: str, parents) -> set:
 # ── private side: sign ────────────────────────────────────────────────────────
 
 def build_envelope(clone: Path, commit: str, key: str, now: datetime) -> dict:
-    """The signed envelope, from the committed clone only; HandoffError otherwise."""
+    """Return the signed envelope, with exclusion counts, from the committed clone."""
     if not _key_ok(key):
         raise HandoffError("gt_handoff_key_unavailable")
     try:
@@ -814,16 +837,26 @@ def build_envelope(clone: Path, commit: str, key: str, now: datetime) -> dict:
         if current is None or row["version_seq"] > current["version_seq"]:
             latest[row["source_identity"]] = row
     records = []
+    exclusions = dict.fromkeys(EXCLUSION_KEYS, 0)
     for ident in sorted(latest):
-        row = latest[ident]
+        row = dict(latest[ident], source_slug=SOURCE_SLUG)
         held = row["text_held"]
-        retained = False
-        if held is None:
-            path = clone / "state" / "captures" / (row["capture_sha256"] + ".bin")
-            if not (path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest()
-                    == row["capture_sha256"]):
-                raise HandoffError("capture_not_retained")
-            retained = True
+        path = clone / "state" / "captures" / (row["capture_sha256"] + ".bin")
+        if held is not None and not path.is_file():
+            exclusions["held_without_bytes"] += 1
+            continue
+        if not path.is_file():
+            raise HandoffError("capture_not_retained")
+        wire = path.read_bytes()
+        if hashlib.sha256(wire).hexdigest() != row["capture_sha256"]:
+            raise HandoffError("capture_not_retained")
+        try:
+            matches = _matches_reparse(reparse(wire, row), row)
+        except Exception:
+            matches = False
+        if not matches:
+            exclusions["parser_mismatches"] += 1
+            continue
         rec = {"url": row["url"], "source_slug": SOURCE_SLUG,
                "title_original": row["title_original"],
                "text_original": "" if held else row["text_original"],
@@ -833,14 +866,14 @@ def build_envelope(clone: Path, commit: str, key: str, now: datetime) -> dict:
                "content_sha256": row["content_sha256"],
                "fetched_at": row["fetched_at"], "source_run": row["source_run"],
                "collector_commit": row["collector_commit"],
-               "raw_retained": retained}
+               "raw_retained": held is None}
         _check_record(rec)
         records.append(rec)
     if len(records) > MAX_RECORDS:
         raise HandoffError("gt_handoff_envelope_too_large")
     env = {"schema": SCHEMA, "family": FAMILY, "custody_ref": CUSTODY_REF,
            "custody_commit": commit, "generated_utc": _stamp(now),
-           "collection": facts, "records": records}
+           "collection": facts, "records": records, "exclusions": exclusions}
     env["mac"] = mac(key, env)
     if len(canonical(env)) > MAX_ENVELOPE_BYTES:
         raise HandoffError("gt_handoff_envelope_too_large")
@@ -862,8 +895,8 @@ def recover(public_row: dict, custody_db: Path, captures: Path) -> dict:
     must come back unchanged. Returns ``{"status", "capture_sha256"}`` with
     status ``recovered``; ``parser_drift`` (bytes and record match, today's
     parser reads them differently); ``reparse_failed`` (the parser raised);
-    ``held_no_bytes``; ``no_version``; or ``no_match``. Never raises for a
-    parser failure.
+    ``held_no_bytes`` or ``held_shared_bytes`` (with the original hold reason);
+    ``no_version``; or ``no_match``. Never raises for a parser failure.
     """
     url = public_row["url"]
     ident = source_identity(url)
@@ -884,33 +917,34 @@ def recover(public_row: dict, custody_db: Path, captures: Path) -> dict:
     except (KeyError, IndexError):
         public_date = None
     fallback = None
-    for row in rows:
-        if row["text_held"] is not None:
+    for row in reversed(rows):
+        if row["content_sha256"] != public_row["content_hash"] \
+                or row["published_date"] != public_date:
             continue
         path = captures / (row["capture_sha256"] + ".bin")
+        if row["text_held"] is not None:
+            shared = path.is_file() and any(
+                r["capture_sha256"] == row["capture_sha256"] and r["text_held"] is None
+                for r in rows) and hashlib.sha256(path.read_bytes()).hexdigest() == row["capture_sha256"]
+            return {"status": "held_shared_bytes" if shared else "held_no_bytes",
+                    "capture_sha256": row["capture_sha256"] if shared else None,
+                    "text_held": row["text_held"]}
         if not path.is_file():
             continue
         wire = path.read_bytes()
         if hashlib.sha256(wire).hexdigest() != row["capture_sha256"]:
             continue
-        if row["content_sha256"] != public_row["content_hash"] \
-                or row["published_date"] != public_date:
-            continue
         try:
-            parsed = reparse(wire, row)
+            matches = _matches_reparse(reparse(wire, row), dict(row, source_slug=SOURCE_SLUG))
         except Exception:
             fallback = fallback or ("reparse_failed", row["capture_sha256"])
             continue
-        if parsed is not None and all(parsed[k] == row[k] for k in (
-                "title_original", "text_original", "published_date",
-                "content_verdict")) and content_sha256(parsed) == row["content_sha256"]:
+        if matches:
             return {"status": "recovered", "capture_sha256": row["capture_sha256"]}
         if fallback is None or fallback[0] != "parser_drift":
             fallback = ("parser_drift", row["capture_sha256"])
     if fallback is not None:
         return {"status": fallback[0], "capture_sha256": fallback[1]}
-    if all(r["text_held"] is not None for r in rows):
-        return {"status": "held_no_bytes", "capture_sha256": None}
     return {"status": "no_match", "capture_sha256": None}
 
 
@@ -964,7 +998,10 @@ def _cmd_sign(args) -> int:
     tmp = out.with_suffix(".tmp")
     tmp.write_bytes(canonical(env))
     tmp.replace(out)
-    print("sign: %d record(s)" % len(env["records"]))
+    exclusions = env["exclusions"]
+    print("sign: %d record(s); %d parser mismatch(es); %d held without bytes" % (
+        len(env["records"]), exclusions["parser_mismatches"],
+        exclusions["held_without_bytes"]))
     return 0
 
 

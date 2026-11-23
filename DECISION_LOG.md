@@ -16,10 +16,15 @@ This entry records the public half; the private collector is a separate change.
   `captures/<sha>.bin`. A held page (`text_held`, another agency's byline) keeps
   no bytes and a blank body.
 - Every attempt writes an `ipr-collection-attempts/1` ledger, initialised as a
-  failure, plus an exit receipt. A China hold makes no request.
+  failure, plus an exit receipt. The private `IPR_CHINA_SOURCE_USE_HOLD`
+  governs collection. It must be exactly `true` (hold) or `false` (allow).
+  A private hold or invalid setting makes no publisher request. The public
+  variable of the same name independently governs public admission.
 - `verify` re-hashes and re-parses a fresh clone. `sign` builds the envelope
   from that clone only: the latest version per article fetched in the last
-  3 days, with HMAC key `DAILY_GLOBAL_TIMES_MIL_KEY`, at most 512,000 bytes. It
+  3 days, with HMAC key `DAILY_GLOBAL_TIMES_MIL_KEY`, at most 512,000 bytes.
+  The running parser must reproduce each candidate from verified bytes.
+  Parser mismatches and holds without bytes are excluded and counted. It
   is published as `global_times_mil.captures.json` on
   `state/global-times-captures`.
 - Public: the fetch step copies the envelope only when
@@ -45,13 +50,16 @@ or write path.
 **Release and rollback order.** This public PR merges first. Until the private
 collector is live and the variable is `true`, the Daily records
 `global_times_mil` as `listing_failure` `gt_handoff_not_delivered`, which
-degrades it exactly as an unreachable listing did. To roll back:
-1. Set `CN_GLOBAL_TIMES_HANDOFF_ENABLED` to anything but `true`, or set
-   `IPR_CHINA_SOURCE_USE_HOLD` to `true` to skip the source cleanly.
-2. Turn off `CN_GLOBAL_TIMES_PRIVATE_COLLECTION_ENABLED` in the private
-   repository.
-3. Only by a new founder decision, revert the manifest `adapter` to
+degrades it exactly as an unreachable listing did. Rollback order:
+1. Turn off `CN_GLOBAL_TIMES_PRIVATE_COLLECTION_ENABLED` in the private
+   repository, stop dispatches and wait for any in-flight collection to finish.
+2. Revert the public manifest `adapter` through the reviewed PR path to
    `scraper.sources.global_times_mil:GlobalTimesMilScraper`.
+3. Unset the public `CN_GLOBAL_TIMES_HANDOFF_ENABLED`.
+
+Legacy collection keeps reporting the parser's hold reasons. Recovery reports
+the matched version's hold even when an unheld version references the same
+bytes. Preserve private custody and attempt history throughout rollback.
 
 ## 2026-11-22 — Founder: USCC press releases first activation approved
 
