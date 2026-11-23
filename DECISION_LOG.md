@@ -10,8 +10,9 @@ This entry records the public half; the private collector is a separate change.
 **Design.**
 - Private `core.collection.global_times_handoff collect` (cron `'17 1 * * *'`,
   window [target-2, target]) runs the unchanged scraper and records every
-  observation in `capture_versions`, append-only, one row per
-  `(source_identity, capture_sha256)`. It keeps the exact wire bytes as
+  observation in `capture_versions`, append-only and ordered by `version_seq`:
+  a new version whenever `(capture_sha256, text_held)` differs from the
+  article's latest one. It keeps the exact wire bytes as
   `captures/<sha>.bin`. A held page (`text_held`, another agency's byline) keeps
   no bytes and a blank body.
 - Every attempt writes an `ipr-collection-attempts/1` ledger, initialised as a
