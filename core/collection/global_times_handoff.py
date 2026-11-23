@@ -648,7 +648,7 @@ def _db_rows(blob: bytes):
         finally:
             conn.close()
     if "version_seq" not in cols:
-        raise sqlite3.DatabaseError("capture_versions without version_seq")
+        raise HandoffError("capture_schema_outdated")
     return frozenset(cols), Counter(tuple(r[c] for c in cols) for r in rows), cols
 
 
@@ -711,6 +711,8 @@ def _history_preserved(clone: Path, collector_commit: str) -> Optional[str]:
         try:
             now = rows_of(child)
             befores = [rows_of(p) for p in parents]
+        except HandoffError as exc:
+            return str(exc)
         except Exception:
             return "parent_custody_unreadable"
         if now is None:

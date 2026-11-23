@@ -1000,6 +1000,20 @@ class Custody(CollectBase):
                          "parent_custody_unverifiable")
         self.assertIsNone(handoff.verify_clone(self.fresh(), head, COLLECTOR))
 
+    def test_verify_names_an_old_schema_custody_db(self):
+        repo = self.tmp / "old-schema"
+        (repo / "state").mkdir(parents=True)
+        git(repo, "init", "-q")
+        conn = sqlite3.connect(str(repo / "state" / "shadow.db"))
+        conn.execute("CREATE TABLE capture_versions (source_identity TEXT NOT NULL,"
+                     " capture_sha256 TEXT NOT NULL, text_held TEXT,"
+                     " PRIMARY KEY (source_identity, capture_sha256))")
+        conn.commit()
+        conn.close()
+        head = commit(repo)
+        self.assertEqual(handoff.verify_clone(clone(repo, self.tmp / "old-schema-clone"),
+                                              head, COLLECTOR), "capture_schema_outdated")
+
     def test_verify_refuses_a_working_tree_db_that_is_not_head(self):
         fresh = self.fresh()
         conn = sqlite3.connect(str(fresh / "state" / "shadow.db"))
