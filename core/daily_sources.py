@@ -530,7 +530,7 @@ def _uscc_parent(conn, identity) -> Optional[dict]:
 # (named "%Y%m%dT%H%M%SZ-<run_id>.json") sort after it and are read as usual.
 # If the pre-schema collector writes another ledger before the first
 # shared-schema ledger lands, the lead moves this floor to that ledger.
-USCC_LEDGER_AFTER = "20261122T080917Z-45001379646-1.json"
+USCC_LEDGER_AFTER = "20261122T183844Z-45056204824-1.json"
 
 SOURCES: Dict[str, DailySource] = {s.family: s for s in (
     DailySource(

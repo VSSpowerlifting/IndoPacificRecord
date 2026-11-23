@@ -325,8 +325,10 @@ Built with every switch off. **Founder first activation, 22 November 2026**
 ceilings, `desk_registered=True`, the source is registered in
 `desks/us-indopacific/manifest.json`, and the private collector
 (`uscc_private_first_collector.yml`, VSSpowerlifting/ipr-source-evidence-private#50)
-writes custody and its own run ledger on `archive/uscc-press` (not yet the shared
-ledger schema, so USCC has no declared collection cadence). Nothing runs until
+writes custody and its run ledger on `archive/uscc-press`. Ledgers up to
+`20261122T183844Z-45056204824-1.json` are pre-schema and sit below
+`USCC_LEDGER_AFTER`; later ones use the shared schema (see the cadence note
+below). Nothing runs until
 the owner variables are set; `US_USCC_LINKS_ENABLED` unset withholds both public
 halves. Seeding production custody from the 3 November archive and any backfill
 are not authorized.
