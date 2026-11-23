@@ -591,6 +591,21 @@ class Collect(CollectBase):
         finally:
             conn.close()
 
+    def test_old_schema_custody_db_is_named_outdated(self):
+        state = self.tmp / "custody" / "state"
+        state.mkdir(parents=True)
+        conn = sqlite3.connect(str(state / "shadow.db"))
+        conn.execute("CREATE TABLE capture_versions (source_identity TEXT NOT NULL,"
+                     " capture_sha256 TEXT NOT NULL,"
+                     " PRIMARY KEY (source_identity, capture_sha256))")
+        conn.commit()
+        conn.close()
+        session = FakeSession(pages())
+        _, code, entry = self.run_once(session)
+        self.assertEqual((code, entry["result"], entry["error_detail"]),
+                         (1, st.STORAGE_FAILURE, "capture_schema_outdated"))
+        self.assertEqual(session.calls, [])
+
     def test_non_canonical_listing_url_is_counted_never_fetched(self):
         http = "http://www.globaltimes.cn/page/202611/900003.shtml"
         session = FakeSession(pages(**{LISTING: listing("/page/202611/900001.shtml", http)}))
@@ -758,8 +773,10 @@ class Custody(CollectBase):
         self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR), "held_row_retained")
 
     def test_verify_detects_parse_mismatch(self):
-        # Rows of an older collector are not re-parsed by this one.
-        self.assertIsNone(handoff.verify_clone(self.fresh(), self.head, "f" * 40))
+        # Rows an older collector committed in an earlier custody commit are
+        # not re-parsed by this one (rows this commit appends always are).
+        second = self.healthy_next_run("1002-1")
+        self.assertIsNone(handoff.verify_clone(self.fresh(), second, "f" * 40))
         conn = sqlite3.connect(str(self.state / "shadow.db"))
         conn.executescript("DROP TRIGGER capture_versions_no_update;"
                            "UPDATE capture_versions SET text_original = 'not what was served'"
@@ -896,6 +913,113 @@ class Custody(CollectBase):
                          "parent_custody_unverifiable")
         # A full clone of the same commit is sound.
         self.assertIsNone(handoff.verify_clone(self.fresh(), head, COLLECTOR))
+
+    def healthy_next_run(self, run_id):
+        """The next routine attempt on top of whatever HEAD now holds."""
+        _, code, entry = self.run_once(FakeSession(pages()), run_id=run_id)
+        self.assertEqual(code, 0)
+        return commit(self.repo)
+
+    def append_row(self, **over):
+        conn = sqlite3.connect(str(self.state / "shadow.db"))
+        conn.row_factory = sqlite3.Row
+        row = dict(conn.execute("SELECT * FROM capture_versions"
+                                " WHERE source_identity = 'gt:900001'").fetchone())
+        row.pop("version_seq")
+        row.update(over)
+        conn.execute("INSERT INTO capture_versions (%s) VALUES (%s)" % (
+            ", ".join(row), ", ".join("?" * len(row))), list(row.values()))
+        conn.commit()
+        conn.close()
+        return commit(self.repo)
+
+    def test_rewritten_held_row_stays_caught_after_a_healthy_run(self):
+        # A consistent rewrite: a new title and a recomputed content hash.
+        raw = {"url": A2, "source_slug": handoff.SOURCE_SLUG,
+               "title_original": "Forged fixture headline", "text_original": "",
+               "published_date": "2026-11-20", "content_verdict": None,
+               "text_held": "non_gt_byline"}
+        head = self.tamper(
+            "UPDATE capture_versions SET title_original = 'Forged fixture headline',"
+            " content_sha256 = '%s' WHERE source_identity = 'gt:900002';"
+            % handoff.content_sha256(raw))
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_changed")
+        head = self.healthy_next_run("1002-1")
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_changed")
+
+    def test_deleted_held_row_stays_caught_after_a_healthy_run(self):
+        head = self.tamper("DELETE FROM capture_versions WHERE text_held IS NOT NULL;")
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_changed")
+        head = self.healthy_next_run("1002-1")
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_changed")
+
+    def test_appended_row_of_a_foreign_collector_is_refused_and_stays_refused(self):
+        # The genuine bytes, an invented body, a self-consistent hash: only a
+        # re-parse would catch it, and a foreign collector id would skip one.
+        raw = {"url": A1, "source_slug": handoff.SOURCE_SLUG,
+               "title_original": "Fixture headline one",
+               "text_original": "Invented body that the bytes never said.",
+               "published_date": "2026-11-20", "content_verdict": None}
+        head = self.append_row(text_original=raw["text_original"],
+                               content_sha256=handoff.content_sha256(raw),
+                               fetched_at=handoff._stamp(datetime.now(timezone.utc)),
+                               collector_commit="a" * 40)
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_unattributed")
+        head = self.healthy_next_run("1002-1")
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_unattributed")
+
+    def test_appended_row_with_a_low_version_seq_is_refused(self):
+        # Other bytes that parse to the same record, ordered ahead of the
+        # genuine version so recover() would pick them first.
+        other = page("Fixture headline one").replace(b"<body>", b"<body><!-- x -->")
+        sha = hashlib.sha256(other).hexdigest()
+        (self.state / "captures" / (sha + ".bin")).write_bytes(other)
+        head = self.append_row(version_seq=-5, capture_sha256=sha)
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_out_of_order")
+        head = self.healthy_next_run("1002-1")
+        self.assertEqual(handoff.verify_clone(self.fresh(), head, COLLECTOR),
+                         "custody_row_out_of_order")
+
+    def test_verify_refuses_a_depth_two_shallow_clone(self):
+        for n, run_id in enumerate(("1002-1", "1003-1")):
+            changed = pages(**{A1: page("Fixture headline one",
+                                        body=BODY + " Corrected %d." % n)})
+            self.run_once(FakeSession(changed), run_id=run_id)
+            head = commit(self.repo)
+        shallow = self.tmp / "shallow2"
+        subprocess.run(GIT + ["clone", "-q", "--depth", "2", "file://" + str(self.repo),
+                              str(shallow)], check=True, capture_output=True)
+        self.assertEqual(handoff.verify_clone(shallow, head, COLLECTOR),
+                         "parent_custody_unverifiable")
+        self.assertIsNone(handoff.verify_clone(self.fresh(), head, COLLECTOR))
+
+    def test_verify_refuses_a_working_tree_db_that_is_not_head(self):
+        fresh = self.fresh()
+        conn = sqlite3.connect(str(fresh / "state" / "shadow.db"))
+        conn.execute("CREATE TABLE extra (x)")
+        conn.commit()
+        conn.close()
+        self.assertEqual(handoff.verify_clone(fresh, self.head, COLLECTOR),
+                         "custody_db_uncommitted")
+
+    def test_recover_accepts_a_sqlite_row(self):
+        db_path, captures = self.state / "shadow.db", self.state / "captures"
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        public = self.public_a1()
+        row = conn.execute("SELECT ? AS url, ? AS content_hash, ? AS published_date",
+                           (public["url"], public["content_hash"],
+                            public["published_date"])).fetchone()
+        conn.close()
+        self.assertEqual(handoff.recover(row, db_path, captures),
+                         {"status": "recovered", "capture_sha256": self.normal_sha()})
 
     def test_cli_verify(self):
         clone_dir = self.fresh()

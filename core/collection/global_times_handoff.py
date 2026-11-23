@@ -22,15 +22,18 @@ Private custody (``state/`` in the custody checkout):
   version, so re-observations are recorded, never skipped; the same bytes
   held by one collector and published by a later one (or a page that reverts)
   become the latest version. Every attempt, even a held or early-failing one,
-  leaves this database (schema only if need be), and ``verify`` requires
-  every row of the parent custody commit to be present and unchanged.
+  leaves this database (schema only if need be). ``verify`` walks the whole
+  custody history: at every commit each row of its parent is still present
+  and unchanged, and each added row sorts last and is bound to the attempt
+  ledger added with it; rows HEAD adds must be the running collector's.
   ``content_sha256`` is exactly the public Daily's ``content_hash`` for the
   same parsed page
   (``processing.metadata.normalize_article``), so a public row can always be
   tied back to the bytes it came from.
 * ``captures/<capture_sha256>.bin``: the exact wire bytes, content-addressed.
   A page whose body is held (``text_held``, e.g. another agency's byline)
-  keeps NO bytes and a blank body.
+  keeps a blank body and no bytes of its own; its bytes are kept only when
+  an un-held version of the same page references the same capture.
 * ``ledger/<%Y%m%dT%H%M%SZ>-<run>.json``: one ``ipr-collection-attempts/1``
   ledger per attempt, written even when the attempt fails.
 * ``private_attempts/<run>.json``: the attempt's integer exit status.
@@ -313,12 +316,14 @@ def load_envelope(path, key, now: Optional[datetime] = None
 def _connect(db_path: Path) -> sqlite3.Connection:
     conn = sqlite3.connect(str(db_path))
     try:
-        conn.executescript(CAPTURE_SCHEMA)
+        # Checked before the DDL: its version_seq index cannot be created on
+        # an old table, which would otherwise surface as a generic failure.
         cols = {r[1] for r in conn.execute("PRAGMA table_info(capture_versions)")}
-        if "version_seq" not in cols:
+        if cols and "version_seq" not in cols:
             # A table keyed (source_identity, capture_sha256) would silently
             # drop an un-held re-observation of bytes once held.
             raise HandoffError("capture_schema_outdated")
+        conn.executescript(CAPTURE_SCHEMA)
     except BaseException:
         conn.close()
         raise
@@ -625,56 +630,144 @@ def verify_clone(clone: Path, expect_head: str, collector_commit: str) -> Option
                 "title_original", "text_original", "published_date",
                 "content_verdict")) or content_sha256(parsed) != row["content_sha256"]:
             return "reparse_mismatch"
-    return _parent_rows_preserved(clone, rows)
+    return _history_preserved(clone, collector_commit)
 
 
-def _parent_rows_preserved(clone: Path, rows) -> Optional[str]:
-    """None when every row of each parent custody commit is still present
-    and unchanged (held rows included); else a failure code.
-
-    Append-only is otherwise enforced only by triggers the writer creates;
-    this independent check catches a rewrite, a REPLACE or a deleted row.
-    """
+def _db_rows(blob: bytes):
+    """(column set, Counter of row tuples, sorted column names) of a DB blob."""
     import tempfile
     from collections import Counter
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "custody.db"
+        path.write_bytes(blob)
+        conn = _open_ro(path)
+        try:
+            cols = sorted(r[1] for r in conn.execute(
+                "PRAGMA table_info(capture_versions)"))
+            rows = conn.execute("SELECT * FROM capture_versions").fetchall()
+        finally:
+            conn.close()
+    if "version_seq" not in cols:
+        raise sqlite3.DatabaseError("capture_versions without version_seq")
+    return frozenset(cols), Counter(tuple(r[c] for c in cols) for r in rows), cols
+
+
+def _history_preserved(clone: Path, collector_commit: str) -> Optional[str]:
+    """None when every hop of the custody history is append-only; else a code.
+
+    For every commit reachable from HEAD and each of its parents: every row
+    the parent's ``state/shadow.db`` held is still present and unchanged in
+    the child (held rows included); the rows the child adds sort after all
+    of the parent's (``version_seq``) and each is bound, by ``source_run``
+    and ``collector_commit``, to an attempt ledger added in that same commit.
+    The rows HEAD itself adds must come from the running collector, so the
+    re-parse in ``verify_clone`` covers every one of them.
+
+    The whole history is walked, not only HEAD's parent: the private workflow
+    pushes before it verifies, so a rewrite that failed one run would
+    otherwise pass on the next. Append-only is otherwise enforced only by
+    triggers the writer creates.
+    """
+    from collections import Counter, OrderedDict
     try:
-        parents = _git(clone, "rev-list", "--parents", "-n", "1", "HEAD").decode().split()[1:]
-        # A shallow clone hides the parents: without them nothing could be
-        # compared, so it must never pass as a first custody commit.
-        if not parents and _git(clone, "rev-parse", "--is-shallow-repository"
-                                ).decode().strip() != "false":
+        # A shallow clone hides history: nothing older could be compared, so
+        # it must never pass, even when HEAD's own parent is visible.
+        if _git(clone, "rev-parse", "--is-shallow-repository").decode().strip() != "false":
             return "parent_custody_unverifiable"
+        head = _git(clone, "rev-parse", "HEAD").decode().strip()
+        graph = [line.split() for line in
+                 _git(clone, "rev-list", "--parents", "HEAD").decode().splitlines()]
+        commits = [g[0] for g in graph]
+        import subprocess
+        checked = subprocess.run(
+            ["git", "-C", str(clone), "cat-file", "--batch-check"],
+            input="".join("%s:state/shadow.db\n" % c for c in commits).encode(),
+            check=True, capture_output=True, timeout=300).stdout.decode().splitlines()
+        if len(checked) != len(commits):
+            return "git_check_failed"
+        blob_of = {}
+        for c, line in zip(commits, checked):
+            parts = line.split()
+            blob_of[c] = parts[0] if len(parts) == 3 and parts[1] == "blob" else None
+        work = _git(clone, "hash-object", "state/shadow.db").decode().strip()
+        if blob_of.get(head) != work:
+            return "custody_db_uncommitted"
     except Exception:
         return "git_check_failed"
-    for parent in parents:
+    cache = OrderedDict()
+
+    def rows_of(commit):
+        blob = blob_of.get(commit)
+        if blob is None:
+            return None
+        if blob not in cache:
+            cache[blob] = _db_rows(_git(clone, "cat-file", "blob", blob))
+            while len(cache) > 6:
+                cache.popitem(last=False)
+        return cache[blob]
+
+    for entry in graph:
+        child, parents = entry[0], entry[1:]
         try:
-            listed = _git(clone, "ls-tree", "--name-only", parent, "--", "state/shadow.db")
-            if not listed.strip():
-                continue   # the parent kept no custody DB: nothing to preserve
-            blob = _git(clone, "show", parent + ":state/shadow.db")
+            now = rows_of(child)
+            befores = [rows_of(p) for p in parents]
         except Exception:
             return "parent_custody_unreadable"
-        with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / "parent.db"
-            path.write_bytes(blob)
-            conn = _open_ro(path)
-            try:
-                before = conn.execute("SELECT * FROM capture_versions").fetchall()
-            except sqlite3.Error:
-                return "parent_custody_unreadable"
-            finally:
-                conn.close()
-        if not before:
+        if now is None:
+            if any(b is not None and b[1] for b in befores):
+                return "custody_row_changed"   # the DB itself was removed
             continue
-        cols = before[0].keys()
+        if parents and all(blob_of.get(p) == blob_of.get(child) for p in parents):
+            continue   # the DB is unchanged by this commit
+        floor, union = 0, Counter()
+        for before in befores:
+            if before is None:
+                continue
+            if before[1] and before[0] != now[0]:
+                return "custody_row_changed"   # a column vanished or appeared
+            if before[1] - now[1]:
+                return "custody_row_changed"
+            union |= before[1]
+            seq = before[2].index("version_seq")
+            floor = max([floor] + [r[seq] for r in before[1]])
+        added = now[1] - union
+        if not added:
+            continue
+        cols = now[2]
+        seq, run, coll = (cols.index(k) for k in
+                          ("version_seq", "source_run", "collector_commit"))
+        if any(not isinstance(r[seq], int) or r[seq] <= floor for r in added):
+            return "custody_row_out_of_order"
         try:
-            now = Counter(tuple(r[c] for c in cols) for r in rows)
-        except (IndexError, KeyError):
-            return "custody_row_changed"   # a column vanished
-        then = Counter(tuple(r[c] for c in cols) for r in before)
-        if then - now:
-            return "custody_row_changed"
+            bound = _ledgers_added(clone, child, parents)
+        except Exception:
+            return "parent_custody_unreadable"
+        for r in added:
+            if (r[run], r[coll]) not in bound:
+                return "custody_row_unattributed"
+            if child == head and r[coll] != collector_commit:
+                return "custody_row_unattributed"
     return None
+
+
+def _ledgers_added(clone: Path, commit: str, parents) -> set:
+    """``(run_id, collector_commit)`` of the attempt ledgers ``commit`` adds."""
+    def listed(rev):
+        out = _git(clone, "ls-tree", "-r", "--name-only", rev, "--", "state/ledger/")
+        return set(out.decode().splitlines())
+    names = listed(commit)
+    for parent in parents:
+        names -= listed(parent)
+    bound = set()
+    for name in sorted(names):
+        try:
+            entry = json.loads(_git(clone, "show", "%s:%s" % (commit, name)))
+        except Exception:
+            continue   # an unreadable ledger binds nothing
+        if isinstance(entry, dict) and isinstance(entry.get("run_id"), str) \
+                and isinstance(entry.get("collector_commit"), str):
+            bound.add((entry["run_id"], entry["collector_commit"]))
+    return bound
 
 
 # ── private side: sign ────────────────────────────────────────────────────────
@@ -783,8 +876,11 @@ def recover(public_row: dict, custody_db: Path, captures: Path) -> dict:
         conn.close()
     if not rows:
         return {"status": "no_version", "capture_sha256": None}
-    getter = getattr(public_row, "get", None)
-    public_date = getter("published_date") if getter else None
+    try:
+        # Subscript, not ``.get``: a ``sqlite3.Row`` from ``storage.db`` has none.
+        public_date = public_row["published_date"]
+    except (KeyError, IndexError):
+        public_date = None
     fallback = None
     for row in rows:
         if row["text_held"] is not None:
