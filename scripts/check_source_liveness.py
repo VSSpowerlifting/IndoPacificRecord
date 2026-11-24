@@ -244,8 +244,19 @@ def rows(db_path: Path, today: date):
     # fresh clone died with an unhandled OperationalError — the health gate is
     # the last step of the daily run, and it survived there only because an
     # earlier step had already created the sidecars.
+    #
+    # A family whose collector preserves versioned official documents writes
+    # them to `official_document_versions`, not `articles`. Reading only
+    # `articles` judged such a family silent while its versions kept arriving
+    # (VPCP: 39 versions, newest observed 2026-11-19, reported UNHEALTHY on a
+    # stale article date). Its last-seen date is the later of its newest
+    # article observation and its newest version observation; both are IPR
+    # observation times, not publication dates. The worse-of-two rule against
+    # governed runs is unchanged. `total` stays the article count: versions
+    # only date the last observation, so the reported count does not grow
+    # with every new version (only VPCP can write the table, per its CHECK).
     with read_only(db_path) as conn:
-        return conn.execute(
+        found = conn.execute(
             """
             SELECT s.slug,
                    s.display_name,
@@ -258,6 +269,17 @@ def rows(db_path: Path, today: date):
              ORDER BY total DESC
             """
         ).fetchall()
+        has_versions = conn.execute(
+            "SELECT 1 FROM sqlite_master WHERE type='table' "
+            "AND name='official_document_versions'").fetchone()
+        versions = {} if not has_versions else dict(conn.execute(
+            "SELECT source_family, MAX(date(first_observed_utc)) "
+            "FROM official_document_versions GROUP BY source_family"))
+    out = []
+    for slug, name, total, last_seen in found:
+        seen = [d for d in (last_seen, versions.get(slug)) if d is not None]
+        out.append((slug, name, total, max(seen) if seen else None))
+    return out
 
 
 def governed_runs(db_path: Path) -> Optional[Dict[str, GovernedRuns]]:

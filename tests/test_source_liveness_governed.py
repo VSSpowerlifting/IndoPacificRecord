@@ -777,3 +777,50 @@ class TheLiveCorpusAgrees(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class VersionedOfficialDocumentsCountAsObservation(unittest.TestCase):
+    """A family that preserves versioned documents is judged on them too."""
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+
+    def db(self, versions, with_table=True):
+        import sqlite3
+        path = run_db(Path(self.tmp.name) / "v.db", [])
+        conn = sqlite3.connect(str(path))
+        conn.execute("INSERT INTO sources VALUES (1, 'gov_docs', 'Gov Docs', 1)")
+        conn.execute("INSERT INTO sources VALUES (2, 'gov_mil', 'Gov Mil', 1)")
+        conn.execute("INSERT INTO articles (source_id, scraped_at) VALUES (1, '2026-09-01 08:00:00')")
+        conn.execute("INSERT INTO articles (source_id, scraped_at) VALUES (2, '2026-09-18 08:00:00')")
+        if with_table:
+            conn.execute("CREATE TABLE official_document_versions "
+                         "(source_family TEXT, source_identity TEXT, first_observed_utc TEXT)")
+            conn.executemany("INSERT INTO official_document_versions VALUES ('gov_docs', ?, ?)",
+                             versions)
+        conn.commit()
+        conn.close()
+        return {slug: (total, seen) for slug, _n, total, seen in liveness.rows(path, TODAY)}
+
+    def judge(self, total, last_seen):
+        return liveness.classify("gov_docs", total, last_seen, TODAY, 7)[0]
+
+    def test_a_recent_version_keeps_an_old_article_family_healthy(self):
+        got = self.db([("doc-1", "2026-08-01T00:00:00Z"), ("doc-2", "2026-09-17T21:04:35Z")])
+        self.assertEqual((1, "2026-09-17"), got["gov_docs"])
+        self.assertEqual("HEALTHY", self.judge(*got["gov_docs"]))
+
+    def test_a_stale_version_is_still_unhealthy(self):
+        got = self.db([("doc-1", "2026-09-05T00:00:00Z")])
+        self.assertEqual((1, "2026-09-05"), got["gov_docs"])
+        self.assertEqual("UNHEALTHY", self.judge(*got["gov_docs"]))
+
+    def test_versions_never_credit_another_family(self):
+        got = self.db([("doc-1", "2026-09-19T00:00:00Z")])
+        self.assertEqual((1, "2026-09-18"), got["gov_mil"])
+
+    def test_a_database_without_the_table_reads_articles_only(self):
+        got = self.db([], with_table=False)
+        self.assertEqual((1, "2026-09-01"), got["gov_docs"])
