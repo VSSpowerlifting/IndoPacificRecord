@@ -9,7 +9,10 @@ import unittest
 from pathlib import Path
 
 from tests.test_corpus_growth_canary import (
-    PARENT_TABLES, TRACKED, _sha, code_gaps, grow, unexpected_gaps)
+    TRACKED, _sha, code_gaps, grow, unexpected_gaps)
+
+# Gaps a family may legitimately report on any tracked data state.
+DATA_GAPS = {"no_resolvable_parent", "all_parents_released", "no_parent_rows"}
 
 
 class GrowHelperEligibility(unittest.TestCase):
@@ -26,6 +29,11 @@ class GrowHelperEligibility(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.db = Path(self.tmp.name) / "g.db"
         shutil.copyfile(TRACKED, self.db)
+        # Start from no released rows so outcomes do not depend on which
+        # parents earlier Daily runs happened to release.
+        with sqlite3.connect(str(self.db)) as conn:
+            conn.execute("DELETE FROM daily_machine_records")
+        conn.close()
 
     def tearDown(self):
         self.assertEqual(_sha(TRACKED), self.sha)
@@ -40,20 +48,29 @@ class GrowHelperEligibility(unittest.TestCase):
                 mock.patch("core.daily_machine_records.load_policy", lambda: pol):
             return grow(self.db)
 
+    def assertGrownOrDataGap(self, family, inserted, skipped, gaps):
+        """Eligible: either grown, or a gap the tracked data alone explains."""
+        self.assertNotIn(family, skipped)
+        if family not in inserted:
+            self.assertIn(family, gaps)
+            self.assertIn(gaps[family][0], DATA_GAPS, gaps[family])
+
     def test_paused_family_is_skipped_not_raised(self):
         def edit(s):
             s["id_kemhan_news"]["private_model_processing"] = False
         inserted, skipped, gaps = self._grow(edit)
         self.assertIn("id_kemhan_news", skipped)
         self.assertNotIn("id_kemhan_news", inserted)
-        self.assertIn("us_uscc_press_en", inserted)
+        self.assertGrownOrDataGap("us_uscc_press_en", inserted, skipped, gaps)
 
     def test_singapore_with_both_switches_off_uses_display_policy(self):
         def edit(s):
             s["sg_mindef_releases"]["private_model_processing"] = False
             s["sg_mindef_releases"]["unattended_release"] = False
         inserted, skipped, gaps = self._grow(edit)
-        self.assertIn("sg_mindef_releases", inserted)  # visible via load(): hash matched
+        # Not skipped: load() normalizes the display policy, so hashes match.
+        self.assertGrownOrDataGap("sg_mindef_releases", inserted, skipped, gaps)
+        self.assertFalse(unexpected_gaps(gaps), gaps)
 
     def test_singapore_with_one_switch_off_is_skipped(self):
         def edit(s):
@@ -76,7 +93,7 @@ class GrowHelperEligibility(unittest.TestCase):
                 public_machine_explanation=True, private_model_processing=True,
                 unattended_release=True)
         inserted, skipped, gaps = self._grow(edit)
-        self.assertIn("kr_policy_dapa_releases", inserted, gaps)
+        self.assertGrownOrDataGap("kr_policy_dapa_releases", inserted, skipped, gaps)
         self.assertFalse(unexpected_gaps(gaps), gaps)
 
     def test_no_gap_fails_the_run_except_an_invisible_insert(self):
@@ -88,8 +105,10 @@ class GrowHelperEligibility(unittest.TestCase):
             s["kr_policy_dapa_releases"].update(
                 public_machine_explanation=True, private_model_processing=True,
                 unattended_release=True)
-        with mock.patch.dict(PARENT_TABLES, clear=False):
-            del PARENT_TABLES["kr_policy_dapa_releases"]
+        from tests import test_corpus_growth_canary as canary
+        real = canary.parent_table
+        with mock.patch.object(canary, "parent_table",
+                               lambda src: None if src.family == "kr_policy_dapa_releases" else real(src)):
             inserted, skipped, gaps = self._grow(edit)
         self.assertEqual(gaps["kr_policy_dapa_releases"][0], "parent_not_enumerable")
         self.assertFalse(unexpected_gaps(gaps), gaps)
@@ -108,12 +127,10 @@ class GrowHelperEligibility(unittest.TestCase):
         """A Daily that holds parents (changed versions) is data-only: the canary
         must still grow on a resolvable parent, or report a data gap."""
         with sqlite3.connect(str(self.db)) as conn:
-            spare = [r[0] for r in conn.execute(
-                "SELECT source_identity FROM japan_jcg_source_records WHERE source_identity NOT IN "
-                "(SELECT source_identity FROM daily_machine_records WHERE source_family='jp_jcg_press_en')")]
-            conn.execute("UPDATE japan_jcg_source_records SET public_scope='held' WHERE source_identity IN (%s)"
-                         % ",".join("?" * len(spare)), spare)
+            n = conn.execute("UPDATE japan_jcg_source_records SET public_scope='held'").rowcount
         conn.close()
+        if not n:
+            self.skipTest("no JCG parent rows in the tracked database")
         inserted, skipped, gaps = grow(self.db)
         self.assertNotIn("jp_jcg_press_en", inserted)
         self.assertEqual(gaps["jp_jcg_press_en"][0], "no_resolvable_parent")
@@ -128,7 +145,10 @@ class GrowHelperEligibility(unittest.TestCase):
             conn.execute("DELETE FROM korea_official_source_records WHERE official_issuer='kr_dapa'")
         conn.close()
         inserted, skipped, gaps = self._grow(edit)
-        self.assertEqual(gaps["kr_policy_dapa_releases"][0], "no_parent_rows")
+        # Other Korean issuers' rows remain, so none resolves through DAPA's
+        # own issuer filter; either way it is a data gap, not a failure.
+        self.assertIn(gaps["kr_policy_dapa_releases"][0], {"no_parent_rows", "no_resolvable_parent"})
+        self.assertNotIn("kr_policy_dapa_releases", inserted)
         self.assertFalse(unexpected_gaps(gaps), gaps)
 
     def test_missing_parent_table_is_a_data_gap(self):
@@ -136,7 +156,10 @@ class GrowHelperEligibility(unittest.TestCase):
         # 8f25f4ff74). Simulated by pointing it at an absent table, since
         # dropping a real one breaks unrelated triggers.
         from unittest import mock
-        with mock.patch.dict(PARENT_TABLES, {"us_uscc_press_en": ("not_yet_migrated", "1=1")}):
+        from tests import test_corpus_growth_canary as canary
+        real = canary.parent_table
+        with mock.patch.object(canary, "parent_table",
+                               lambda src: "not_yet_migrated" if src.family == "us_uscc_press_en" else real(src)):
             inserted, skipped, gaps = grow(self.db)
         self.assertEqual(gaps["us_uscc_press_en"][0], "parent_table_missing")
         self.assertFalse(unexpected_gaps(gaps), gaps)
@@ -146,17 +169,28 @@ class CannedRowsCoverEveryFamily(unittest.TestCase):
     """Code-time coverage: independent of tracked data and policy switches."""
 
     def test_every_policy_family_is_growable_by_the_canary(self):
-        self.assertEqual(code_gaps(), {}, "fix the canary's PARENT_TABLES or FAMILY_SUMMARY")
+        self.assertEqual(code_gaps(), {}, "fix the canary's parent_table() or FAMILY_SUMMARY")
 
-    def test_missing_parent_support_is_reported(self):
-        from unittest import mock
-        with mock.patch.dict(PARENT_TABLES, clear=False):
-            del PARENT_TABLES["us_uscc_press_en"]
-            self.assertIn("PARENT_TABLES has no entry", code_gaps()["us_uscc_press_en"])
+    def test_parent_tables_come_from_the_resolvers(self):
+        from core import daily_sources
+        from tests.test_corpus_growth_canary import parent_table
+        expected = {"jp_jcg_press_en": "japan_jcg_source_records",
+                    "us_uscc_press_en": "uscc_press_source_records",
+                    "sg_mindef_releases": "singapore_mindef_source_records",
+                    "kr_policy_dapa_releases": "korea_official_source_records"}
+        for family, table in expected.items():
+            self.assertEqual(parent_table(daily_sources.source_for(family)), table, family)
 
-    def test_parent_table_typo_is_reported(self):
+    def test_underivable_parent_table_is_reported(self):
         from unittest import mock
-        with mock.patch.dict(PARENT_TABLES, {"us_uscc_press_en": ("uscc_press_source_record", "1=1")}):
+        from tests import test_corpus_growth_canary as canary
+        with mock.patch.object(canary, "parent_table", lambda src: None):
+            self.assertIn("not derivable", code_gaps()["us_uscc_press_en"])
+
+    def test_parent_table_absent_from_migrations_is_reported(self):
+        from unittest import mock
+        from tests import test_corpus_growth_canary as canary
+        with mock.patch.object(canary, "parent_table", lambda src: "uscc_press_source_record_typo"):
             self.assertIn("created by no migration", code_gaps()["us_uscc_press_en"])
 
     def test_rejected_canned_row_is_reported_even_when_family_is_not_growable(self):

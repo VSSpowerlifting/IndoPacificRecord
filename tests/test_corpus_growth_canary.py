@@ -47,17 +47,34 @@ HELPER_TESTS = "test_corpus_growth_canary_helpers.py"
 _COPY_RE = re.compile(
     r"shutil\.copy(?:2|file)?\(\s*([^,\n]*(?:TRACKED|tracked|pla_watch\.db)[^,\n]*),")
 
-# Where a family's parent identities live when source.parent is set (the
-# parent *row* is always resolved through source.parent_link, as load() does).
-# A parent-bearing family missing here is a gap and fails the canary.
-PARENT_TABLES = {
-    "jp_jcg_press_en": ("japan_jcg_source_records", "1=1"),
-    "us_uscc_press_en": ("uscc_press_source_records", "1=1"),
-    "sg_mindef_releases": ("singapore_mindef_source_records", "1=1"),
-    "kr_policy_dapa_releases": (
-        "korea_official_source_records",
-        "official_issuer='kr_dapa' AND public_scope='official_link_only'"),
-}
+# A parent-bearing family's candidate identities are enumerated from the table
+# its own parent resolver reads (derived from code, never duplicated here), and
+# every candidate is then resolved through source.parent_link exactly as load()
+# does, so issuer and scope filters stay the resolver's own.
+_TABLE_LITERAL = re.compile(r"\bFROM\s+([a-z_][a-z0-9_]*)\b")  # SQL keyword case only
+_IMPORTED = re.compile(r"\bfrom\s+core\s+import\s+([a-z_][a-z0-9_]*)")
+
+
+def parent_table(src):
+    """The table source.parent's resolver reads, or None if not derivable:
+    the TABLE of a core link module the resolver delegates to, or the single
+    table its own SQL names."""
+    import importlib
+    import inspect
+    from core import daily_sources
+    resolver = daily_sources._call(src.parent)
+    text = inspect.getsource(resolver)
+    tables = set()
+    for name in _IMPORTED.findall(text):
+        mod = importlib.import_module(f"core.{name}")
+        if isinstance(getattr(mod, "TABLE", None), str) and f"{name}.read_parent" in text:
+            tables.add(mod.TABLE)
+    sql_text = "\n".join(l for l in text.splitlines()
+                         if not re.match(r"\s*(from\s+\S+\s+)?import\b", l))
+    tables |= {t for t in _TABLE_LITERAL.findall(sql_text) if t != "sqlite_master"}
+    return tables.pop() if len(tables) == 1 else None
+
+
 # A visible family the canary cannot grow is a *gap*. Gaps are reported, never
 # a failure of the canary run itself: which families are growable depends on the
 # tracked data and the committed policy, and the Daily commits data unattended,
@@ -69,7 +86,7 @@ PARENT_TABLES = {
 # Code defects that would *cause* gaps are caught independently of data and
 # policy, at code-PR time, by tests/test_corpus_growth_canary_helpers.py
 # (CannedRowsCoverEveryFamily): every policy family must have a source
-# definition, enumerable parent support whose table is created by a migration,
+# definition, a parent table derivable from its resolver and created by a migration,
 # and a canned row its output check accepts under a forced-eligible policy.
 # The canary run fails only when a reader breaks on the grown copy, or when an
 # inserted row is not visible through load() (canary/load() disagreement).
@@ -124,18 +141,15 @@ def _sha(path):
 
 def _parent_identities(conn, family, src):
     """Candidate parent identities, newest first, or None if not enumerable."""
-    spec = PARENT_TABLES.get(family)
-    if spec is not None:
-        table, where = spec
-        sql = (f"SELECT source_identity FROM {table} WHERE {where} "
-               "ORDER BY publisher_posted_date DESC")
-    elif not src.parent:
+    if not src.parent:
         sql = ("SELECT source_identity FROM regional_official_source_links "
                "WHERE source_family=? ORDER BY publisher_posted_date DESC")
         return [r[0] for r in conn.execute(sql, (family,))]
-    else:
+    table = parent_table(src)
+    if table is None:
         return None
-    return [r[0] for r in conn.execute(sql)]
+    return [r[0] for r in conn.execute(
+        f"SELECT source_identity FROM {table} ORDER BY publisher_posted_date DESC")]
 
 
 def _parent_row(conn, family, src, identity):
@@ -184,7 +198,7 @@ def code_gaps():
 
     For every family in the committed policy (whatever its switches), the canary
     must be able to grow it the day data and policy allow: a source definition,
-    enumerable parent support whose table a migration creates, and a canned row
+    a parent table derivable from its resolver that a migration creates, and a canned row
     the family's output check accepts under a forced-eligible policy. Checked on
     every code PR so a defect fails there, never on a later data-only commit."""
     from core.daily_sources import source_for
@@ -198,17 +212,17 @@ def code_gaps():
             out[family] = "no source definition"
             continue
         if src.parent:
-            spec = PARENT_TABLES.get(family)
-            if spec is None:
-                out[family] = "source.parent is set but PARENT_TABLES has no entry"
+            table = parent_table(src)
+            if table is None:
+                out[family] = "parent table not derivable from source.parent's resolver"
                 continue
-            if not re.search(rf"\b{re.escape(spec[0])}\b", migrations):
-                out[family] = f"PARENT_TABLES table {spec[0]!r} is created by no migration"
+            if not re.search(rf"\b{re.escape(table)}\b", migrations):
+                out[family] = f"parent table {table!r} is created by no migration"
                 continue
-        forced = {**pol, "public_machine_explanation": True,
+        forced = {**pol, "excluded_source_identities": [], "public_machine_explanation": True,
                   "private_model_processing": True, "unattended_release": True}
         try:
-            build_record(family, "canary-static-1",
+            build_record(family, "canary-static-identity",
                          {"metadata_version_sha256": hashlib.sha256(family.encode()).hexdigest()},
                          src, forced)
         except Exception as exc:
@@ -257,7 +271,7 @@ def grow(db):
                 continue
             if identities is None:
                 gaps[family] = ("parent_not_enumerable",
-                                "source.parent is set but PARENT_TABLES has no entry")
+                                "parent table not derivable from source.parent's resolver")
                 continue
             if not identities:
                 gaps[family] = ("no_parent_rows", "no parent rows exist in the tracked database")
