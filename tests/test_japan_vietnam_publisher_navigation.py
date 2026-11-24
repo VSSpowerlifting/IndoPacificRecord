@@ -113,29 +113,58 @@ class CountryPublisherNavigationTests(DeskCase):
         """Check generated, publishable HTML, not just template literals."""
         from html.parser import HTMLParser
 
+        from core.daily_machine_records import load as load_machine_records
+
         class OfficialArticleLinks(HTMLParser):
+            """Every JCG article link, with the aria-label of its enclosing list."""
             def __init__(self):
                 super().__init__()
+                self.lists = []
                 self.targets = []
             def handle_starttag(self, tag, attrs):
+                values = dict(attrs)
+                if tag == "ol":
+                    self.lists.append(values.get("aria-label"))
                 if tag != "a":
                     return
-                values = dict(attrs)
                 url = values.get("href", "")
                 if url.startswith("https://www.kaiho.mlit.go.jp/e/topics_archive/article"):
-                    self.targets.append((url, values.get("rel", "")))
+                    self.targets.append((url, values.get("rel", ""),
+                                         self.lists[-1] if self.lists else None))
+            def handle_endtag(self, tag):
+                if tag == "ol" and self.lists:
+                    self.lists.pop()
 
         html = self.page("japan.html")
         parser = OfficialArticleLinks()
         parser.feed(html)
+        fixed_list = "Six official Japan Coast Guard publication links"
+        machine_list = "Machine explanations"
         identifiers = ("9399", "9424", "9436", "9453", "9455", "9465")
+        # The six fixed link-only references stay exactly pinned.
         self.assertEqual(
-            [url for url, _ in parser.targets],
+            [url for url, _, where in parser.targets if where == fixed_list],
             ["https://www.kaiho.mlit.go.jp/e/topics_archive/article"
              + ident + ".html" for ident in identifiers],
         )
+        # Admitted machine explanations each carry their own official-source
+        # link; that set is derived from the admitted released Records (the
+        # desk shows the latest five), never pinned, so valid corpus growth
+        # passes and an unadmitted JCG link does not.
+        admitted = [r["url"] for r in load_machine_records(TRACKED_DB)
+                    if r["desk_id"] == "japan"][:5]
+        self.assertEqual(
+            [url for url, _, where in parser.targets if where == machine_list],
+            admitted,
+        )
+        # No JCG article link appears anywhere else on the page.
+        self.assertEqual(
+            [url for url, _, where in parser.targets
+             if where not in (fixed_list, machine_list)],
+            [],
+        )
         self.assertTrue(all("noopener" in rel and "noreferrer" in rel
-                            for _, rel in parser.targets))
+                            for _, rel, _ in parser.targets))
         for phrase in (
             "external official-source links only",
             "not archived IPR records",
