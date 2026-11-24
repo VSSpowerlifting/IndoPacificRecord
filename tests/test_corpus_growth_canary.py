@@ -15,13 +15,18 @@ PR time:
    family that cannot be grown is a gap, reported but never a failure; code
    defects that cause gaps fail independently of data in
    ``code_gaps()`` (see FAILING_GAP_CODES);
-3. run the test modules that copy the tracked database in a subprocess where
-   ``shutil.copy/copy2/copyfile`` of the tracked path is redirected to the grown
-   copy. No production code and no other test is changed.
+3. run the test modules that name the tracked database in a subprocess where
+   ``shutil.copy/copy2/copyfile`` of the tracked path (and so
+   ``scripts.reconcile_db.read_only``) and ``sqlite3.connect`` of it (a path or
+   a ``file:`` URI) are redirected to the grown copy. No production code and no
+   other test is changed;
+4. rerun any failing module on a plain, ungrown copy and fail only on tests
+   that pass ungrown and fail grown, so a test already broken by ordinary data
+   is not blamed on growth.
 
-Target selection is deterministic: every ``tests/test_*.py`` (except this file)
-containing a ``shutil.copy*(`` call whose source expression names the tracked
-database (``TRACKED``, ``TRACKED_DB``, ``tracked`` or ``pla_watch.db``).
+Target selection is deterministic (see _COPY_RE, _TRACKED_RE, _DAILY_RE and the
+exclusions). Readers import the daily-record loader lazily, so import-time
+reachability cannot narrow the set.
 """
 from __future__ import annotations
 
@@ -44,8 +49,16 @@ SELF = Path(__file__).name
 # grow()'s own unit tests live apart so this module is one slow unit that
 # scripts.parallel_unittest schedules first (MEASURED_SECONDS).
 HELPER_TESTS = "test_corpus_growth_canary_helpers.py"
+# A module is a target when it copies the tracked database (shutil.copy* or
+# scripts.reconcile_db.read_only of it), or names it and touches the
+# daily-record machinery (policy, loader, sources) however it opens it. A run
+# over every module naming the tracked database (144, ~24 min) found no other
+# growth-sensitive reader on 24 Nov 2026; this set keeps the run near 3 min.
 _COPY_RE = re.compile(
-    r"shutil\.copy(?:2|file)?\(\s*([^,\n]*(?:TRACKED|tracked|pla_watch\.db)[^,\n]*),")
+    r"(?:shutil\.copy(?:2|file)?|read_only)\(\s*([^,\n)]*(?:TRACKED|tracked|pla_watch\.db)[^,\n)]*)[,)]")
+_TRACKED_RE = re.compile(r"pla_watch\.db|\bTRACKED(?:_DB)?\b")
+_DAILY_RE = re.compile(r"daily_machine_records|daily_intake|load_policy|daily_policy|"
+                       r"machine_record|release_hold|daily_sources")
 
 # A parent-bearing family's candidate identities are enumerated from the table
 # its own parent resolver reads (derived from code, never duplicated here), and
@@ -122,15 +135,23 @@ FAMILY_SUMMARY = {
 # on a grown copy when this canary was built, and is not a daily-record reader
 # under a synthetic policy. Re-include it if its runtime drops.
 SLOW_EXCLUDED = {"test_preview_prototype"}
+# Compares committed output/ with the database. A grown copy without
+# re-rendered output always differs; a genuine Daily commits both together.
+OUTPUT_CONSISTENCY_EXCLUDED = {"test_briefs_enrichment"}
 NEVER_PARENT = {"15aug26-speech", "16sep26-speech"}
+
+
+def is_target(text):
+    return bool(_COPY_RE.search(text) or (_TRACKED_RE.search(text) and _DAILY_RE.search(text)))
 
 
 def target_modules():
     mods = []
     for path in sorted((ROOT / "tests").glob("test_*.py")):
-        if path.name in (SELF, HELPER_TESTS) or path.stem in SLOW_EXCLUDED:
+        if (path.name in (SELF, HELPER_TESTS) or path.stem in SLOW_EXCLUDED
+                or path.stem in OUTPUT_CONSISTENCY_EXCLUDED):
             continue
-        if _COPY_RE.search(path.read_text(encoding="utf-8", errors="replace")):
+        if is_target(path.read_text(encoding="utf-8", errors="replace")):
             mods.append(f"tests.{path.stem}")
     return mods
 
@@ -331,7 +352,7 @@ def unexpected_gaps(gaps):
 
 
 _BOOTSTRAP = r"""
-import shutil, sys, unittest
+import os, shutil, sys, unittest
 from pathlib import Path
 tracked = Path(sys.argv[1]).resolve()
 grown = sys.argv[2]
@@ -346,10 +367,33 @@ def _wrap(orig):
     return inner
 for name in ("copy", "copy2", "copyfile"):
     setattr(shutil, name, _wrap(getattr(shutil, name)))
+import sqlite3
+from urllib.parse import unquote
+_connect = sqlite3.connect
+def _is_tracked(p):
+    try:
+        return Path(p).resolve() == tracked
+    except (OSError, TypeError, ValueError):
+        return False
+def connect(database, *a, **k):
+    if isinstance(database, (str, os.PathLike)):
+        db = os.fspath(database)
+        if k.get("uri") and isinstance(db, str) and db.startswith("file:"):
+            path, sep, query = db[5:].partition("?")
+            if _is_tracked(unquote(path)):
+                database = "file:" + grown + sep + query
+        elif _is_tracked(db):
+            database = grown
+    return _connect(database, *a, **k)
+sqlite3.connect = connect
 suite = unittest.defaultTestLoader.loadTestsFromNames(sys.argv[3:])
 res = unittest.TextTestRunner(verbosity=1).run(suite)
 sys.exit(0 if res.wasSuccessful() else 1)
 """
+
+
+def _failed_ids(proc):
+    return set(re.findall(r"^(?:FAIL|ERROR): (\S+ \([^)]*\))", proc.stderr, re.M))
 
 
 class CorpusGrowthCanary(unittest.TestCase):
@@ -373,27 +417,44 @@ class CorpusGrowthCanary(unittest.TestCase):
                 self.skipTest(f"no family grown (skipped: {skipped}; gaps: {gaps})")
             print(f"\ncanary grew {sorted(inserted)}; skipped {skipped}; allowed gaps {gaps}; targets {len(mods)}",
                   file=sys.stderr)
-            def run(mod):
+            def run(mod, db):
                 return mod, subprocess.run(
-                    [sys.executable, "-c", _BOOTSTRAP, str(TRACKED), str(grown), mod],
+                    [sys.executable, "-c", _BOOTSTRAP, str(TRACKED), str(db), mod],
                     cwd=str(ROOT), env=dict(os.environ), capture_output=True, text=True,
                     timeout=900)
 
             with ThreadPoolExecutor(max_workers=4) as pool:
-                results = list(pool.map(run, mods))
+                results = list(pool.map(lambda m: run(m, grown), mods))
+                failed = [(m, p) for m, p in results if p.returncode != 0]
+                plain = Path(tmp) / "plain.db"
+                shutil.copyfile(TRACKED, plain)
+                baseline = dict(pool.map(lambda mp: run(mp[0], plain), failed))
         self.assertEqual(_sha(TRACKED), before, "tracked database changed")
-        failed = [(m, p) for m, p in results if p.returncode != 0]
-        if failed:
-            lines = []
-            for mod, proc in failed:
-                names = sorted(set(re.findall(
-                    r"^(?:FAIL|ERROR): (\S+ \([^)]*\))", proc.stderr, re.M)))
-                lines.append(f"{mod}: {', '.join(names) or 'no test id parsed'}")
+        lines, already = [], []
+        for mod, proc in failed:
+            grown_ids = _failed_ids(proc)
+            base = baseline[mod]
+            base_ids = _failed_ids(base) if base.returncode != 0 else set()
+            if base.returncode != 0 and not base_ids:
+                base_ids = {"<whole module>"}  # unparsed: cannot attribute
+                new = []
+            else:
+                new = sorted(grown_ids - base_ids) if grown_ids else (
+                    [] if base.returncode != 0 else ["no test id parsed"])
+            if base.returncode != 0:
+                already.append(f"{mod}: {', '.join(sorted(base_ids))}")
+            if new:
+                lines.append(f"{mod}: {', '.join(new)}")
+        if already:
+            print("\ncanary: already failing on the ungrown database (not growth): "
+                  + "; ".join(already), file=sys.stderr)
+        if lines:
             self.fail(
                 "tests that read the tracked database break once genuine released Records exist "
                 f"for {sorted(inserted)}. Isolate the family's rows on the scratch copy "
                 "(see tests/test_japan_jcg_daily.py). Failing:\n  " + "\n  ".join(lines)
-                + "\n--- tail of first failure ---\n" + failed[0][1].stderr[-2500:])
+                + "\n--- tail of first failure ---\n"
+                + next(p for m, p in failed if any(l.startswith(m + ":") for l in lines)).stderr[-2500:])
 
 
 if __name__ == "__main__":

@@ -38,6 +38,14 @@ class GrowHelperEligibility(unittest.TestCase):
     def tearDown(self):
         self.assertEqual(_sha(TRACKED), self.sha)
 
+    @staticmethod
+    def _on(s, *families):
+        """Pin a family eligible whatever the committed switches say, so an
+        emergency pause in policy alone cannot turn these tests red."""
+        for f in families:
+            s[f].update(public_machine_explanation=True, private_model_processing=True,
+                        unattended_release=True, excluded_source_identities=[])
+
     def _grow(self, edit):
         import copy
         from unittest import mock
@@ -57,6 +65,7 @@ class GrowHelperEligibility(unittest.TestCase):
 
     def test_paused_family_is_skipped_not_raised(self):
         def edit(s):
+            self._on(s, "us_uscc_press_en")
             s["id_kemhan_news"]["private_model_processing"] = False
         inserted, skipped, gaps = self._grow(edit)
         self.assertIn("id_kemhan_news", skipped)
@@ -65,6 +74,7 @@ class GrowHelperEligibility(unittest.TestCase):
 
     def test_singapore_with_both_switches_off_uses_display_policy(self):
         def edit(s):
+            self._on(s, "sg_mindef_releases")
             s["sg_mindef_releases"]["private_model_processing"] = False
             s["sg_mindef_releases"]["unattended_release"] = False
         inserted, skipped, gaps = self._grow(edit)
@@ -74,6 +84,7 @@ class GrowHelperEligibility(unittest.TestCase):
 
     def test_singapore_with_one_switch_off_is_skipped(self):
         def edit(s):
+            self._on(s, "sg_mindef_releases")
             s["sg_mindef_releases"]["unattended_release"] = False
         inserted, skipped, gaps = self._grow(edit)
         self.assertIn("sg_mindef_releases", skipped)
@@ -83,7 +94,7 @@ class GrowHelperEligibility(unittest.TestCase):
         from core import daily_sources
         src = daily_sources.source_for("jp_jcg_press_en")
         with mock.patch.object(type(src), "release_hold", lambda self: "held" if self is src else None):
-            inserted, skipped, gaps = grow(self.db)
+            inserted, skipped, gaps = self._grow(lambda s: self._on(s, "jp_jcg_press_en"))
         self.assertIn("jp_jcg_press_en", skipped)
         self.assertNotIn("jp_jcg_press_en", inserted)
 
@@ -113,6 +124,21 @@ class GrowHelperEligibility(unittest.TestCase):
         self.assertEqual(gaps["kr_policy_dapa_releases"][0], "parent_not_enumerable")
         self.assertFalse(unexpected_gaps(gaps), gaps)
 
+    def test_an_insert_load_does_not_show_fails_the_run(self):
+        """The one failing gap: a released row load() would not show."""
+        from unittest import mock
+        from core import daily_machine_records as dmr
+        real = dmr.load
+
+        def hide_uscc(*a, **k):
+            return [r for r in real(*a, **k) if r["source_family"] != "us_uscc_press_en"]
+        with mock.patch.object(dmr, "load", hide_uscc):
+            inserted, skipped, gaps = self._grow(lambda s: self._on(s, "us_uscc_press_en"))
+        if "us_uscc_press_en" in gaps and gaps["us_uscc_press_en"][0] in DATA_GAPS:
+            self.skipTest("no resolvable USCC parent in the tracked database")
+        self.assertEqual(gaps["us_uscc_press_en"][0], "not_visible_after_insert", gaps)
+        self.assertIn("us_uscc_press_en", unexpected_gaps(gaps))
+
     def test_policy_stop_of_every_family_grows_nothing_without_raising(self):
         def edit(s):
             for v in s.values():
@@ -131,7 +157,7 @@ class GrowHelperEligibility(unittest.TestCase):
         conn.close()
         if not n:
             self.skipTest("no JCG parent rows in the tracked database")
-        inserted, skipped, gaps = grow(self.db)
+        inserted, skipped, gaps = self._grow(lambda s: self._on(s, "jp_jcg_press_en"))
         self.assertNotIn("jp_jcg_press_en", inserted)
         self.assertEqual(gaps["jp_jcg_press_en"][0], "no_resolvable_parent")
         self.assertNotIn("jp_jcg_press_en", unexpected_gaps(gaps))
@@ -160,9 +186,38 @@ class GrowHelperEligibility(unittest.TestCase):
         real = canary.parent_table
         with mock.patch.object(canary, "parent_table",
                                lambda src: "not_yet_migrated" if src.family == "us_uscc_press_en" else real(src)):
-            inserted, skipped, gaps = grow(self.db)
+            inserted, skipped, gaps = self._grow(lambda s: self._on(s, "us_uscc_press_en"))
         self.assertEqual(gaps["us_uscc_press_en"][0], "parent_table_missing")
         self.assertFalse(unexpected_gaps(gaps), gaps)
+
+
+class TargetSelection(unittest.TestCase):
+    """Every way a test reaches the tracked database is selected."""
+
+    def test_copy_and_reader_patterns_are_selected(self):
+        from tests.test_corpus_growth_canary import is_target
+        selected = [
+            'shutil.copyfile(TRACKED, db)',
+            'shutil.copy2(ROOT / "pla_watch.db", tmp)',
+            'with read_only(str(ROOT / "pla_watch.db")) as source:\n    source.backup(dest)',
+            'DB = ROOT / "pla_watch.db"\nwith mock.patch("core.daily_machine_records.load_policy", p):',
+            'rows = load(TRACKED_DB)\nfrom processing import daily_intake',
+        ]
+        for text in selected:
+            self.assertTrue(is_target(text), text)
+        for text in ('shutil.copyfile(fixture, db)', 'DB = ROOT / "pla_watch.db"\nprint(DB)'):
+            self.assertFalse(is_target(text), text)
+
+    def test_known_readers_stay_selected(self):
+        from tests.test_corpus_growth_canary import target_modules
+        mods = set(target_modules())
+        for m in ("test_korea_render_gate", "test_korea_official_metadata_auto_admission",
+                  "test_archive_integration", "test_china_titles_public", "test_dossiers",
+                  "test_korea_dapa_private_to_production", "test_japan_mod_official_links",
+                  "test_desk_rollout_contract", "test_public_chrome_is_truthful",
+                  "test_japan_vietnam_publisher_navigation", "test_singapore_daily_completion",
+                  "test_uscc_press_daily", "test_japan_jcg_daily"):
+            self.assertIn(f"tests.{m}", mods)
 
 
 class CannedRowsCoverEveryFamily(unittest.TestCase):
