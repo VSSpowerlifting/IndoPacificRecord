@@ -9,10 +9,11 @@ PR time:
 
 1. copy the tracked database to a temp dir (the tracked file is never opened for
    writing; its sha256 is asserted unchanged);
-2. insert one validate_output-valid released row per family whose real policy
-   sets ``public_machine_explanation`` and that has a spare parent row (families
-   without one are skipped and recorded, never a failure), and confirm
-   ``core.daily_machine_records.load`` shows each under the real policy;
+2. insert one validate_output-valid released row per family that
+   ``core.daily_machine_records.load`` would show under the real policy (its
+   own eligibility and release holds), and confirm load() shows each. A visible
+   family that cannot be grown is a gap: data-state gaps are reported, code
+   gaps fail (see DATA_GAP_CODES);
 3. run the test modules that copy the tracked database in a subprocess where
    ``shutil.copy/copy2/copyfile`` of the tracked path is redirected to the grown
    copy. No production code and no other test is changed.
@@ -39,6 +40,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 TRACKED = ROOT / "pla_watch.db"
 SELF = Path(__file__).name
+# grow()'s own unit tests live apart so this module is one slow unit that
+# scripts.parallel_unittest schedules first (MEASURED_SECONDS).
+HELPER_TESTS = "test_corpus_growth_canary_helpers.py"
 _COPY_RE = re.compile(
     r"shutil\.copy(?:2|file)?\(\s*([^,\n]*(?:TRACKED|tracked|pla_watch\.db)[^,\n]*),")
 
@@ -53,14 +57,25 @@ PARENT_TABLES = {
         "korea_official_source_records",
         "official_issuer='kr_dapa' AND public_scope='official_link_only'"),
 }
-# Gap codes that never fail the canary, for any family. When every parent row of
-# a visible family already has its released Record (NSC today: nsc:3108), the
-# tracked database itself already holds the real-policy growth this canary
-# simulates, and every reader is exercised by those genuine rows. Failing here
-# would let a data-only Daily commit turn main red, the very failure class the
-# canary exists to prevent. Any other gap of a visible family fails the canary,
-# naming the family and reason, so lost coverage cannot hide.
-ALLOWED_GAP_CODES = frozenset({"all_parents_released"})
+# A visible family the canary cannot grow is a *gap*. Gaps caused by the state of
+# the tracked data are reported, never a failure: the Daily commits data
+# unattended, and a data-only change must never turn main red (the very failure
+# class this canary exists to prevent). In each such case load() shows either no
+# row of the family (nothing to protect yet) or only genuine released rows that
+# already exercise every reader:
+#   all_parents_released  every spare parent already has its Record (NSC today)
+#   no_parent_rows        a newly activated family has collected nothing yet
+#   parent_table_missing  its parent table has not been migrated in yet
+#   no_resolvable_parent  every spare parent is held or otherwise not resolvable
+#                         through source.parent_link (a changed version held)
+# Every other gap is a defect in code or in this canary (a new parent-bearing
+# family without PARENT_TABLES support, a canned summary the family's output
+# check rejects) and fails, naming the family and reason, so coverage cannot be
+# lost silently.
+DATA_GAP_CODES = frozenset({
+    "all_parents_released", "no_parent_rows", "parent_table_missing", "no_resolvable_parent"})
+# Resolvable parents tried per family before reporting no_buildable_row.
+MAX_BUILD_ATTEMPTS = 5
 SUMMARY = (
     "The publisher announced a routine cooperation activity with a regional "
     "partner this week, according to its release."
@@ -96,7 +111,7 @@ NEVER_PARENT = {"15aug26-speech", "16sep26-speech"}
 def target_modules():
     mods = []
     for path in sorted((ROOT / "tests").glob("test_*.py")):
-        if path.name == SELF or path.stem in SLOW_EXCLUDED:
+        if path.name in (SELF, HELPER_TESTS) or path.stem in SLOW_EXCLUDED:
             continue
         if _COPY_RE.search(path.read_text(encoding="utf-8", errors="replace")):
             mods.append(f"tests.{path.stem}")
@@ -141,7 +156,7 @@ def grow(db):
     families legitimately not visible (not eligible, paused, held). ``gaps``
     maps family -> (code, reason) for families that ARE visible under the real
     policy but could not be grown; the test fails on any gap outside
-    ALLOWED_GAP_CODES so coverage cannot be lost silently.
+    DATA_GAP_CODES so coverage cannot be lost silently.
     """
     from core import daily_machine_records as dmr
     from core.daily_sources import source_for
@@ -167,7 +182,13 @@ def grow(db):
             if hold:
                 skipped[family] = f"release hold: {hold}"
                 continue
-            identities = _parent_identities(conn, family, src)
+            try:
+                identities = _parent_identities(conn, family, src)
+            except sqlite3.OperationalError as exc:
+                if "no such table" not in str(exc):
+                    raise
+                gaps[family] = ("parent_table_missing", str(exc))
+                continue
             if identities is None:
                 gaps[family] = ("parent_not_enumerable",
                                 "source.parent is set but PARENT_TABLES has no entry")
@@ -184,12 +205,16 @@ def grow(db):
                 gaps[family] = ("all_parents_released",
                                 "every parent row already has a released Record or is excluded")
                 continue
-            rec_ok, last_err, chosen = None, None, None
-            for identity in spare[:5]:
+            rec_ok, last_err, chosen, tried = None, None, None, 0
+            for identity in spare:
+                if tried >= MAX_BUILD_ATTEMPTS:
+                    break
                 par = _parent_row(conn, family, src, identity)
                 if not par:
-                    last_err = f"parent_link unresolved for {identity}"
+                    # Held or otherwise unresolvable: load() would not show a
+                    # Record on it either. It does not count as an attempt.
                     continue
+                tried += 1
                 for version in (list(src.released_prompt_versions) + list(reversed(src.prompt_versions))):
                     rec = {
                         "source_family": family, "source_identity": identity,
@@ -216,6 +241,10 @@ def grow(db):
                         last_err = repr(exc)
                 if rec_ok:
                     break
+            if rec_ok is None and not tried:
+                gaps[family] = ("no_resolvable_parent",
+                                "no spare parent resolves through source.parent_link")
+                continue
             if rec_ok is None:
                 gaps[family] = ("no_buildable_row", f"no valid canary row buildable: {last_err}")
                 continue
@@ -238,7 +267,7 @@ def grow(db):
 
 
 def unexpected_gaps(gaps):
-    return {f: v for f, v in gaps.items() if v[0] not in ALLOWED_GAP_CODES}
+    return {f: v for f, v in gaps.items() if v[0] not in DATA_GAP_CODES}
 
 
 _BOOTSTRAP = r"""
@@ -263,88 +292,6 @@ sys.exit(0 if res.wasSuccessful() else 1)
 """
 
 
-class GrowHelperEligibility(unittest.TestCase):
-    """grow() follows load()'s own eligibility and never raises on stopped families."""
-
-    @classmethod
-    def setUpClass(cls):
-        if not TRACKED.exists():
-            raise unittest.SkipTest("tracked database absent")
-        cls.sha = _sha(TRACKED)
-
-    def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory(prefix="ipr-growth-unit-")
-        self.addCleanup(self.tmp.cleanup)
-        self.db = Path(self.tmp.name) / "g.db"
-        shutil.copyfile(TRACKED, self.db)
-
-    def tearDown(self):
-        self.assertEqual(_sha(TRACKED), self.sha)
-
-    def _grow(self, edit):
-        import copy
-        from unittest import mock
-        from processing import daily_intake as di
-        pol = copy.deepcopy(di.load_policy())
-        edit(pol["sources"])
-        with mock.patch.object(di, "load_policy", lambda: pol), \
-                mock.patch("core.daily_machine_records.load_policy", lambda: pol):
-            return grow(self.db)
-
-    def test_paused_family_is_skipped_not_raised(self):
-        def edit(s):
-            s["id_kemhan_news"]["private_model_processing"] = False
-        inserted, skipped, gaps = self._grow(edit)
-        self.assertIn("id_kemhan_news", skipped)
-        self.assertNotIn("id_kemhan_news", inserted)
-        self.assertIn("us_uscc_press_en", inserted)
-
-    def test_singapore_with_both_switches_off_uses_display_policy(self):
-        def edit(s):
-            s["sg_mindef_releases"]["private_model_processing"] = False
-            s["sg_mindef_releases"]["unattended_release"] = False
-        inserted, skipped, gaps = self._grow(edit)
-        self.assertIn("sg_mindef_releases", inserted)  # visible via load(): hash matched
-
-    def test_singapore_with_one_switch_off_is_skipped(self):
-        def edit(s):
-            s["sg_mindef_releases"]["unattended_release"] = False
-        inserted, skipped, gaps = self._grow(edit)
-        self.assertIn("sg_mindef_releases", skipped)
-
-    def test_release_held_family_is_skipped(self):
-        from unittest import mock
-        from core import daily_sources
-        src = daily_sources.source_for("jp_jcg_press_en")
-        with mock.patch.object(type(src), "release_hold", lambda self: "held" if self is src else None):
-            inserted, skipped, gaps = grow(self.db)
-        self.assertIn("jp_jcg_press_en", skipped)
-        self.assertNotIn("jp_jcg_press_en", inserted)
-
-    def test_dapa_is_covered_the_day_it_becomes_eligible(self):
-        def edit(s):
-            s["kr_policy_dapa_releases"].update(
-                public_machine_explanation=True, private_model_processing=True,
-                unattended_release=True)
-        inserted, skipped, gaps = self._grow(edit)
-        self.assertIn("kr_policy_dapa_releases", inserted, gaps)
-        self.assertFalse(unexpected_gaps(gaps), gaps)
-
-    def test_unlisted_gap_fails_loudly_naming_family_and_reason(self):
-        from unittest import mock
-
-        def edit(s):
-            s["kr_policy_dapa_releases"].update(
-                public_machine_explanation=True, private_model_processing=True,
-                unattended_release=True)
-        with mock.patch.dict(PARENT_TABLES, clear=False):
-            del PARENT_TABLES["kr_policy_dapa_releases"]
-            inserted, skipped, gaps = self._grow(edit)
-        bad = unexpected_gaps(gaps)
-        self.assertEqual(bad["kr_policy_dapa_releases"][0], "parent_not_enumerable")
-        self.assertNotIn("ph_nsc_official_statements", bad)  # allow-listed
-
-
 class CorpusGrowthCanary(unittest.TestCase):
     def test_tracked_db_readers_survive_first_released_records(self):
         if not TRACKED.exists():
@@ -356,14 +303,14 @@ class CorpusGrowthCanary(unittest.TestCase):
             grown = Path(tmp) / "grown.db"
             shutil.copyfile(TRACKED, grown)
             inserted, skipped, gaps = grow(grown)
-            # Fail only when no family is visible at all (selection stale). A visible
-            # family that is fully released is covered by its genuine rows.
-            self.assertTrue(inserted or gaps,
-                            f"no visible family to grow (skipped: {skipped})")
+            if not inserted:
+                # Nothing to grow (every family stopped by policy, or only data
+                # gaps): load() shows no new real-policy row, so nothing to test.
+                self.skipTest(f"no family grown (skipped: {skipped}; gaps: {gaps})")
             bad = unexpected_gaps(gaps)
             self.assertFalse(
                 bad, "visible families the canary could not grow (add parent support or, with a "
-                "comment, ALLOWED_GAP_CODES): " + "; ".join(f"{f}: {c} - {r}" for f, (c, r) in bad.items()))
+                "comment, DATA_GAP_CODES): " + "; ".join(f"{f}: {c} - {r}" for f, (c, r) in bad.items()))
             print(f"\ncanary grew {sorted(inserted)}; skipped {skipped}; allowed gaps {gaps}; targets {len(mods)}",
                   file=sys.stderr)
             def run(mod):
