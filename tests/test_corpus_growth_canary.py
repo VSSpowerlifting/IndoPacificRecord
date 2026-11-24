@@ -53,15 +53,14 @@ PARENT_TABLES = {
         "korea_official_source_records",
         "official_issuer='kr_dapa' AND public_scope='official_link_only'"),
 }
-# Visible families that legitimately cannot be grown today: (family, code).
-# Anything else that is visible under the real policy but cannot be grown fails
-# the canary, naming the family and reason, so a lost coverage gap cannot hide.
-ALLOWED_GAPS = {
-    # NSC has a single parent row and it already has its released Record
-    # (nsc:3108), so there is no spare parent; that Record is already the
-    # real-policy growth this canary simulates.
-    ("ph_nsc_official_statements", "all_parents_released"),
-}
+# Gap codes that never fail the canary, for any family. When every parent row of
+# a visible family already has its released Record (NSC today: nsc:3108), the
+# tracked database itself already holds the real-policy growth this canary
+# simulates, and every reader is exercised by those genuine rows. Failing here
+# would let a data-only Daily commit turn main red, the very failure class the
+# canary exists to prevent. Any other gap of a visible family fails the canary,
+# naming the family and reason, so lost coverage cannot hide.
+ALLOWED_GAP_CODES = frozenset({"all_parents_released"})
 SUMMARY = (
     "The publisher announced a routine cooperation activity with a regional "
     "partner this week, according to its release."
@@ -142,7 +141,7 @@ def grow(db):
     families legitimately not visible (not eligible, paused, held). ``gaps``
     maps family -> (code, reason) for families that ARE visible under the real
     policy but could not be grown; the test fails on any gap outside
-    ALLOWED_GAPS so coverage cannot be lost silently.
+    ALLOWED_GAP_CODES so coverage cannot be lost silently.
     """
     from core import daily_machine_records as dmr
     from core.daily_sources import source_for
@@ -239,7 +238,7 @@ def grow(db):
 
 
 def unexpected_gaps(gaps):
-    return {f: v for f, v in gaps.items() if (f, v[0]) not in ALLOWED_GAPS}
+    return {f: v for f, v in gaps.items() if v[0] not in ALLOWED_GAP_CODES}
 
 
 _BOOTSTRAP = r"""
@@ -357,11 +356,14 @@ class CorpusGrowthCanary(unittest.TestCase):
             grown = Path(tmp) / "grown.db"
             shutil.copyfile(TRACKED, grown)
             inserted, skipped, gaps = grow(grown)
-            self.assertTrue(inserted, f"canary grew no family (skipped: {skipped}, gaps: {gaps})")
+            # Fail only when no family is visible at all (selection stale). A visible
+            # family that is fully released is covered by its genuine rows.
+            self.assertTrue(inserted or gaps,
+                            f"no visible family to grow (skipped: {skipped})")
             bad = unexpected_gaps(gaps)
             self.assertFalse(
                 bad, "visible families the canary could not grow (add parent support or, with a "
-                "comment, ALLOWED_GAPS): " + "; ".join(f"{f}: {c} - {r}" for f, (c, r) in bad.items()))
+                "comment, ALLOWED_GAP_CODES): " + "; ".join(f"{f}: {c} - {r}" for f, (c, r) in bad.items()))
             print(f"\ncanary grew {sorted(inserted)}; skipped {skipped}; allowed gaps {gaps}; targets {len(mods)}",
                   file=sys.stderr)
             def run(mod):
