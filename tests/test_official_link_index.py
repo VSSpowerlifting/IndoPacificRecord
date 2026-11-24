@@ -68,11 +68,12 @@ def philippines_rows():
 
 
 def korea_synthetic_rows():
-    """61 synthetic MND rows newer than every committed row (21 Nov 2026).
+    """61 synthetic MND rows, placed ahead of every committed row.
 
     One more than DESK_LINK_LIMIT on their own, so the desk bound is exercised
     however many real auto rows remain (released originals with a Record
-    leave the auto-link list)."""
+    leave the auto-link list). Their date is set in fake_korea from the newest
+    committed row, so a scheduled Korea admission never misorders them."""
     return [{
         "source_identity": "korea-policy:%d" % (999999999 - i),
         "source_url": korea_live.PREFIX + str(999999999 - i),
@@ -87,6 +88,7 @@ def korea_synthetic_rows():
 ID_ROWS = indonesia_rows()
 PH_ROWS = philippines_rows()
 KOREA_EXTRA = korea_synthetic_rows()
+KOREA_FLOOR_DAY = "2026-11-21"
 _ORIGINAL_REGIONAL = regional_render.load_admitted_links
 _ORIGINAL_KOREA = korea_live.load_live_korea_official_links
 
@@ -102,7 +104,11 @@ def fake_regional(db_path, desk):
 def fake_korea(db_path, *, exclude=()):
     excluded = set(exclude)
     real = _ORIGINAL_KOREA(db_path, exclude=exclude)
-    return [dict(r) for r in KOREA_EXTRA if r["source_identity"] not in excluded] + real
+    # Newest-first is checked strictly (day > previous holds), so sharing the
+    # newest committed day keeps canonical order whatever Daily admits next.
+    newest = max([KOREA_FLOOR_DAY] + [r["published_date"] for r in real])
+    return [dict(r, published_date=newest) for r in KOREA_EXTRA
+            if r["source_identity"] not in excluded] + real
 
 
 ROW = {"indonesia": r'<li data-regional-official-source-id="([^"]+)">.*?</li>',
