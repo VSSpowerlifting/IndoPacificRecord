@@ -125,7 +125,8 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertEqual(s.prompt_versions, ("sg-relevance-v2+sg-analysis-v2",
                                              "sg-relevance-v2+sg-analysis-v3",
                                              "sg-relevance-v2+sg-analysis-v4",
-                                             "sg-relevance-v2+sg-analysis-v5"))
+                                             "sg-relevance-v2+sg-analysis-v5",
+                                             "sg-relevance-v2+sg-analysis-v6"))
         p = d.load_policy()["sources"][FAMILY]
         # Founder approval of 22 November: recurring release. The switches are on
         # and the attended-pilot gate is empty, so scheduled runs handle the
@@ -165,7 +166,8 @@ class SingaporeDefinition(unittest.TestCase):
         self.assertEqual(d.allowed_prompt_versions(FAMILY), ("sg-relevance-v2+sg-analysis-v2",
                                                             "sg-relevance-v2+sg-analysis-v3",
                                                             "sg-relevance-v2+sg-analysis-v4",
-                                                            "sg-relevance-v2+sg-analysis-v5"))
+                                                            "sg-relevance-v2+sg-analysis-v5",
+                                                            "sg-relevance-v2+sg-analysis-v6"))
 
     def test_output_check_requires_mindef_attribution_and_no_flag(self):
         self.assertIsNone(_sg_output_check({"model_flagged": False, "summary": "MINDEF says x."}))
