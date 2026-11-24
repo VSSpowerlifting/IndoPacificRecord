@@ -161,16 +161,15 @@ def _sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def _tracked_columns(table):
-    """Columns of `table` in the tracked database (empty if absent), read
-    immutably so no sidecar or write can occur."""
+def _tracked_schema():
+    """table -> columns of the tracked database's schema, read through a
+    scratch copy (scripts.reconcile_db.read_only); empty if it is absent."""
     if not TRACKED.exists():
-        return set()
-    conn = sqlite3.connect(f"file:{TRACKED}?mode=ro&immutable=1", uri=True)
-    try:
-        return {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
-    finally:
-        conn.close()
+        return {}
+    from scripts.reconcile_db import read_only
+    with read_only(str(TRACKED)) as conn:
+        tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+        return {t: {r[1] for r in conn.execute(f"PRAGMA table_info({t})")} for t in tables}
 
 
 def _parent_identities(conn, family, src):
@@ -240,7 +239,7 @@ def code_gaps():
     from processing import daily_intake as di
     migrations = "\n".join(
         p.read_text(encoding="utf-8") for p in sorted((ROOT / "migrations").rglob("*.py")))
-    out = {}
+    out, schema = {}, None
     for family, pol in sorted(di.load_policy()["sources"].items()):
         src = source_for(family)
         if src is None:
@@ -254,7 +253,9 @@ def code_gaps():
             if not re.search(rf"\b{re.escape(table)}\b", migrations):
                 out[family] = f"parent table {table!r} is created by no migration"
                 continue
-            cols = _tracked_columns(table)
+            if schema is None:
+                schema = _tracked_schema()
+            cols = schema.get(table)
             if cols and "source_identity" not in cols:
                 out[family] = f"parent table {table!r} has no source_identity column"
                 continue
