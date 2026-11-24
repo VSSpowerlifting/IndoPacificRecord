@@ -654,6 +654,12 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         known_hold_reason="core.daily_sources:_uscc_known_hold_reason",
         output_check="core.daily_sources:_uscc_output_check",
         parent="core.daily_sources:_uscc_parent",
+        # Observed 2026-11-23 (private queue at state/shared-daily f61c044):
+        # the newest release was retriable after a factual-QA hold while the
+        # only other bindable release had 0 attempts and, under newest-first
+        # with one record per run, would wait out the first one's retries.
+        # Order only; attempts, budget, cap and checks are unchanged.
+        first_attempts_first=True,
         admission_migration="migrations.versions.m0024_uscc_press_source_records:is_already_applied",
         # One owner switch for both public halves, off by default.
         public_switch="US_USCC_LINKS_ENABLED",
