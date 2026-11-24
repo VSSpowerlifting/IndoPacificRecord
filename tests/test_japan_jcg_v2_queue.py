@@ -119,8 +119,8 @@ class FirstAttemptsFirst(unittest.TestCase):
         self.assertEqual(state[FAMILY + ":jcg-en:9519"], self.state[FAMILY + ":jcg-en:9519"])
 
     def test_other_families_keep_newest_first(self):
-        flagged = [f for f, s in SOURCES.items() if s.first_attempts_first]
-        self.assertEqual(flagged, [FAMILY])
+        flagged = sorted(f for f, s in SOURCES.items() if s.first_attempts_first)
+        self.assertEqual(flagged, sorted([FAMILY, "us_uscc_press_en"]))
 
 
 if __name__ == "__main__":
