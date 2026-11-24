@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from tests.test_corpus_growth_canary import (
-    PARENT_TABLES, TRACKED, _sha, grow, unexpected_gaps)
+    PARENT_TABLES, TRACKED, _sha, code_gaps, grow, unexpected_gaps)
 
 
 class GrowHelperEligibility(unittest.TestCase):
@@ -79,7 +79,9 @@ class GrowHelperEligibility(unittest.TestCase):
         self.assertIn("kr_policy_dapa_releases", inserted, gaps)
         self.assertFalse(unexpected_gaps(gaps), gaps)
 
-    def test_unlisted_gap_fails_loudly_naming_family_and_reason(self):
+    def test_no_gap_fails_the_run_except_an_invisible_insert(self):
+        """Gaps depend on data and policy; failing on them would let a
+        data-only Daily turn main red. Code defects fail in code_gaps()."""
         from unittest import mock
 
         def edit(s):
@@ -89,9 +91,8 @@ class GrowHelperEligibility(unittest.TestCase):
         with mock.patch.dict(PARENT_TABLES, clear=False):
             del PARENT_TABLES["kr_policy_dapa_releases"]
             inserted, skipped, gaps = self._grow(edit)
-        bad = unexpected_gaps(gaps)
-        self.assertEqual(bad["kr_policy_dapa_releases"][0], "parent_not_enumerable")
-        self.assertNotIn("ph_nsc_official_statements", bad)  # allow-listed
+        self.assertEqual(gaps["kr_policy_dapa_releases"][0], "parent_not_enumerable")
+        self.assertFalse(unexpected_gaps(gaps), gaps)
 
     def test_policy_stop_of_every_family_grows_nothing_without_raising(self):
         def edit(s):
@@ -139,6 +140,34 @@ class GrowHelperEligibility(unittest.TestCase):
             inserted, skipped, gaps = grow(self.db)
         self.assertEqual(gaps["us_uscc_press_en"][0], "parent_table_missing")
         self.assertFalse(unexpected_gaps(gaps), gaps)
+
+
+class CannedRowsCoverEveryFamily(unittest.TestCase):
+    """Code-time coverage: independent of tracked data and policy switches."""
+
+    def test_every_policy_family_is_growable_by_the_canary(self):
+        self.assertEqual(code_gaps(), {}, "fix the canary's PARENT_TABLES or FAMILY_SUMMARY")
+
+    def test_missing_parent_support_is_reported(self):
+        from unittest import mock
+        with mock.patch.dict(PARENT_TABLES, clear=False):
+            del PARENT_TABLES["us_uscc_press_en"]
+            self.assertIn("PARENT_TABLES has no entry", code_gaps()["us_uscc_press_en"])
+
+    def test_parent_table_typo_is_reported(self):
+        from unittest import mock
+        with mock.patch.dict(PARENT_TABLES, {"us_uscc_press_en": ("uscc_press_source_record", "1=1")}):
+            self.assertIn("created by no migration", code_gaps()["us_uscc_press_en"])
+
+    def test_rejected_canned_row_is_reported_even_when_family_is_not_growable(self):
+        # NSC is fully released (not growable in data) and DAPA is policy-off;
+        # a wording defect for either must still fail at code time.
+        from unittest import mock
+        from tests import test_corpus_growth_canary as canary
+        for family in ("ph_nsc_official_statements", "kr_policy_dapa_releases"):
+            with mock.patch.dict(canary.FAMILY_SUMMARY, {family: "Unattributed text."}):
+                self.assertIn("rejected by the output check", code_gaps().get(family, ""), family)
+
 
 if __name__ == "__main__":
     unittest.main()

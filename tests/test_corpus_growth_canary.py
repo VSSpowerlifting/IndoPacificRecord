@@ -12,8 +12,9 @@ PR time:
 2. insert one validate_output-valid released row per family that
    ``core.daily_machine_records.load`` would show under the real policy (its
    own eligibility and release holds), and confirm load() shows each. A visible
-   family that cannot be grown is a gap: data-state gaps are reported, code
-   gaps fail (see DATA_GAP_CODES);
+   family that cannot be grown is a gap, reported but never a failure; code
+   defects that cause gaps fail independently of data in
+   ``code_gaps()`` (see FAILING_GAP_CODES);
 3. run the test modules that copy the tracked database in a subprocess where
    ``shutil.copy/copy2/copyfile`` of the tracked path is redirected to the grown
    copy. No production code and no other test is changed.
@@ -57,23 +58,22 @@ PARENT_TABLES = {
         "korea_official_source_records",
         "official_issuer='kr_dapa' AND public_scope='official_link_only'"),
 }
-# A visible family the canary cannot grow is a *gap*. Gaps caused by the state of
-# the tracked data are reported, never a failure: the Daily commits data
-# unattended, and a data-only change must never turn main red (the very failure
-# class this canary exists to prevent). In each such case load() shows either no
-# row of the family (nothing to protect yet) or only genuine released rows that
-# already exercise every reader:
-#   all_parents_released  every spare parent already has its Record (NSC today)
-#   no_parent_rows        a newly activated family has collected nothing yet
-#   parent_table_missing  its parent table has not been migrated in yet
-#   no_resolvable_parent  every spare parent is held or otherwise not resolvable
-#                         through source.parent_link (a changed version held)
-# Every other gap is a defect in code or in this canary (a new parent-bearing
-# family without PARENT_TABLES support, a canned summary the family's output
-# check rejects) and fails, naming the family and reason, so coverage cannot be
-# lost silently.
-DATA_GAP_CODES = frozenset({
-    "all_parents_released", "no_parent_rows", "parent_table_missing", "no_resolvable_parent"})
+# A visible family the canary cannot grow is a *gap*. Gaps are reported, never
+# a failure of the canary run itself: which families are growable depends on the
+# tracked data and the committed policy, and the Daily commits data unattended,
+# so a gap-based failure would let a data-only change (or a policy-only pause,
+# hold or activation) turn main red, the very failure class this canary exists
+# to prevent. In every gap load() shows either no row of the family yet or only
+# genuine released rows that already exercise every reader.
+#
+# Code defects that would *cause* gaps are caught independently of data and
+# policy, at code-PR time, by tests/test_corpus_growth_canary_helpers.py
+# (CannedRowsCoverEveryFamily): every policy family must have a source
+# definition, enumerable parent support whose table is created by a migration,
+# and a canned row its output check accepts under a forced-eligible policy.
+# The canary run fails only when a reader breaks on the grown copy, or when an
+# inserted row is not visible through load() (canary/load() disagreement).
+FAILING_GAP_CODES = frozenset({"not_visible_after_insert"})
 # Resolvable parents tried per family before reporting no_buildable_row.
 MAX_BUILD_ATTEMPTS = 5
 SUMMARY = (
@@ -149,14 +149,80 @@ def _parent_row(conn, family, src, identity):
     return dict(row) if row else None
 
 
+def build_record(family, identity, par, src, display):
+    """A validate_output-valid released row bound to ``display`` (the policy
+    load() compares against), or raise the last validation error."""
+    from processing import daily_intake as di
+    last = None
+    for version in (list(src.released_prompt_versions) + list(reversed(src.prompt_versions))):
+        rec = {
+            "source_family": family, "source_identity": identity,
+            "metadata_version_sha256": par["metadata_version_sha256"],
+            "content_sha256": par.get("content_sha256")
+            or hashlib.sha256(b"c" + family.encode()).hexdigest(),
+            "capture_sha256": par.get("capture_sha256")
+            or hashlib.sha256(b"k" + family.encode()).hexdigest(),
+            "source_git_commit": par.get("source_git_commit") or "0" * 40,
+            "source_run": "99999999999-1",
+            "summary": FAMILY_SUMMARY.get(family, SUMMARY),
+            "categories": list(di.profile_for_source(family).categories)[:2],
+            "model_flagged": False, "flag_reason": None,
+            "model_id": "claude-sonnet-4-6", "prompt_version": version,
+            "quality_sha256": hashlib.sha256(b"q" + family.encode()).hexdigest(),
+            "policy_sha256": di.policy_binding(display),
+        }
+        try:
+            di.validate_output(rec, family, display)
+            return rec
+        except Exception as exc:  # try the next accepted prompt version
+            last = exc
+    raise last if last else ValueError("no prompt versions")
+
+
+def code_gaps():
+    """Data- and policy-independent coverage defects, family -> reason.
+
+    For every family in the committed policy (whatever its switches), the canary
+    must be able to grow it the day data and policy allow: a source definition,
+    enumerable parent support whose table a migration creates, and a canned row
+    the family's output check accepts under a forced-eligible policy. Checked on
+    every code PR so a defect fails there, never on a later data-only commit."""
+    from core.daily_sources import source_for
+    from processing import daily_intake as di
+    migrations = "\n".join(
+        p.read_text(encoding="utf-8") for p in sorted((ROOT / "migrations").rglob("*.py")))
+    out = {}
+    for family, pol in sorted(di.load_policy()["sources"].items()):
+        src = source_for(family)
+        if src is None:
+            out[family] = "no source definition"
+            continue
+        if src.parent:
+            spec = PARENT_TABLES.get(family)
+            if spec is None:
+                out[family] = "source.parent is set but PARENT_TABLES has no entry"
+                continue
+            if not re.search(rf"\b{re.escape(spec[0])}\b", migrations):
+                out[family] = f"PARENT_TABLES table {spec[0]!r} is created by no migration"
+                continue
+        forced = {**pol, "public_machine_explanation": True,
+                  "private_model_processing": True, "unattended_release": True}
+        try:
+            build_record(family, "canary-static-1",
+                         {"metadata_version_sha256": hashlib.sha256(family.encode()).hexdigest()},
+                         src, forced)
+        except Exception as exc:
+            out[family] = f"canned row rejected by the output check: {exc!r}"
+    return out
+
+
 def grow(db):
     """Insert one valid released row per family that load() would show.
 
     Returns (inserted, skipped, gaps). ``skipped`` maps family -> reason for
     families legitimately not visible (not eligible, paused, held). ``gaps``
     maps family -> (code, reason) for families that ARE visible under the real
-    policy but could not be grown; the test fails on any gap outside
-    DATA_GAP_CODES so coverage cannot be lost silently.
+    policy but could not be grown (reported; only FAILING_GAP_CODES fail).
     """
     from core import daily_machine_records as dmr
     from core.daily_sources import source_for
@@ -215,30 +281,10 @@ def grow(db):
                     # Record on it either. It does not count as an attempt.
                     continue
                 tried += 1
-                for version in (list(src.released_prompt_versions) + list(reversed(src.prompt_versions))):
-                    rec = {
-                        "source_family": family, "source_identity": identity,
-                        "metadata_version_sha256": par["metadata_version_sha256"],
-                        "content_sha256": par.get("content_sha256")
-                        or hashlib.sha256(b"c" + family.encode()).hexdigest(),
-                        "capture_sha256": par.get("capture_sha256")
-                        or hashlib.sha256(b"k" + family.encode()).hexdigest(),
-                        "source_git_commit": par.get("source_git_commit") or "0" * 40,
-                        "source_run": "99999999999-1",
-                        "summary": FAMILY_SUMMARY.get(family, SUMMARY),
-                        "categories": list(di.profile_for_source(family).categories)[:2],
-                        "model_flagged": False, "flag_reason": None,
-                        "model_id": "claude-sonnet-4-6", "prompt_version": version,
-                        "quality_sha256": hashlib.sha256(b"q" + family.encode()).hexdigest(),
-                        # load() compares against the DISPLAY policy (SG: normalized).
-                        "policy_sha256": di.policy_binding(display),
-                    }
-                    try:
-                        di.validate_output(rec, family, display)
-                        rec_ok, chosen = rec, identity
-                        break
-                    except Exception as exc:
-                        last_err = repr(exc)
+                try:
+                    rec_ok, chosen = build_record(family, identity, par, src, display), identity
+                except Exception as exc:
+                    last_err = repr(exc)
                 if rec_ok:
                     break
             if rec_ok is None and not tried:
@@ -267,7 +313,7 @@ def grow(db):
 
 
 def unexpected_gaps(gaps):
-    return {f: v for f, v in gaps.items() if v[0] not in DATA_GAP_CODES}
+    return {f: v for f, v in gaps.items() if v[0] in FAILING_GAP_CODES}
 
 
 _BOOTSTRAP = r"""
@@ -303,14 +349,14 @@ class CorpusGrowthCanary(unittest.TestCase):
             grown = Path(tmp) / "grown.db"
             shutil.copyfile(TRACKED, grown)
             inserted, skipped, gaps = grow(grown)
-            if not inserted:
-                # Nothing to grow (every family stopped by policy, or only data
-                # gaps): load() shows no new real-policy row, so nothing to test.
-                self.skipTest(f"no family grown (skipped: {skipped}; gaps: {gaps})")
             bad = unexpected_gaps(gaps)
             self.assertFalse(
-                bad, "visible families the canary could not grow (add parent support or, with a "
-                "comment, DATA_GAP_CODES): " + "; ".join(f"{f}: {c} - {r}" for f, (c, r) in bad.items()))
+                bad, "inserted canary rows are not visible through load(): "
+                + "; ".join(f"{f}: {c} - {r}" for f, (c, r) in bad.items()))
+            if not inserted:
+                # Nothing growable in this data/policy state. Code defects that
+                # would cause this fail in CannedRowsCoverEveryFamily instead.
+                self.skipTest(f"no family grown (skipped: {skipped}; gaps: {gaps})")
             print(f"\ncanary grew {sorted(inserted)}; skipped {skipped}; allowed gaps {gaps}; targets {len(mods)}",
                   file=sys.stderr)
             def run(mod):
