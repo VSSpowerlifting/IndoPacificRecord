@@ -607,3 +607,21 @@ Collection and processing details are reported independently, including when
 a new handoff reuses an older collection attempt. Legacy handoffs still
 verify and strict enforcement stays off. Enable emission through the
 existing private bridge only after the public reader is on main.
+
+## Eight-desk operational completion — 24 November 2026
+
+Progress and evidence are in #673. Engineering fixes that were merged under the standing delegation:
+
+- **Corpus growth reaching tests.** The tracked DB now carries real released Records. Tests that apply synthetic source policies would fail when they loaded those Records under a different policy (`daily_output_schema_or_policy_invalid`). #1098 (Japan) and #1099 (USCC, Singapore) isolate the synthetic families before seeding.
+- **VPCP liveness.** VPCP records are versioned official documents rather than articles. #1100 lets `scripts/check_source_liveness.py` date a source's latest observation from `official_document_versions`; the article totals do not change. The MPS silence is genuine and stays reported.
+- **USCC queue order.** #1101 sets `first_attempts_first`, so a never-attempted release runs before a release that has already been attempted and held.
+
+Boundaries that still hold:
+
+- No attempt history is reset. A new prompt version, such as Singapore `sg-analysis-v6`, applies only to attempts still available.
+- No Daily is dispatched for G6 evidence.
+- A failed Kemhan or JCG collection is still never signed (see the signer note above).
+- The cutover gate exits non-zero while a public Daily is in flight.
+- Qualification reuse has not certified a Daily since 11 November, for two reasons: the environment digest differs (`--with-deps`), and the MUTABLE coverage of Daily-generated paths is incomplete. Daily therefore runs the full-suite fallback.
+
+These remain founder or follow-up decisions; none is changed here.
