@@ -15,7 +15,7 @@ import json
 
 from analysis.philippines_prompts import CATEGORIES, evidence_passages  # noqa: F401  (shared taxonomy and exact-excerpt IDs)
 
-VERSION = "sg-relevance-v2+sg-analysis-v5"
+VERSION = "sg-relevance-v2+sg-analysis-v6"
 RELEVANCE_VERSION, ANALYSIS_VERSION = VERSION.split("+")
 
 
@@ -84,7 +84,10 @@ def analysis_messages(title, body):
         "No direct quotations, copied publisher sentences or sequences of 12 "
         "source words. Independently rephrase facts, do not merely truncate "
         "publisher sentences. Keep numerical quantities and date ranges "
-        "exactly as written. Avoid unsupported negative claims. "
+        "exactly as written. Apart from the MINDEF attribution, spell every "
+        "name, office and month exactly as it appears in the cited passage: "
+        "if the passage abbreviates a month (for example Oct), keep the "
+        "abbreviation; never expand it. Avoid unsupported negative claims. "
         "This lane publishes factual explanations only. Set flag to false "
         "and set flag_reason and flag_evidence_id to null. "
         "Use fewer words when the evidence is thin; do not pad to a target. "
