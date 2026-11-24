@@ -723,6 +723,13 @@ class RenderedDelivery(unittest.TestCase):
         cls.db = cls.tmp / "scratch.db"
         shutil.copy(tracked, cls.db)
         migrate(cls.db)
+        # Isolate the synthetic chain from genuine released USCC Records
+        # that accumulate in the tracked corpus. Those are bound to the real
+        # policy, not this synthetic one, and are covered by the
+        # tracked-database desk tests instead. Scratch copy only.
+        with sqlite3.connect(str(cls.db)) as conn:
+            conn.execute("DELETE FROM daily_machine_records WHERE source_family=?", (FAMILY,))
+        conn.close()
         with sqlite3.connect(str(cls.db)) as conn:
             list_metadata(conn, ident(SLUG_A), DAY_A)
         conn.close()
@@ -804,6 +811,13 @@ class AuthenticReplay(unittest.TestCase):
         cls.db = cls.tmp / "scratch.db"
         shutil.copy(tracked, cls.db)
         migrate(cls.db)
+        # Isolate the synthetic chain from genuine released USCC Records
+        # that accumulate in the tracked corpus. Those are bound to the real
+        # policy, not this synthetic one, and are covered by the
+        # tracked-database desk tests instead. Scratch copy only.
+        with sqlite3.connect(str(cls.db)) as conn:
+            conn.execute("DELETE FROM daily_machine_records WHERE source_family=?", (FAMILY,))
+        conn.close()
         repo = init_custody(cls.tmp)
         releases, cls.raw = [], {}
         for r in ledger["releases"]:

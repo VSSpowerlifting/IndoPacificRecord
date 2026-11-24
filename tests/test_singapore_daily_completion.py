@@ -978,6 +978,12 @@ class SingaporeRenderedDelivery(unittest.TestCase):
         key = "synthetic-singapore-key-" * 2
         conn = sqlite3.connect(str(db))
         conn.execute("PRAGMA foreign_keys=ON")
+        with conn:
+            # Isolate the synthetic chain from genuine released MINDEF Records
+            # that accumulate in the tracked corpus. Those are bound to the
+            # real policy, not this synthetic one, and are covered by the
+            # tracked-database desk tests instead. Scratch copy only.
+            conn.execute("DELETE FROM daily_machine_records WHERE source_family=?", (FAMILY,))
         records = links.with_title_hash(d.verified_source(repo, _head, FAMILY))
         with conn:
             links.admit_links(conn, records, now="2026-11-09T00:00:00Z")
