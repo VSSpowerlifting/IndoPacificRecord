@@ -613,6 +613,7 @@ existing private bridge only after the public reader is on main.
 Progress and evidence are in #673. Engineering fixes that were merged under the standing delegation:
 
 - **Corpus growth reaching tests.** The tracked DB now carries real released Records. Tests that apply synthetic source policies would fail when they loaded those Records under a different policy (`daily_output_schema_or_policy_invalid`). #1098 (Japan) and #1099 (USCC, Singapore) isolate the synthetic families before seeding.
+- **Catching the next instance at PR time.** #1105 dates the official-link-index test's synthetic Korea rows from the newest admitted row, after a data-only Korea admission turned main red. #1104 adds `tests/test_corpus_growth_canary.py`. It grows a scratch copy with one released Record per family that `load()` would show, reruns the tracked-DB reader modules against it, and fails only on tests that pass on an ungrown copy. Data and policy gaps never fail. It runs on `pull_request` and `push` only, because Daily re-tests a tree that already passed. It costs the PR suite about 7–9 minutes on the 4-core runner.
 - **VPCP liveness.** VPCP records are versioned official documents rather than articles. #1100 lets `scripts/check_source_liveness.py` date a source's latest observation from `official_document_versions`; the article totals do not change. The MPS silence is genuine and stays reported.
 - **USCC queue order.** #1101 sets `first_attempts_first`, so a never-attempted release runs before a release that has already been attempted and held.
 
