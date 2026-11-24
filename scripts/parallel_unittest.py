@@ -47,6 +47,7 @@ import unittest
 
 
 MEASURED_SECONDS = {
+    "tests.test_corpus_growth_canary": 330,
     "tests.test_preview_prototype": 291,
     "tests.test_homepage_intro": 144,
     "tests.test_pla_watch_veil_contrast": 141,
