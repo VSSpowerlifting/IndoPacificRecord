@@ -2,6 +2,7 @@
 which gaps fail. Kept apart from the slow canary run (see its HELPER_TESTS)."""
 from __future__ import annotations
 
+import os
 import shutil
 import sqlite3
 import tempfile
@@ -220,6 +221,39 @@ class TargetSelection(unittest.TestCase):
             self.assertIn(f"tests.{m}", mods)
 
 
+class FailureAttribution(unittest.TestCase):
+    """Baseline comparison must keep each subTest distinct (3.9 and 3.11+)."""
+
+    def _ids(self, text):
+        import types
+        from tests.test_corpus_growth_canary import _failed_ids
+        return _failed_ids(types.SimpleNamespace(stderr=text))
+
+    def test_subtests_are_attributed_separately(self):
+        for cls in ("mod.C", "mod.C.test_f"):
+            base = self._ids(f"FAIL: test_f ({cls}) (family='a')\n")
+            grown = self._ids(f"FAIL: test_f ({cls}) (family='a')\nFAIL: test_f ({cls}) (family='b')\n")
+            self.assertEqual(grown - base, {f"test_f ({cls}) (family='b')"}, cls)
+
+    def test_plain_failures_and_class_errors_parse(self):
+        self.assertEqual(self._ids("ERROR: setUpClass (tests.m.C)\nFAIL: test_x (tests.m.C)  \n"),
+                         {"setUpClass (tests.m.C)", "test_x (tests.m.C)"})
+
+
+class DailySkip(unittest.TestCase):
+    def test_canary_skips_outside_pull_request_and_push(self):
+        from unittest import mock
+        from tests import test_corpus_growth_canary as canary
+        if not canary.TRACKED.exists():
+            self.skipTest("tracked database absent")
+        for event in ("schedule", "workflow_dispatch"):
+            with mock.patch.dict(os.environ, {"GITHUB_ACTIONS": "true", "GITHUB_EVENT_NAME": event}):
+                result = unittest.TestResult()
+                canary.CorpusGrowthCanary("test_tracked_db_readers_survive_first_released_records").run(result)
+                self.assertEqual(len(result.skipped), 1, event)
+                self.assertFalse(result.failures or result.errors, event)
+
+
 class CannedRowsCoverEveryFamily(unittest.TestCase):
     """Code-time coverage: independent of tracked data and policy switches."""
 
@@ -247,6 +281,26 @@ class CannedRowsCoverEveryFamily(unittest.TestCase):
         from tests import test_corpus_growth_canary as canary
         with mock.patch.object(canary, "parent_table", lambda src: "uscc_press_source_record_typo"):
             self.assertIn("created by no migration", code_gaps()["us_uscc_press_en"])
+
+    def test_parent_table_without_source_identity_is_reported(self):
+        from unittest import mock
+        from tests import test_corpus_growth_canary as canary
+        with mock.patch.object(canary, "parent_table", lambda src: "articles"):
+            self.assertIn("no source_identity column", code_gaps()["us_uscc_press_en"])
+
+    def test_parent_table_without_a_posted_date_is_still_enumerable(self):
+        """A family whose parent table lacks publisher_posted_date must not
+        raise once a policy-only change activates it."""
+        import sqlite3
+        from unittest import mock
+        from core import daily_sources
+        from tests import test_corpus_growth_canary as canary
+        conn = sqlite3.connect(":memory:")
+        conn.execute("CREATE TABLE p (source_identity TEXT)")
+        conn.executemany("INSERT INTO p VALUES (?)", [("a",), ("b",)])
+        src = daily_sources.source_for("us_uscc_press_en")
+        with mock.patch.object(canary, "parent_table", lambda s: "p"):
+            self.assertEqual(canary._parent_identities(conn, "us_uscc_press_en", src), ["b", "a"])
 
     def test_rejected_canned_row_is_reported_even_when_family_is_not_growable(self):
         # NSC is fully released (not growable in data) and DAPA is policy-off;

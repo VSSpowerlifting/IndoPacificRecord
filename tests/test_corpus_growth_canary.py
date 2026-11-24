@@ -49,8 +49,9 @@ SELF = Path(__file__).name
 # grow()'s own unit tests live apart so this module is one slow unit that
 # scripts.parallel_unittest schedules first (MEASURED_SECONDS).
 HELPER_TESTS = "test_corpus_growth_canary_helpers.py"
-# A module is a target when it copies the tracked database (shutil.copy* or
-# scripts.reconcile_db.read_only of it), or names it and touches the
+# A module is a target when a shutil.copy* or scripts.reconcile_db.read_only
+# call's argument names the tracked database (a copy through an alias such as
+# `prod = ROOT / "pla_watch.db"` is not matched), or it names it and touches the
 # daily-record machinery (policy, loader, sources) however it opens it. A run
 # over every module naming the tracked database (144, ~24 min) found no other
 # growth-sensitive reader on 24 Nov 2026; this set keeps the run near 3 min.
@@ -160,6 +161,18 @@ def _sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def _tracked_columns(table):
+    """Columns of `table` in the tracked database (empty if absent), read
+    immutably so no sidecar or write can occur."""
+    if not TRACKED.exists():
+        return set()
+    conn = sqlite3.connect(f"file:{TRACKED}?mode=ro&immutable=1", uri=True)
+    try:
+        return {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+    finally:
+        conn.close()
+
+
 def _parent_identities(conn, family, src):
     """Candidate parent identities, newest first, or None if not enumerable."""
     if not src.parent:
@@ -169,8 +182,9 @@ def _parent_identities(conn, family, src):
     table = parent_table(src)
     if table is None:
         return None
-    return [r[0] for r in conn.execute(
-        f"SELECT source_identity FROM {table} ORDER BY publisher_posted_date DESC")]
+    cols = {r[1] for r in conn.execute(f"PRAGMA table_info({table})")}
+    order = "publisher_posted_date DESC" if "publisher_posted_date" in cols else "rowid DESC"
+    return [r[0] for r in conn.execute(f"SELECT source_identity FROM {table} ORDER BY {order}")]
 
 
 def _parent_row(conn, family, src, identity):
@@ -239,6 +253,10 @@ def code_gaps():
                 continue
             if not re.search(rf"\b{re.escape(table)}\b", migrations):
                 out[family] = f"parent table {table!r} is created by no migration"
+                continue
+            cols = _tracked_columns(table)
+            if cols and "source_identity" not in cols:
+                out[family] = f"parent table {table!r} has no source_identity column"
                 continue
         forced = {**pol, "excluded_source_identities": [], "public_machine_explanation": True,
                   "private_model_processing": True, "unattended_release": True}
@@ -393,13 +411,21 @@ sys.exit(0 if res.wasSuccessful() else 1)
 
 
 def _failed_ids(proc):
-    return set(re.findall(r"^(?:FAIL|ERROR): (\S+ \([^)]*\))", proc.stderr, re.M))
+    # The whole line, so each subTest (its parameters follow the id) is
+    # attributed separately; works for both 3.9 and 3.11+ id formats.
+    return set(re.findall(r"^(?:FAIL|ERROR): (.+?)\s*$", proc.stderr, re.M))
 
 
 class CorpusGrowthCanary(unittest.TestCase):
     def test_tracked_db_readers_survive_first_released_records(self):
         if not TRACKED.exists():
             self.skipTest("tracked database absent")
+        if (os.environ.get("GITHUB_ACTIONS") == "true"
+                and os.environ.get("GITHUB_EVENT_NAME") not in ("pull_request", "push")):
+            # A PR/main-push check of code. Daily (schedule/dispatch) re-tests
+            # a tree that already passed here; the canary would only spend its
+            # ~5 CPU-minutes of a late scheduled slot without new coverage.
+            self.skipTest("corpus-growth canary runs on pull_request and push only")
         before = _sha(TRACKED)
         mods = target_modules()
         self.assertTrue(mods, "no tracked-database test modules found; selection regex is stale")
