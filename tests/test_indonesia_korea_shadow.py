@@ -1,6 +1,8 @@
 """Offline tests replay exact official captures; never connect to a source."""
+import copy
 import hashlib
 import io
+import re
 import requests
 import json
 import socket
@@ -11,7 +13,7 @@ import zipfile
 from datetime import date
 from pathlib import Path
 from unittest import mock
-from urllib.parse import urlsplit
+from urllib.parse import parse_qs, urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -22,8 +24,10 @@ from core.manifests import load_all_desks, load_manifest
 from scraper.sources import desk_shadow_http as http
 from scraper.sources.id_kemhan import KemhanAdapter, LISTING as ID_LISTING, article_url as id_url
 from scraper.sources.kr_policy_briefing import KoreaPolicyAdapter, LISTING as KR_LISTING, article_url as kr_url, hwpx_text
+from scraper.sources.kr_policy_briefing import MULTIPLE_HWPX_ATTACHMENTS, MultipleHwpxAttachments
 from scripts import shadow_collect_desk as runner
 from scripts import review_desk_shadow as reviewer
+from scripts import watch_korea_shadow_slots as watch
 
 ROOT = Path(__file__).resolve().parents[1]
 FIX = ROOT / "tests/fixtures/indonesia_korea"
@@ -118,6 +122,40 @@ def oversized(url, ctype="application/x-download", status=200):
     """One byte past this client's own cap, with an honest declared length."""
     size = http.MAX_BYTES + 1
     return Response(url, b"x" * size, status, ctype, {"Content-Length": str(size)})
+
+
+def two_hwpx(page, file_id="198599999", title=None, labels=True):
+    """A real release page that publishes a second, differently named HWPX.
+
+    Mirrors the observed 156790542 pattern (``..._게시.hwpx`` beside
+    ``..._제공.hwpx``) on public fixture markup; no private capture is used.
+    ``labels=False`` instead renames every attachment away from ``.hwpx``.
+    """
+    soup = BeautifulSoup(page, "html.parser")
+    anchor = soup.select('a[href*="/common/download.do"]')[0]
+    block = anchor.find_parent("p")
+    original = parse_qs(urlsplit(anchor["href"]).query)["fileId"][0]
+    if not labels:
+        for text in soup.find_all(string=lambda s: s.strip().endswith(".hwpx")):
+            text.replace_with(text.replace(".hwpx", ".pdf"))
+        return str(soup).encode()
+    second = copy.copy(block)
+    for link in second.select("a[href]"):
+        link["href"] = link["href"].replace("fileId=" + original, "fileId=" + file_id)
+    for text in second.find_all(string=lambda s: s.strip().endswith(".hwpx")):
+        text.replace_with(re.sub(r"(_게시)?\.hwpx(\s*)\Z", r"_제공.hwpx\2", text))
+    block.insert_after(second)
+    if title is not None:
+        soup.select_one(".view_title h1").string = title
+    return str(soup).encode()
+
+
+def hwpx_links(page):
+    """Each distinct HWPX download link the page publishes, in sorted order."""
+    soup = BeautifulSoup(page, "html.parser")
+    return sorted({"https://www.korea.kr" + a["href"]
+                   for a in soup.select('a[href*="/common/download.do"]')
+                   if a.get_text(strip=True).lower().endswith(".hwpx")})
 
 
 class Case(unittest.TestCase):
@@ -283,6 +321,32 @@ class Korea(Case):
         row = next(r for r in ROWS if r.get("capture") == "korea-article-1.bin")
         with self.assertRaisesRegex(ValueError, "not retrieved"):
             a.parse_article(fixture("korea-article-1.bin").decode(), kr_url(row["url"]))
+
+    def test_two_published_hwpx_attachments_are_reported_never_chosen(self):
+        a, _ = adapter("korea")
+        row = next(r for r in ROWS if r.get("capture") == "korea-article-2.bin")
+        url, page = kr_url(row["url"]), fixture("korea-article-2.bin")
+        single = a.metadata(page.decode(), url)
+        # One HWPX: unchanged result, the one published document link.
+        self.assertEqual([single[2]], hwpx_links(page))
+        doubled = two_hwpx(page)
+        with self.assertRaises(MultipleHwpxAttachments) as caught:
+            a.metadata(doubled.decode(), url)
+        held = caught.exception
+        self.assertIsInstance(held, ValueError)
+        self.assertEqual((held.title, held.published), single[:2])
+        self.assertEqual([link for link, _ in held.attachments], hwpx_links(doubled))
+        self.assertEqual(len(held.attachments), 2)
+        self.assertTrue(any(label.endswith("_게시.hwpx") for _, label in held.attachments))
+        self.assertTrue(any(label.endswith("_제공.hwpx") for _, label in held.attachments))
+        self.assertIn("no variant is selected", str(held))
+        # Every link must still meet the document contract: one bad link is an
+        # ordinary refusal, never an owner-review hold.
+        with self.assertRaisesRegex(ValueError, "unexpected document link") as bad:
+            a.metadata(two_hwpx(page, file_id="x1").decode(), url)
+        self.assertNotIsInstance(bad.exception, MultipleHwpxAttachments)
+        with self.assertRaisesRegex(ValueError, "exactly one published HWPX attachment required"):
+            a.metadata(two_hwpx(page, labels=False).decode(), url)
 
     def test_real_empty_search_is_healthy_without_a_pagination_block(self):
         a, _ = adapter("korea")
@@ -910,6 +974,191 @@ class Runner(Case):
         self.assertEqual((entry["attachment_holds"], entry["health"]), (0, "fail"))
         self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
         self.assertFalse((self.state / "shadow.db").exists())
+
+    # --- Multiple published HWPX attachments (observed: newsId=156790542) ---
+
+    def test_mnd_release_with_two_hwpx_attachments_is_held_and_the_rest_is_stored(self):
+        (kept, kept_document, _), (held, held_document, held_page) = korea_pair()
+        page = two_hwpx(held_page)
+        links = hwpx_links(page)
+        self.assertIn(held_document, links)
+        entry, session = self.korea("multi-1", {held: Response(held, page)})
+        self.assertEqual((entry["result"], entry["health"]), (st.OK, "ok"))
+        self.assertNotEqual(entry["result"], st.EXTRACTION_FAILURE)
+        self.assertNotIn("error_detail", entry)
+        self.assertEqual([entry[k] for k in ("selected", "retrieved", "extracted", "inserted",
+                                             "duplicates", "attachment_holds", "stored_total")],
+                         [2, 1, 1, 1, 0, 1, 1])
+        self.assertEqual(entry["failures"], [])
+        self.assertEqual([entry[k] for k in ("fetch_failures", "extraction_failures",
+                                             "access_failures")], [0, 0, 0])
+        item, = entry["attachment_hold_items"]
+        self.assertRegex(item.pop("published_date"), r"\A2026-10-0[2-6]\Z")
+        labels = item.pop("attachment_labels")
+        self.assertEqual(len(labels), 2)
+        self.assertTrue(labels[0].endswith(".hwpx") and labels[1].endswith(".hwpx"))
+        self.assertEqual(item, {
+            "url": held, "component": "hwpx_attachment",
+            "status": st.EXTRACTION_FAILURE, "hold_reason": MULTIPLE_HWPX_ATTACHMENTS,
+            "detail": "2 published HWPX attachments; no variant is selected "
+                      "automatically (owner review required)",
+            "source_identity": "korea-policy:" + parse_qs(urlsplit(held).query)["newsId"][0],
+            "article_capture_sha256": hashlib.sha256(page).hexdigest(),
+            "attachment_urls": links,
+            "attachments_requested": False, "variant_selected": None})
+        # Neither variant was requested or stored; the kept release was.
+        called = [url for _, url, _ in session.calls]
+        self.assertEqual(called.count(kept_document), 1)
+        for link in links:
+            self.assertNotIn(link, called)
+        self.assertEqual(self.stored_urls(), [kept])
+        self.assertTrue((self.state / "clock.json").exists())
+        # The persisted receipt carries the hold, and the slot watcher reads it.
+        ledger, = (self.state / "ledger").glob("*.json")
+        receipt = json.loads(ledger.read_text())
+        self.assertEqual(receipt["attachment_holds"], 1)
+        self.assertEqual(receipt["attachment_hold_items"][0]["hold_reason"],
+                         MULTIPLE_HWPX_ATTACHMENTS)
+        self.assertEqual(watch.attachment_holds(receipt), (1, {held}))
+        report = reviewer.review(self.state, "korea", Path(self.tmp.name) / "packet", TARGET)
+        self.assertTrue(any(f.endswith("attempt: multi-1") for f in report["findings"]))
+
+    def test_mnd_size_hold_and_multi_hwpx_hold_together_store_nothing(self):
+        (_, first_document, _), (held, _, held_page) = korea_pair()
+        entry, _ = self.korea("mixed-holds", {first_document: oversized(first_document),
+                                              held: Response(held, two_hwpx(held_page))})
+        self.assertEqual((entry["result"], entry["health"]), (st.OVERSIZED_RESPONSE, "fail"))
+        self.assertEqual(entry["error_detail"], "only held releases remained; no corpus write")
+        self.assertEqual(sorted(i.get("hold_reason", i["status"]) for i in entry["attachment_hold_items"]),
+                         [MULTIPLE_HWPX_ATTACHMENTS, st.OVERSIZED_RESPONSE])
+        self.assertEqual((entry["attachment_holds"], entry["failures"]), (2, []))
+        self.assertFalse((self.state / "shadow.db").exists())
+        self.assertFalse((self.state / "clock.json").exists())
+
+    def test_mnd_batch_of_only_multi_hwpx_releases_fails_before_any_custody(self):
+        (first, _, first_page), (second, _, second_page) = korea_pair()
+        entry, _ = self.korea("multi-only", {first: Response(first, two_hwpx(first_page)),
+                                             second: Response(second, two_hwpx(second_page))})
+        self.assertEqual((entry["result"], entry["health"]), (st.EXTRACTION_FAILURE, "fail"))
+        self.assertEqual(entry["error_detail"], "only held releases remained; no corpus write")
+        self.assertEqual([entry[k] for k in ("selected", "retrieved", "inserted",
+                                             "attachment_holds")], [2, 0, 0, 2])
+        self.assertEqual(entry["failures"], [])
+        self.assertFalse((self.state / "shadow.db").exists())
+        self.assertFalse((self.state / "clock.json").exists())
+
+    def test_mnd_multi_hwpx_hold_never_rescues_a_genuine_extraction_failure(self):
+        (_, kept_document, _), (held, _, held_page) = korea_pair()
+        entry, _ = self.korea("multi-mixed", {
+            held: Response(held, two_hwpx(held_page)),
+            kept_document: Response(kept_document, b"not a zip archive",
+                                    ctype="application/x-download")})
+        self.assertEqual((entry["result"], entry["health"]), (st.EXTRACTION_FAILURE, "fail"))
+        self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+        self.assertEqual((entry["extraction_failures"], len(entry["failures"])), (1, 1))
+        self.assertEqual(entry["attachment_holds"], 1)
+        self.assertEqual(entry["inserted"], 0)
+        self.assertFalse((self.state / "shadow.db").exists())
+        self.assertFalse((self.state / "clock.json").exists())
+
+    def test_mnd_other_attachment_defects_still_fail_the_whole_batch(self):
+        (_, _, _), (held, _, held_page) = korea_pair()
+        for label, page, detail in (
+            ("second HWPX link breaks the document contract",
+             two_hwpx(held_page, file_id="x1"), "unexpected document link"),
+            ("two HWPX links on a page that disagrees with the listing",
+             two_hwpx(held_page, title="다른 제목"), "release metadata disagrees with listing"),
+            ("no HWPX attachment at all", two_hwpx(held_page, labels=False),
+             "exactly one published HWPX attachment required; other formats unmeasured"),
+        ):
+            with self.subTest(label), tempfile.TemporaryDirectory() as folder:
+                self.state = Path(folder) / "state"
+                entry, _ = self.korea("not-held", {held: Response(held, page)})
+                self.assertEqual((entry["result"], entry["health"]),
+                                 (st.EXTRACTION_FAILURE, "fail"))
+                self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                self.assertEqual((entry["attachment_holds"], entry["attachment_hold_items"]),
+                                 (0, []))
+                self.assertEqual(entry["failures"], [{"url": held, "stage": "fetch",
+                                                      "status": st.EXTRACTION_FAILURE,
+                                                      "detail": detail}])
+                self.assertFalse((self.state / "shadow.db").exists())
+
+    def test_mnd_multi_hwpx_release_already_in_custody_is_never_held(self):
+        (_, _, _), (held, _, held_page) = korea_pair()
+        first, _ = self.korea("clean-1")
+        self.assertEqual((first["result"], first["inserted"]), (st.OK, 2))
+        before = (self.state / "shadow.db").read_bytes()
+        entry, _ = self.korea("multi-2", {held: Response(held, two_hwpx(held_page))})
+        self.assertEqual((entry["result"], entry["health"]), (st.EXTRACTION_FAILURE, "fail"))
+        self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+        self.assertEqual((entry["attachment_holds"], entry["extraction_failures"]), (0, 1))
+        self.assertEqual((self.state / "shadow.db").read_bytes(), before)
+
+    def test_mnd_multi_hwpx_hold_exit_code_matches_recorded_health(self):
+        (_, _, _), (held, _, held_page) = korea_pair()
+        self.assertEqual(self.run_main_korea("multi-1", {held: Response(held, two_hwpx(held_page))}), 0)
+        ledger, = (self.state / "ledger").glob("*.json")
+        self.assertEqual(json.loads(ledger.read_text())["health"], "ok")
+
+    def test_mnd_multi_hwpx_hold_needs_the_adapters_own_matching_record(self):
+        url = "https://www.korea.kr/briefing/pressReleaseView.do?newsId=1"
+        detail = ("2 published HWPX attachments; no variant is selected "
+                  "automatically (owner review required)")
+        links = ["https://www.korea.kr/common/download.do?fileId=1&tblKey=GMN",
+                 "https://www.korea.kr/common/download.do?fileId=2&tblKey=GMN"]
+        ordinary = {"reason": MULTIPLE_HWPX_ATTACHMENTS, "detail": detail,
+                    "attachment_urls": links, "attachment_labels": ["a_게시.hwpx", "a_제공.hwpx"]}
+
+        def stub(records, page_sha256="0" * 64, status=st.EXTRACTION_FAILURE):
+            class Stub:
+                robots_status, listing_report, evidence = "read", {}, []
+                attachment_ambiguities = records
+
+                def discover(self, window):
+                    return DiscoveryResult("stub", st.OK, [CandidateReference(
+                        url, "stub", None, window.target_date.isoformat())])
+
+                def fetch(self, reference):
+                    return CaptureResult(reference, status, reference.url,
+                                         payload_sha256=page_sha256, error_detail=detail)
+            return Stub()
+
+        cases = (("error text alone, no adapter record", {}, {}),
+                 ("record for another release", {url + "0": ordinary}, {}),
+                 ("record detail differs", {url: dict(ordinary, detail="other")}, {}),
+                 ("unknown hold reason", {url: dict(ordinary, reason="other")}, {}),
+                 ("only one attachment", {url: dict(ordinary, attachment_urls=links[:1],
+                                                    attachment_labels=["a.hwpx"])}, {}),
+                 ("duplicate attachment links", {url: dict(ordinary, attachment_urls=links[:1] * 2)}, {}),
+                 ("labels do not match links", {url: dict(ordinary, attachment_labels=["a.hwpx"])}, {}),
+                 ("release page was never captured", {url: ordinary}, {"page_sha256": None}),
+                 ("not an extraction failure", {url: ordinary}, {"status": st.FETCH_FAILURE}))
+        for name, records, options in cases:
+            with self.subTest(name), tempfile.TemporaryDirectory() as folder:
+                state = Path(folder) / "state"
+                entry = runner.run("korea", state, TARGET, 0, 4, adapter=stub(records, **options))
+                self.assertEqual(entry["health"], "fail")
+                self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                self.assertEqual((entry["attachment_holds"], entry["attachment_hold_items"]),
+                                 (0, []))
+                self.assertEqual(len(entry["failures"]), 1)
+                self.assertFalse((state / "shadow.db").exists())
+        # The same record is held on the MND desk only, by exact desk name.
+        for desk, extra in (("indonesia", {}), ("japan_jcg", {}),
+                            ("korea_dapa", {"dapa_original_access_authorized": True})):
+            with self.subTest(desk), tempfile.TemporaryDirectory() as folder:
+                state = Path(folder) / "state"
+                entry = runner.run(desk, state, TARGET, 0, 4, adapter=stub({url: ordinary}), **extra)
+                self.assertEqual((entry["result"], entry["health"]), (st.EXTRACTION_FAILURE, "fail"))
+                self.assertEqual(entry["error_detail"], "incomplete batch; no corpus write")
+                self.assertNotIn("attachment_holds", entry)
+                self.assertFalse((state / "shadow.db").exists())
+        entry = runner.run("korea", self.state, TARGET, 0, 4, adapter=stub({url: ordinary}))
+        self.assertEqual((entry["attachment_holds"], entry["failures"]), (1, []))
+        self.assertEqual(entry["attachment_hold_items"][0]["source_identity"], "korea-policy:1")
+        self.assertEqual(entry["error_detail"], "only held releases remained; no corpus write")
+        self.assertEqual(runner.ATTACHMENT_HOLD_REASONS, frozenset((MULTIPLE_HWPX_ATTACHMENTS,)))
 
     def test_ambiguous_rerun_is_refused_before_state_creation(self):
         from contextlib import redirect_stderr

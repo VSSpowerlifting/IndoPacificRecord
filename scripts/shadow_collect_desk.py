@@ -23,7 +23,7 @@ from core.manifests import load_manifest
 from core.shadow_schedule import resolve_target_date, ScheduleError, SOURCE_EXPLICIT, SOURCE_SCHEDULE
 from scraper.sources.desk_shadow_http import DOCUMENT_TYPES, USER_AGENT
 from scraper.sources.id_kemhan import KemhanAdapter
-from scraper.sources.kr_policy_briefing import KoreaPolicyAdapter
+from scraper.sources.kr_policy_briefing import KoreaPolicyAdapter, MULTIPLE_HWPX_ATTACHMENTS
 from scraper.sources.kr_dapa_policy_briefing import KoreaDapaPolicyAdapter
 from scraper.sources.jp_jcg_en import JCGEnglishAdapter
 
@@ -34,12 +34,15 @@ JCG_OUTAGE_STATUSES = frozenset((st.FETCH_FAILURE, st.TIMEOUT, st.AUTH_FAILURE,
 
 # Korea MND only, matched by exact desk name. korea_dapa shares the adapter
 # class but has zero lookback and a completeness-gated bridge, so it stays
-# all-or-nothing, as do Indonesia and JCG. One refusal class only: this
-# client's own byte cap refusing a release's single HWPX attachment after the
-# release page was captured and agreed with the listing. Every other failure
-# still fails the whole batch.
+# all-or-nothing, as do Indonesia and JCG. Two hold classes only, each after
+# the release page was captured and agreed with the listing: (1) this client's
+# own byte cap refusing the release's single HWPX attachment; (2) the release
+# publishing more than one valid HWPX attachment, recorded by the adapter
+# itself. Which variant is the body is an owner decision, so nothing is
+# selected or downloaded. Every other failure still fails the whole batch.
 ATTACHMENT_HOLD_DESKS = frozenset(("korea",))
 ATTACHMENT_HOLD_STATUSES = frozenset((st.OVERSIZED_RESPONSE,))
+ATTACHMENT_HOLD_REASONS = frozenset((MULTIPLE_HWPX_ATTACHMENTS,))
 
 DESKS = {
     "indonesia": ("id_kemhan", KemhanAdapter, "shadow/indonesia-kemhan"),
@@ -128,7 +131,11 @@ def attachment_hold(desk, adapter, db_path, ref, capture):
     attempt evidence, like any other attempt's. A release already in custody is never held: failing to
     re-verify a stored record stays a batch failure, as before.
     """
-    if desk not in ATTACHMENT_HOLD_DESKS or capture.status not in ATTACHMENT_HOLD_STATUSES:
+    if desk not in ATTACHMENT_HOLD_DESKS:
+        return None
+    if capture.status == st.EXTRACTION_FAILURE:
+        return ambiguity_hold(adapter, db_path, ref, capture)
+    if capture.status not in ATTACHMENT_HOLD_STATUSES:
         return None
     refusal = getattr(adapter, "attachment_refusals", {}).get(ref.url)
     if (not refusal or refusal.get("status") != capture.status
@@ -148,6 +155,35 @@ def attachment_hold(desk, adapter, db_path, ref, capture):
             "refused_http_status": refusal.get("http_status"),
             "refused_content_type": refusal.get("content_type"),
             "refused_declared_content_length": refusal.get("declared_content_length")}
+
+
+def ambiguity_hold(adapter, db_path, ref, capture):
+    """Hold a release that published several HWPX attachments, or return None.
+
+    Only the adapter's own record for exactly this release counts; the error
+    text alone never does. No attachment was requested and no variant chosen:
+    the item lists every published link for owner review.
+    """
+    record = getattr(adapter, "attachment_ambiguities", {}).get(ref.url)
+    if (not record or record.get("reason") not in ATTACHMENT_HOLD_REASONS
+            or record.get("detail") != capture.error_detail
+            or len(record.get("attachment_urls") or ()) < 2
+            or len(record["attachment_urls"]) != len(set(record["attachment_urls"]))
+            or len(record.get("attachment_labels") or ()) != len(record["attachment_urls"])
+            or not capture.payload_sha256 or in_custody(db_path, ref.url)):
+        return None
+    news_ids = re.findall(r"[?&]newsId=([0-9]+)\Z", ref.url)
+    if len(news_ids) != 1:
+        return None
+    return {"url": ref.url, "component": "hwpx_attachment",
+            "status": capture.status, "hold_reason": record["reason"],
+            "detail": capture.error_detail,
+            "source_identity": "korea-policy:" + news_ids[0],
+            "published_date": ref.hint_published_date,
+            "article_capture_sha256": capture.payload_sha256,
+            "attachment_urls": list(record["attachment_urls"]),
+            "attachment_labels": list(record["attachment_labels"]),
+            "attachments_requested": False, "variant_selected": None}
 
 
 def finish(entry, state_dir):
@@ -305,13 +341,18 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
                         documents.extend(result.documents)
                 entry["extracted"] = len(documents)
                 held = entry.get("attachment_holds", 0)
+                # Size-only holds keep their original wording; any other hold
+                # reason is named neutrally (its reason is on each item).
+                held_kind = ("size-held" if all("hold_reason" not in item for item in
+                                                entry.get("attachment_hold_items", ()))
+                             else "held")
                 if entry["failures"]:
                     entry.update(result=entry["failures"][0]["status"],
                                  error_detail="incomplete batch; no corpus write")
                 elif held and not documents:
                     # Decided before the corpus is opened: nothing is created.
                     entry.update(result=entry["attachment_hold_items"][0]["status"],
-                                 error_detail="only size-held releases remained; no corpus write")
+                                 error_detail="only " + held_kind + " releases remained; no corpus write")
                 else:
                     conn = sqlite3.connect(str(db_path))
                     conn.executescript(SCHEMA)
@@ -340,7 +381,7 @@ def run(desk, state_dir, target, lookback=6, cap=40, run_id="local", commit="unk
                         # new to preserve the run stays failed, unwritten.
                         conn.rollback()
                         entry.update(result=entry["attachment_hold_items"][0]["status"],
-                                     error_detail="size-held releases and no new release; no corpus write")
+                                     error_detail=held_kind + " releases and no new release; no corpus write")
                     else:
                         conn.commit()
                         entry["stored_total"] = conn.execute("SELECT COUNT(*) FROM shadow_records").fetchone()[0]
