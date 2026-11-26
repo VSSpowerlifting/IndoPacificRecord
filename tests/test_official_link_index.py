@@ -248,14 +248,12 @@ class CoreIndexTests(unittest.TestCase):
         self.assertEqual(link_index.desk_listing("indonesia", ID_ROWS), ID_ROWS[:60])
 
     def test_philippines_groups_point_older_rows_to_their_month(self):
-        sys.path.insert(0, str(ROOT / "site" / "preview"))
-        import generate_preview as preview
         afp = [r for r in PH_ROWS if r["publisher_label"] == PH_AFP][:70]
         nsc_old = dict(PH_ROWS[-1], source_identity="nsc:3108",
                        publisher_posted_date="2026-07-08", publisher_label=PH_NSC)
         rows = afp + [nsc_old]
-        groups = preview.philippines_link_groups(
-            rows, link_index.desk_listing("philippines", rows))
+        groups = link_index.desk_groups(
+            "philippines", rows, link_index.desk_listing("philippines", rows))
         self.assertEqual([g["id"] for g in groups], ["ph-afp-links", "ph-nsc-links"])
         afp_group, nsc_group = groups
         self.assertEqual((afp_group["total"], len(afp_group["rows"])), (70, 60))
@@ -266,9 +264,31 @@ class CoreIndexTests(unittest.TestCase):
         self.assertEqual((nsc_group["total"], nsc_group["rows"]), (1, []))
         self.assertEqual(nsc_group["older"], {
             "label": "July 2026", "route": "philippines-official-links/2026-07.html"})
-        few = preview.philippines_link_groups(afp[:5], afp[:5])
+        few = link_index.desk_groups("philippines", afp[:5], afp[:5])
         self.assertEqual([g["older"] for g in few], [None, None])
         self.assertEqual(few[1]["total"], 0)
+
+    def test_desk_context_is_pure_and_groups_only_philippines(self):
+        self.assertIsNone(link_index.desk_context("philippines", []))
+        ph = link_index.desk_context("philippines", PH_ROWS)
+        self.assertEqual((ph["total"], ph["shown"], ph["hub"]),
+                         (len(PH_ROWS), link_index.DESK_LINK_LIMIT,
+                          "philippines-official-links.html"))
+        self.assertEqual([r for g in ph["groups"] for r in g["rows"]],
+                         link_index.desk_listing("philippines", PH_ROWS))
+        self.assertNotIn("groups", link_index.desk_context("indonesia", ID_ROWS))
+
+    def test_source_free_wiring_module_loads_without_generate_preview(self):
+        # The regional live-site wiring job installs only jinja2; config.py
+        # (imported by generate_preview) needs dotenv. The module must load
+        # and build desk contexts without it.
+        probe = ("import sys; sys.modules['dotenv'] = None; "
+                 "import tests.test_regional_live_site_wiring as w; "
+                 "assert 'generate_preview' not in sys.modules; "
+                 "assert 'config' not in sys.modules")
+        result = subprocess.run([sys.executable, "-c", probe], cwd=ROOT,
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_stale_month_and_empty_index_are_removed(self):
         sys.path.insert(0, str(ROOT / "site" / "preview"))

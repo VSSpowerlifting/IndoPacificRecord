@@ -14,6 +14,7 @@ from types import SimpleNamespace
 
 from jinja2 import Environment, FileSystemLoader
 
+from core import official_link_index
 from core.regional_official_link_release import SCHEMA_SQL
 from core.regional_official_link_render import (
     RegionalRenderHold, load_admitted_links,
@@ -21,8 +22,6 @@ from core.regional_official_link_render import (
 from tests.test_regional_official_link_render import insert
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / "site" / "preview"))
-import generate_preview as gp  # noqa: E402
 
 
 def desk(slug):
@@ -49,7 +48,14 @@ def template_env():
 
 def index_pages_for(slug, references):
     """{route: html} for the bounded desk's full official-link index, rendered
-    by the production renderer exactly as build() writes it."""
+    by the production renderer exactly as build() writes it.
+
+    generate_preview loads config (and dotenv), so it is imported here, not
+    at module level: the source-free wiring job installs only jinja2 and never
+    calls this helper.
+    """
+    sys.path.insert(0, str(ROOT / "site" / "preview"))
+    import generate_preview as gp
     return gp.render_official_link_index(
         template_env(), desk(slug), references, title="Indo-Pacific Record",
         maintainer=SimpleNamespace(name="Example Maintainer",
@@ -64,8 +70,8 @@ def html_for(slug, references):
         maintainer=SimpleNamespace(name="Example Maintainer",
                                    email="staff@example.invalid"),
         regional_official_links=references,
-        official_link_index=(gp.official_link_index_context(slug, references)
-                             if slug in gp.official_link_index_mod.INDEX_DESKS
+        official_link_index=(official_link_index.desk_context(slug, references)
+                             if slug in official_link_index.INDEX_DESKS
                              else None),
         public_source_links=[],
         published_research=[],

@@ -2685,47 +2685,6 @@ def strip_flow_indentation(page):
 INDEX_SUPPORT_STYLESHEETS = {"indonesia": "indonesia-shell.css",
                              "korea": "korea-shell.css",
                              "philippines": "support.css"}
-# The Philippines desk groups its bounded list by publisher (AFP, then NSC).
-PH_LINK_GROUPS = (("ph-afp-links", "Armed Forces of the Philippines"),
-                  ("ph-nsc-links", "National Security Council"))
-
-
-def philippines_link_groups(rows, shown):
-    """Desk groups: each publisher's total, its listed rows and, when some of
-    its rows fall outside the bounded desk list, the month page holding the
-    newest of them (so a group with no listed row still has a working path).
-    """
-    oli = official_link_index_mod
-    listed = {r["source_identity"] for r in shown}
-    groups = []
-    for group_id, name in PH_LINK_GROUPS:
-        every = [r for r in rows if r["publisher_label"] == name]
-        hidden = [r for r in every if r["source_identity"] not in listed]
-        older = None
-        if hidden:
-            month = oli.day_of("philippines", hidden[0])[:7]
-            older = {"label": oli.month_label(month),
-                     "route": oli.month_route("philippines", month)}
-        groups.append({"id": group_id, "name": name, "total": len(every),
-                       "rows": [r for r in shown if r["publisher_label"] == name],
-                       "older": older})
-    return groups
-
-
-def official_link_index_context(slug, rows):
-    """The desk template's official_link_index: None without admitted rows.
-
-    `shown` is the bounded desk list's length and `hub` the full index; the
-    Philippines desk also gets its publisher groups of bounded rows.
-    """
-    oli = official_link_index_mod
-    if not rows:
-        return None
-    shown = oli.latest(slug, rows)
-    context = {"total": len(rows), "shown": len(shown), "hub": oli.hub_route(slug)}
-    if slug == "philippines":
-        context["groups"] = philippines_link_groups(rows, oli.desk_listing(slug, rows))
-    return context
 
 
 def render_official_link_index(env, desk, rows, **ctx):
@@ -3663,7 +3622,7 @@ def build(out_dir: Path, title: str, db_path: Path,
             index_rows = regional_official_links
         elif desk.slug == "korea" and not review_korea:
             index_rows = korea_auto_official_rows
-        official_link_index = official_link_index_context(desk.slug, index_rows)
+        official_link_index = official_link_index_mod.desk_context(desk.slug, index_rows)
         if official_link_index:
             shown = official_link_index_mod.latest(desk.slug, index_rows)
             if desk.slug == "indonesia":

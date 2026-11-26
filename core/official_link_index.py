@@ -1,8 +1,8 @@
 """Bounded desk lists and full month indexes for admitted official links.
 
 Indonesia, Korea and Philippines desk pages show only the newest
-DESK_LINK_LIMIT admitted official-link rows. The full admitted set moves to a hub route listing months
-and one page per publisher-posted month. This module is pure: it never reads
+DESK_LINK_LIMIT admitted official-link rows. The full admitted set moves to a
+hub route listing months and one page per publisher-posted month. This module is pure: it never reads
 the database, fetches publishers or changes which rows are admitted. It only
 slices and partitions rows that callers already loaded in their canonical
 newest-first order, and it refuses (IndexHold) rather than re-sorting input
@@ -14,6 +14,11 @@ import re
 from datetime import date
 
 DESK_LINK_LIMIT = 60
+# Month pages are not split. At about 430 B per row, one month page reaches
+# the 120,000 B HTML+CSS delivery cap at roughly 100-110 rows. A denser month
+# (a backfill or a faster publisher pace) makes the budget gate hold the
+# writer, which fails closed; it never truncates a month. Splitting months is
+# a separate design change.
 INDEX_DESKS = ("indonesia", "korea", "philippines")
 # The official date each desk's rows are ordered and partitioned by.
 DAY_KEYS = {"indonesia": "publisher_posted_date", "korea": "published_date",
@@ -24,11 +29,15 @@ ROW_MARKERS = {"indonesia": "data-regional-official-source-id",
                "philippines": "data-regional-official-source-id"}
 DESK_NAMES = {"indonesia": "Indonesia", "korea": "South Korea",
               "philippines": "Philippines"}
-# Desks whose bounded desk list is shown in fixed publisher groups (matched on
-# publisher_label), each group keeping the canonical newest-first order. The
-# Philippines desk lists AFP, then NSC; its month pages keep one combined list.
-DESK_GROUPS = {"philippines": ("Armed Forces of the Philippines",
-                               "National Security Council")}
+# Desks whose bounded desk list is shown in fixed publisher groups, as
+# (anchor id, publisher_label) pairs in display order; each group keeps the
+# canonical newest-first order. The Philippines desk lists AFP, then NSC; its
+# month pages keep one combined list. Coupling: a row whose publisher_label is
+# in no group raises IndexHold, which stops the whole site render (not only
+# this desk). Admitting a new Philippines publisher therefore needs a reviewed
+# change that adds its group here first.
+DESK_GROUPS = {"philippines": (("ph-afp-links", "Armed Forces of the Philippines"),
+                               ("ph-nsc-links", "National Security Council"))}
 _DAY = re.compile(r"\A(\d{4})-(\d{2})-(\d{2})\Z")
 _MONTH = re.compile(r"\A\d{4}-(0[1-9]|1[0-2])\Z")
 
@@ -109,8 +118,8 @@ def grouped(desk: str, rows) -> list:
     groups = DESK_GROUPS.get(desk)
     if not groups:
         return rows
-    ordered = [row for group in groups for row in rows
-               if row.get("publisher_label") == group]
+    ordered = [row for _anchor, label in groups for row in rows
+               if row.get("publisher_label") == label]
     if len(ordered) != len(rows):
         raise IndexHold("admitted row outside the desk's publisher groups")
     return ordered
@@ -119,6 +128,46 @@ def grouped(desk: str, rows) -> list:
 def desk_listing(desk: str, rows) -> list:
     """The latest rows the desk page lists, in the order it lists them."""
     return grouped(_desk(desk), latest(desk, rows))
+
+
+def desk_groups(desk: str, rows, shown) -> list:
+    """The desk page's publisher groups of its bounded list.
+
+    Each group carries its total admitted rows, its rows in `shown` (the
+    bounded desk listing) and, when some of its rows fall outside that list,
+    the month page holding the newest of them, so a group with no listed row
+    still has a working path. Empty for desks without groups.
+    """
+    listed = {r["source_identity"] for r in shown}
+    groups = []
+    for anchor, label in DESK_GROUPS.get(_desk(desk), ()):
+        every = [r for r in rows if r.get("publisher_label") == label]
+        hidden = [r for r in every if r["source_identity"] not in listed]
+        older = None
+        if hidden:
+            month = day_of(desk, hidden[0])[:7]
+            older = {"label": month_label(month),
+                     "route": month_route(desk, month)}
+        groups.append({"id": anchor, "name": label, "total": len(every),
+                       "rows": [r for r in shown
+                                if r.get("publisher_label") == label],
+                       "older": older})
+    return groups
+
+
+def desk_context(desk: str, rows):
+    """The desk template's official_link_index: None without admitted rows.
+
+    `shown` is the bounded desk list's length and `hub` the full index; a
+    desk with publisher groups also gets `groups` of its bounded rows.
+    """
+    if not rows:
+        return None
+    shown = latest(desk, rows)
+    context = {"total": len(rows), "shown": len(shown), "hub": hub_route(desk)}
+    if desk in DESK_GROUPS:
+        context["groups"] = desk_groups(desk, rows, desk_listing(desk, rows))
+    return context
 
 
 def partition(desk: str, rows) -> list:
