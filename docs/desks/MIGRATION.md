@@ -626,3 +626,60 @@ Boundaries that still hold:
 - Qualification reuse has not certified a Daily since 11 November, for two reasons: the environment digest differs (`--with-deps`), and the MUTABLE coverage of Daily-generated paths is incomplete. Daily therefore runs the full-suite fallback.
 
 These remain founder or follow-up decisions; none is changed here.
+
+### Shared Daily outage and repairs — 26 November 2026
+
+The Daily of 25 November failed. Its only test failure was the 120,000 B
+budget on `philippines.html`. A data-only AFP writer commit (920a66304f) had
+grown the page to 123,405 B. Writer commits made with GITHUB_TOKEN start no
+push CI, so no PR test saw the growth. Engineering repairs merged under the
+standing delegation:
+
+- **#1107** (664924bb4b) fixes the Philippines outage.
+  - The desk page lists at most 60 official links and the newest 5 machine
+    explanations. "Browse all" links go to the full set.
+  - The new route `philippines-official-links.html` lists the full set, with
+    month routes. The builders are in `core/official_link_index.py`.
+  - The page is now 113,582 B (HTML plus CSS, as the delivery budget counts it). Tests grow the corpus synthetically
+    to prove the page stays bounded as the corpus grows.
+  - The same merge carries the Japan guard repair, first opened as #1109,
+    which closed as superseded. `scripts/guard_japan_official_reference_release.py`
+    now checks the JCG machine-explanation section against released
+    `daily_machine_records` and `japan_jcg_source_records` instead of a static
+    list. This fixes the `contract` job, which had been red on main since
+    article 9477 was admitted.
+  - The live pages were read back over HTTPS and are byte-identical to
+    gh-pages and `output/`. The validator reports 10 warnings, the baseline.
+- **#1110** (058f797e16) adds a Korea MND per-item hold.
+  - An item that publishes more than one HWPX attachment (156790542, with
+    `_게시` and `_제공`) is held with `multiple_hwpx_attachments`. It no
+    longer fails the whole custody run.
+  - Choosing a variant remains a founder rule.
+- **#1111** (9e343a0e68) changes prompts only.
+  - The USCC prompt is now `us-uscc-relevance-v1+us-uscc-analysis-v2`. It
+    sets sentence openers and bans possessives.
+  - The Singapore prompt is now `sg-relevance-v2+sg-analysis-v7`. It gives
+    short accurate forms for names and offices of 12 tokens or more.
+  - Earlier versions stay admissible. QA is unchanged. The new versions apply
+    only to attempts still available: USCC `returns` 2/5 and `departs` 1/5;
+    MINDEF `21nov26-nr` 2/5 and `23nov26-nr` 1/5.
+- **#1108** (b6e6bda3a7): the JCG sign receipt now lists scope- and
+  rights-held rows with their verbatim hold codes. Before, those rows were
+  dropped silently at signing.
+
+Not changed:
+
+- No attempts were reset and no ledgers were edited.
+- No Daily, collector or processing run was dispatched.
+- No paid recovery calls were made.
+- No withheld output was released. The 3 Vietnam MPS candidates stay outside
+  `RELEASED`.
+
+The next genuine scheduled Daily is the evidence for four expected
+admissions:
+
+- Global Times gt:1374958, 1374971, 1374972 and 1374982. Custody 73e5f48445
+  is within the 3-day record window, which ends about 28 November 09:52Z.
+- JCG 9465.
+- 3 AFP Records.
+- 1 Kemhan Record.
