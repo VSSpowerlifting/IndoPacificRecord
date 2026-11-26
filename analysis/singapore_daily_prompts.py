@@ -24,21 +24,29 @@ RELEVANCE_VERSION, ANALYSIS_VERSION = VERSION.split("+")
 # name, can alone be 12 or more consecutive source words (the unchanged check
 # counts \w+ words, so "(Retd)" and "bin" count too), and a lede rephrased in
 # its own order keeps a long run. v7 adds the fallback: a shorter accurate form
-# whose every word is still in the cited passage.
+# whose every word is still in the cited passage. The unchanged single-passage
+# token check exempts only the openers The, According, It and This, MINDEF and
+# the publisher's own words, so any other capitalized opener (During, On, An)
+# is a token the cited passage must contain; v7 therefore restructures a lede
+# after an attribution opener, never by moving another capitalized word first.
 LONG_NAME_FALLBACK = (
     "The 12-word rule counts every word of a name, honorific, rank and office. "
     "When an official's full name and office together, or any one name, "
     "office or title, would reproduce 12 or more consecutive source words, do "
     "not write the full form: use a shorter accurate form whose every word "
-    "appears in the cited passage, such as the office alone (for example the "
-    "Commander of the Royal Brunei Armed Forces, when the passage writes that "
-    "office), or a rank or short title with the part of the name the passage "
-    "uses, without the honorifics. You may reorder an office into a form such "
-    "as the Minister of Defence II of Brunei Darussalam only when every one of "
-    "those words is in the cited passage. Never restate the opening (lede) "
-    "sentence of the release in its own order or wording: lead with a "
-    "different structure, for example the activity first and the participants "
-    "after it. Do not write possessives or any word with an apostrophe. "
+    "appears in the cited passage, such as the office alone written exactly "
+    "as the passage writes it (for example the Chief of an armed force), or a "
+    "rank or short title with the part of the name the passage uses, without "
+    "the honorifics. You may reorder the words of an office only when every "
+    "one of those words is in the cited passage. "
+    "Begin every sentence with exactly 'MINDEF' (for example MINDEF said) or "
+    "'According to MINDEF,' and never with any other capitalized word (not "
+    "During, On, In, An, After, While, a name or an office). "
+    "Never restate the opening (lede) sentence of the release in its own "
+    "order or wording: after the attribution opener, reorder the "
+    "participants, activity, place and date, for example by making the "
+    "visiting official the subject instead of the host. Do not write "
+    "possessives or any word with an apostrophe. "
     "Wherever you use a name, office, rank or date, spell and capitalize "
     "every word of it exactly as the cited passage does. ")
 
@@ -83,7 +91,8 @@ def analysis_messages(title, body):
         "summary sentences in natural English, together at most 60 words. "
         "Count before replying and drop secondary detail if needed. Keep the "
         "attribution in each sentence. "
-        "Lead with who did what and its status; use the second sentence for a "
+        "After the opening attribution, state who did what and its status; use "
+        "the second sentence for a "
         "concrete detail such as the activity, location, participant, scope or "
         "deadline that helps a reader decide whether to open the record. "
         "Prefer useful detail to ceremonial language or generic importance. "

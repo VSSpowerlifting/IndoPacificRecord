@@ -8,9 +8,11 @@ full name with office, a commander's office with name, or a lede rephrased in
 its own order is alone 12 or more consecutive source words under the checker's
 casefolded \\w+ words. v7 only adds an instruction. These tests prove the
 registration, the instruction, that a short form whose words all occur in the
-cited passage passes BOTH the excerpt check and the name/office check, and that
-the unchanged validator still holds the long span, a lede restated in order, an
-invented demonym and an ASCII possessive.
+cited passage passes BOTH the excerpt check and the name/office check, that a
+lede restructured after a MINDEF attribution opener passes, and that the
+unchanged validator still holds the long span, a lede restated in order, an
+activity-first or date-first opener (a capitalized opener the cited passage
+lacks), an invented demonym and an ASCII possessive.
 """
 import unittest
 
@@ -77,6 +79,17 @@ class SingaporeV7Prompt(unittest.TestCase):
         self.assertIn("would reproduce 12 or more consecutive source words, do not write the full form", text)
         self.assertIn("use a shorter accurate form whose every word appears in the cited passage", text)
         self.assertIn("Never restate the opening (lede) sentence of the release in its own order or wording", text)
+        self.assertIn("Begin every sentence with exactly 'MINDEF' (for example MINDEF said) or "
+                      "'According to MINDEF,' and never with any other capitalized word", text)
+        self.assertIn("after the attribution opener, reorder the participants, activity, place and date", text)
+        self.assertIn("After the opening attribution, state who did what and its status", text)
+        # The activity-first steer and the conflicting v6 lead line are gone,
+        # and no example names an office from a single real release (checked
+        # on the instructions only; the fixture passages follow the newline).
+        instructions = text.split("\n", 1)[0]
+        self.assertNotIn("activity first", instructions)
+        self.assertNotIn("Lead with who did what", instructions)
+        self.assertNotIn("Brunei", instructions)
         self.assertIn("Do not write possessives or any word with an apostrophe", text)
         self.assertIn("spell and capitalize every word of it exactly as the cited passage does", text)
         # The v6 rules are kept unchanged.
@@ -107,6 +120,33 @@ class UnchangedValidator(unittest.TestCase):
                 self.assertIsInstance(d.english_official_quality(record(), r), str)
                 self.assertIsNone(_sg_output_check(
                     {"model_flagged": False, "summary": r["summary_english"]}))
+
+    def test_an_attribution_first_restructured_lede_passes(self):
+        # The visitor becomes the subject after the MINDEF opener, so the lede
+        # is not restated in its own order and no unexempted opener is added.
+        one = ("MINDEF said the Minister of Defence II of Brunei Darussalam made an "
+               "introductory visit to Singapore on 21 Nov and met Dr Fixture Host.")
+        self.assertLess(longest_source_run(one), 12)
+        r = reading(one=one)
+        self.assertIsInstance(d.english_official_quality(record(), r), str)
+        self.assertIsNone(_sg_output_check(
+            {"model_flagged": False, "summary": r["summary_english"]}))
+
+    def test_activity_first_and_date_first_openers_still_hold(self):
+        # The checker exempts only The, According, It, This, MINDEF and the
+        # publisher words, so a capitalized opener the passage lacks holds.
+        for one in (
+                "During an introductory visit on 21 Nov, MINDEF said, Dr Fixture Host "
+                "received the Minister of Defence II of Brunei Darussalam.",
+                "An introductory visit to Singapore on 21 Nov brought the Minister of "
+                "Defence II of Brunei Darussalam to meet Dr Fixture Host, MINDEF said.",
+                "On 21 Nov, MINDEF said, Dr Fixture Host received the Minister of "
+                "Defence II of Brunei Darussalam on an introductory visit."):
+            with self.subTest(one=one):
+                self.assertLess(longest_source_run(one), 12)
+                with self.assertRaises(d.IntakeHold) as caught:
+                    d.english_official_quality(record(), reading(one=one))
+                self.assertEqual(str(caught.exception), "daily_name_or_office_unsupported")
 
     def test_long_spans_and_genuine_substitutions_still_hold(self):
         for one, two, code in (
