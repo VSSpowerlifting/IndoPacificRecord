@@ -282,7 +282,7 @@ class PromptLengthBudget(unittest.TestCase):
         from analysis import singapore_daily_prompts as p
         from core.daily_sources import source_for
         text = p.analysis_messages("Synthetic title", "Synthetic sentence one. Synthetic sentence two.")[0]["content"]
-        self.assertEqual(p.ANALYSIS_VERSION, "sg-analysis-v6")
+        self.assertEqual(p.ANALYSIS_VERSION, "sg-analysis-v7")
         self.assertIn(p.VERSION, source_for("sg_mindef_releases").prompt_versions)
         self.assertIn("together at most 60 words", text)
         self.assertIn("flag (false), flag_reason (null), flag_evidence_id (null)", text)

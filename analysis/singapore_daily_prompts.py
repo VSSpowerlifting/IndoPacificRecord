@@ -15,8 +15,32 @@ import json
 
 from analysis.philippines_prompts import CATEGORIES, evidence_passages  # noqa: F401  (shared taxonomy and exact-excerpt IDs)
 
-VERSION = "sg-relevance-v2+sg-analysis-v6"
+VERSION = "sg-relevance-v2+sg-analysis-v7"
 RELEVANCE_VERSION, ANALYSIS_VERSION = VERSION.split("+")
+
+# v7 (prompt only; relevance and every quality check unchanged). Both v6
+# attempts held at daily_original_excerpt_prohibited: v6 asks for every name
+# and office exactly as written, but an honorific full name, or an office plus
+# name, can alone be 12 or more consecutive source words (the unchanged check
+# counts \w+ words, so "(Retd)" and "bin" count too), and a lede rephrased in
+# its own order keeps a long run. v7 adds the fallback: a shorter accurate form
+# whose every word is still in the cited passage.
+LONG_NAME_FALLBACK = (
+    "The 12-word rule counts every word of a name, honorific, rank and office. "
+    "When an official's full name and office together, or any one name, "
+    "office or title, would reproduce 12 or more consecutive source words, do "
+    "not write the full form: use a shorter accurate form whose every word "
+    "appears in the cited passage, such as the office alone (for example the "
+    "Commander of the Royal Brunei Armed Forces, when the passage writes that "
+    "office), or a rank or short title with the part of the name the passage "
+    "uses, without the honorifics. You may reorder an office into a form such "
+    "as the Minister of Defence II of Brunei Darussalam only when every one of "
+    "those words is in the cited passage. Never restate the opening (lede) "
+    "sentence of the release in its own order or wording: lead with a "
+    "different structure, for example the activity first and the participants "
+    "after it. Do not write possessives or any word with an apostrophe. "
+    "Wherever you use a name, office, rank or date, spell and capitalize "
+    "every word of it exactly as the cited passage does. ")
 
 
 def system_prompt(scope="MINDEF official releases"):
@@ -87,7 +111,8 @@ def analysis_messages(title, body):
         "exactly as written. Apart from the MINDEF attribution, spell every "
         "name, office and month exactly as it appears in the cited passage: "
         "if the passage abbreviates a month (for example Oct), keep the "
-        "abbreviation; never expand it. Avoid unsupported negative claims. "
+        "abbreviation; never expand it. " + LONG_NAME_FALLBACK +
+        "Avoid unsupported negative claims. "
         "This lane publishes factual explanations only. Set flag to false "
         "and set flag_reason and flag_evidence_id to null. "
         "Use fewer words when the evidence is thin; do not pad to a target. "

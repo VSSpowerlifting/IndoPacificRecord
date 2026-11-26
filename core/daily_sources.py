@@ -591,7 +591,11 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
                          "sg-relevance-v2+sg-analysis-v3",
                          "sg-relevance-v2+sg-analysis-v4",
                          "sg-relevance-v2+sg-analysis-v5",
-                         "sg-relevance-v2+sg-analysis-v6"),
+                         "sg-relevance-v2+sg-analysis-v6",
+                         # v7 is what the processor now emits (prompt-only:
+                         # short-form fallback for long names and offices);
+                         # v2-v6 stay admissible for outputs signed before.
+                         "sg-relevance-v2+sg-analysis-v7"),
         identity_max_length=64,
         links="core.daily_sources:_sg_links",
         quality="processing.daily_intake:english_official_quality",
