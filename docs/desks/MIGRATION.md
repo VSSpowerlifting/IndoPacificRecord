@@ -683,3 +683,24 @@ admissions:
 - JCG 9465.
 - 3 AFP Records.
 - 1 Kemhan Record.
+
+The U.S. desk had the same unbounded pattern. On 26 November
+`us-indopacific.html` was 117,356 B, 2,644 B under the cap, and it listed
+every USCC, Treasury (47) and BIS official link.
+
+- **#1113** (ed5a3f0b43) bounds the U.S. desk.
+  - The desk shows the newest 10 links for each publisher. PACOM keeps its
+    fixed 9. The `uscc_explained` badge now counts only the machine
+    explanations actually shown.
+  - The new route `us-indopacific-official-links.html` lists every row, with
+    month routes. Each row keeps its own publisher's attribution and
+    metadata-only disclosure.
+  - Checks that pinned every row now compare against `group_latest(...)`
+    and keep the floors: USCC at least 10, Treasury at least 10, PACOM
+    exactly 9. The BIS and PACOM file-only writers gate the page budget
+    before committing and also publish the index routes.
+  - The desk is now 101,079 B. A synthetic test with 200 rows per publisher
+    measures 116,261 B.
+  - Known limits: the U.S. writers do not yet read the index back over
+    HTTPS, and month pages are not split. `vietnam.html` has 3,433 B of
+    headroom, and its regional link list is unbounded.
