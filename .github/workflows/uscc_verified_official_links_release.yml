@@ -14,6 +14,9 @@ on:
       - scripts/admit_uscc_official_metadata.py
       - site/preview/generate_preview.py
       - site/preview/templates/desk.html
+      - site/preview/templates/official_link_index.html
+      - core/official_link_index.py
+      - scripts/verify_us_official_link_index.py
       - tests/test_uscc_public_production_links.py
       - .github/workflows/uscc_verified_official_links_release.yml
 permissions:
@@ -49,21 +52,29 @@ jobs:
           import os
           from pathlib import Path
           from bs4 import BeautifulSoup
+          from core.official_link_index import group_latest
           from core.uscc_official_metadata import load_public_links
           db=Path(os.environ["RUNNER_TEMP"])/"uscc-rehearsal.sqlite"
           page=Path("output/us-indopacific.html").read_text(encoding="utf-8")
           soup=BeautifulSoup(page,"html.parser")
           rows=load_public_links(db)
+          # The desk lists the newest GROUP_LINK_LIMITS rows of this publisher;
+          # the full U.S. index carries the rest (checked below).
+          shown=group_latest("us-indopacific",rows)
           rendered=soup.select("li[data-uscc-official-link] a")
           pacom=soup.select("li[data-us-pacom-link] a")
-          assert len(rows)>=10 and len(rendered)==len(rows)
-          assert [a["href"] for a in rendered]==[r["source_url"] for r in rows]
+          assert len(rows)>=10 and len(shown)==10 and len(rendered)==len(shown)
+          assert [a["href"] for a in rendered]==[r["source_url"] for r in shown]
           assert len(pacom)==9
           assert "access_blocked" in page
           assert "congressional" in page
           assert all("noopener" in a.get("rel",[]) and a.get("target")=="_blank" for a in rendered)
           assert "title_original" not in page and "text_original" not in page
           PY
+          # Every admitted U.S. official link, on the bounded desk or the full
+          # index by month, under its own publisher's marker and copy.
+          python -m scripts.verify_us_official_link_index \
+            --db "$RUNNER_TEMP/uscc-rehearsal.sqlite" --site-dir output
           sha256sum -c "$RUNNER_TEMP/uscc-db-before.sha"
           git diff --exit-code -- pla_watch.db
           test ! -e pla_watch.db-wal

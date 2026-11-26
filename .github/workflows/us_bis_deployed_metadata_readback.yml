@@ -9,6 +9,10 @@ on:
       - tests/test_us_bis_deployed_metadata.py
       - .github/workflows/us_bis_deployed_metadata_readback.yml
       - docs/engineering/US_BIS_DEPLOYED_METADATA_READBACK_2026-10-15.md
+      - core/official_link_index.py
+      - site/preview/templates/official_link_index.html
+      - site/preview/templates/desk.html
+      - scripts/verify_us_official_link_index.py
   workflow_run:
     workflows:
       - BIS — Authenticated Official Links U.S. Desk-Only Release
@@ -68,6 +72,12 @@ jobs:
           git diff --exit-code -- pla_watch.db output/ site/ desks/
           test -z "$(git -C bis-existing-pages status --porcelain --untracked-files=all)"
           cmp output/us-indopacific.html bis-existing-pages/us-indopacific.html
+          # The desk lists only the newest BIS rows; the full U.S. index (hub
+          # and month pages) must be deployed byte for byte as committed.
+          cmp output/us-indopacific-official-links.html \
+            bis-existing-pages/us-indopacific-official-links.html
+          diff -r output/us-indopacific-official-links \
+            bis-existing-pages/us-indopacific-official-links
           python - <<'PY'
           from core.us_bis_authenticated_metadata import load_public_links
           from pathlib import Path
@@ -97,7 +107,9 @@ jobs:
             --production-db pla_watch.db \
             --main-page output/us-indopacific.html \
             --pages-git-file bis-existing-pages/us-indopacific.html \
-            --public-http-file "$RUNNER_TEMP/bis-http.html"
+            --public-http-file "$RUNNER_TEMP/bis-http.html" \
+            --main-site-dir output \
+            --pages-site-dir bis-existing-pages
       - name: Refuse drift in exact Git readback and tracked public files
         run: |
           git diff --exit-code -- pla_watch.db output/ site/ desks/

@@ -7052,10 +7052,12 @@ class TestStop4RoutesAreIntact(PreviewCase):
         from scripts.verify_korea_official_link_index import korea_index_rows
         from scripts.verify_regional_source_index_readback import (
             load_admitted_links as regional_admitted)
+        from scripts.verify_us_official_link_index import merged_rows, us_group_rows
         index_months = set()
         for desk, rows in (("indonesia", regional_admitted(TRACKED_DB, "indonesia")),
                            ("korea", korea_index_rows(TRACKED_DB)),
-                           ("philippines", regional_admitted(TRACKED_DB, "philippines"))):
+                           ("philippines", regional_admitted(TRACKED_DB, "philippines")),
+                           ("us-indopacific", merged_rows(us_group_rows(TRACKED_DB)))):
             expected = {r for r in link_index.index_routes(desk, rows) if "/" in r}
             folder = self.out / link_index.month_dir(desk)
             built = ({link_index.month_dir(desk) + "/" + q.name
