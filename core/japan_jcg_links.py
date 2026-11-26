@@ -303,7 +303,9 @@ def sign_links(records: Iterable[dict], *, key: str,
 
 # A receipt hold code is one fixed reason code; anything else is reported as
 # this code so no custody text can reach a receipt through a hold field.
-HOLD_CODE = re.compile(r"jcg_[a-z0-9_]{1,60}")
+# The bound fits the longest real code (a "jcg_rights_" prefixed standing-
+# rights reason); a test checks every reachable code literal against it.
+HOLD_CODE = re.compile(r"jcg_[a-z0-9_]{1,100}")
 HOLD_CODE_UNRECOGNIZED = "jcg_link_hold_code_unrecognized"
 HOLD_IDENTITY_INVALID = "jcg-en:invalid"
 

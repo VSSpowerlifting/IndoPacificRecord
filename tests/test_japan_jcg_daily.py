@@ -821,6 +821,36 @@ class JcgSignReceiptHolds(unittest.TestCase):
         self.assertEqual(holds, [{"source_identity": links.HOLD_IDENTITY_INVALID,
                                   "hold_code": links.HOLD_CODE_UNRECOGNIZED}])
 
+    def test_every_reachable_hold_code_is_reported_verbatim(self):
+        """No real scope or rights code may collapse to the unrecognized placeholder."""
+        import ast
+        root = Path(__file__).resolve().parents[1]
+
+        def literals(rel, pred):
+            tree = ast.parse((root / rel).read_text())
+            return {n.value for n in ast.walk(tree)
+                    if isinstance(n, ast.Constant) and type(n.value) is str and pred(n.value)}
+
+        def need_reasons(rel):
+            out = set()
+            for n in ast.walk(ast.parse((root / rel).read_text())):
+                if isinstance(n, ast.Call) and isinstance(n.func, ast.Name):
+                    i = {"need": 1, "StandingLicenseHold": 0}.get(n.func.id)
+                    if i is not None and len(n.args) > i and isinstance(n.args[i], ast.Constant):
+                        out.add(n.args[i].value)
+            return out
+
+        codes = (literals("core/japan_jcg_links.py", lambda s: s.startswith("jcg_link_"))
+                 | literals("core/japan_jcg_rights.py", lambda s: s.startswith("jcg_rights_"))
+                 | {"jcg_rights_" + r for r in need_reasons("core/standing_source_rights.py")})
+        self.assertIn("jcg_rights_item_third_party_text", codes)
+        self.assertIn("jcg_link_extraction_profile_superseded", codes)
+        # "jcg_rights_" alone is the prefix the rights screen joins to a
+        # standing-rights reason; "%s" templates are filled with a field name.
+        rejected = sorted(c for c in codes if c != "jcg_rights_"
+                          and not links.HOLD_CODE.fullmatch(c.replace("%s", "content_sha256")))
+        self.assertEqual(rejected, [])
+
     def test_sign_receipt_reports_scope_and_rights_held_rows(self):
         import contextlib
         import io
