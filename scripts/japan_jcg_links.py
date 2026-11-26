@@ -39,9 +39,15 @@ def main(argv=None) -> int:
             records = links.with_title_hash(verified_source(
                 args.source_checkout, args.source_commit, links.FAMILY))
             evidence = japan_jcg_rights.source_evidence(args.source_checkout, args.source_commit)
-            envelope = links.sign_links(records, key=key, source_evidence=evidence)
+            envelope, held = links.sign_links_with_holds(records, key=key,
+                                                         source_evidence=evidence)
             Path(args.output).write_text(json.dumps(envelope, sort_keys=True))
-            receipt = {"signed_links": len(envelope["packet"]["links"]), "source_evidence": evidence}
+            # Rows skipped for a scope or rights hold are reported by identity
+            # and fixed code, so a quiet receipt cannot hide a held release.
+            # (Distinct from the admit receipt's "held": admitted parents held
+            # for a changed version.)
+            receipt = {"signed_links": len(envelope["packet"]["links"]),
+                       "held_count": len(held), "held": held, "source_evidence": evidence}
         else:
             path = Path(args.envelope)
             if not path.exists():
