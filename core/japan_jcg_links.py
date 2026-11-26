@@ -298,13 +298,43 @@ def sign_links(records: Iterable[dict], *, key: str,
     ``japan_jcg_rights.source_evidence``) tells the public operator report
     whether the latest run reached the publisher's terms.
     """
+    return sign_links_with_holds(records, key=key, source_evidence=source_evidence)[0]
+
+
+# A receipt hold code is one fixed reason code; anything else is reported as
+# this code so no custody text can reach a receipt through a hold field.
+HOLD_CODE = re.compile(r"jcg_[a-z0-9_]{1,60}")
+HOLD_CODE_UNRECOGNIZED = "jcg_link_hold_code_unrecognized"
+HOLD_IDENTITY_INVALID = "jcg-en:invalid"
+
+
+def _held_entry(record) -> dict:
+    ident = record.get("source_identity")
+    code = record.get("jcg_scope_hold")
+    return {"source_identity": ident if type(ident) is str and IDENTITY.fullmatch(ident)
+            else HOLD_IDENTITY_INVALID,
+            "hold_code": code if type(code) is str and HOLD_CODE.fullmatch(code)
+            else HOLD_CODE_UNRECOGNIZED}
+
+
+def sign_links_with_holds(records: Iterable[dict], *, key: str,
+                          source_evidence: Optional[dict] = None):
+    """``(envelope, held)``: the ``sign_links`` envelope and the rows it skipped.
+
+    ``held`` lists every custody row not signed because it carries a scope or
+    rights hold, as ``{"source_identity", "hold_code"}`` sorted by identity,
+    with fixed reason codes only. It is reporting for the operator receipt and
+    never enters the envelope, whose bytes are unchanged by it.
+    """
     if source_evidence is not None and not _evidence_ok(source_evidence):
         raise LinkRefused("jcg_link_source_evidence_invalid")
     if type(key) is not str or len(key) < 32:
         raise LinkRefused("jcg_link_key_invalid")
     links = []
+    held = []
     for record in sorted(records, key=lambda r: str(r.get("source_identity"))):
         if record.get("jcg_scope_hold"):
+            held.append(_held_entry(record))
             continue
         _check(record)
         links.append({k: record[k] for k in LINK_FIELDS})
@@ -316,7 +346,8 @@ def sign_links(records: Iterable[dict], *, key: str,
     raw = _canonical(packet)
     if len(raw) > MAX_ENVELOPE_BYTES:
         raise LinkRefused("jcg_link_envelope_too_large")
-    return {"packet": packet, "mac": _mac(key, raw)}
+    held.sort(key=lambda h: (h["source_identity"], h["hold_code"]))
+    return {"packet": packet, "mac": _mac(key, raw)}, held
 
 
 def admit_signed_links(conn, envelope, *, key: str, now: Optional[str] = None) -> dict:

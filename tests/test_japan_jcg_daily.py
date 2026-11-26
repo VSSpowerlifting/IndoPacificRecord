@@ -772,6 +772,96 @@ QUOTED = (FIRST + "\n\n" + SECOND + ' The visiting commandant said "our two serv
           'keep training together on every patrol route across the region this year."')
 
 
+def _golden_record(n, hold=None):
+    ident = "jcg-en:%d" % n
+    fields = {"source_identity": ident, "canonical_official_url": links.canonical_url(ident),
+              "publisher_posted_date": "2026-11-0%d" % (n % 9 + 1),
+              "content_sha256": hashlib.sha256(b"c%d" % n).hexdigest(),
+              "capture_sha256": hashlib.sha256(b"r%d" % n).hexdigest(),
+              "title_sha256": hashlib.sha256(b"t%d" % n).hexdigest()}
+    return {**fields, "metadata_version_sha256": links.version_hash(fields),
+            "source_git_commit": "a" * 40, "source_run": "run-%d" % n,
+            "jcg_scope_hold": hold, "title": "T", "body": "B"}
+
+
+class JcgSignReceiptHolds(unittest.TestCase):
+    """The sign receipt reports every held custody row; signed bytes never change."""
+
+    # Captured from sign_links on origin/main before held-row reporting existed.
+    GOLDEN_MAC = "44ab80b6a052cdf5b9640aecaffdce64ecd72bacf45ed6b98a5dc3b49d572a33"
+    GOLDEN_FILE_SHA = "3afff6e3de41664bfae967b002c9365657ba034741400c43dfca0bde8225e142"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+
+    def test_signed_envelope_bytes_match_the_pre_change_golden(self):
+        clean = [_golden_record(9701), _golden_record(9702)]
+        held = [_golden_record(9436, "jcg_link_extraction_profile_superseded"),
+                _golden_record(9668, "jcg_rights_item_third_party_text")]
+        key = "synthetic-jcg-golden-key-" * 2
+        evidence = {"site_terms": "ok", "listing": "ok"}
+        for records in (clean, held + clean):
+            envelope, holds = links.sign_links_with_holds(records, key=key,
+                                                          source_evidence=evidence)
+            raw = json.dumps(envelope, sort_keys=True).encode()
+            self.assertEqual(envelope["mac"], self.GOLDEN_MAC)
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), self.GOLDEN_FILE_SHA)
+            self.assertEqual(envelope, links.sign_links(records, key=key,
+                                                        source_evidence=evidence))
+        self.assertEqual(holds, [
+            {"source_identity": "jcg-en:9436", "hold_code": "jcg_link_extraction_profile_superseded"},
+            {"source_identity": "jcg-en:9668", "hold_code": "jcg_rights_item_third_party_text"}])
+
+    def test_held_entries_carry_fixed_codes_and_identities_only(self):
+        bad = dict(_golden_record(9437), source_identity="jcg-en:9437 " + TITLE,
+                   jcg_scope_hold="jcg_rights hold: " + FIRST)
+        _, holds = links.sign_links_with_holds([_golden_record(9701), bad], key="k" * 40)
+        self.assertEqual(holds, [{"source_identity": links.HOLD_IDENTITY_INVALID,
+                                  "hold_code": links.HOLD_CODE_UNRECOGNIZED}])
+
+    def test_sign_receipt_reports_scope_and_rights_held_rows(self):
+        import contextlib
+        import io
+        import os
+        from scripts import japan_jcg_links as bridge
+        old = {k: v for k, v in META.items() if k != "extraction_profile"}
+        rows = [(IDENT, TITLE, BODY, DAY, META),
+                (IDENT2, TITLE + " two", QUOTED, DAY, dict(META, source_identity=IDENT2)),
+                ("jcg-en:90005", TITLE + " five", BODY + " five", DAY,
+                 dict(old, source_identity="jcg-en:90005"))]
+        repo, head = build_custody(str(self.tmp), rows)
+        key = "synthetic-japan-jcg-key-" * 2
+        out = self.tmp / "links.json"
+        stdout = io.StringIO()
+        with patch.dict(os.environ, {links.KEY_ENV: key}), contextlib.redirect_stdout(stdout):
+            code = bridge.main(["sign", "--source-checkout", str(repo),
+                                "--source-commit", head, "--output", str(out)])
+        self.assertEqual(code, 0)
+        printed = stdout.getvalue()
+        receipt = json.loads(printed)
+        self.assertEqual(receipt["status"], "ok")
+        self.assertEqual(receipt["signed_links"], 1)
+        self.assertEqual(receipt["held_count"], 2)
+        self.assertEqual(receipt["held"], [
+            {"source_identity": IDENT2, "hold_code": "jcg_rights_item_third_party_text"},
+            {"source_identity": "jcg-en:90005",
+             "hold_code": "jcg_link_extraction_profile_superseded"}])
+        for text in (TITLE, FIRST, SECOND, THIRD, QUOTED, key):
+            self.assertNotIn(text, printed)
+        envelope = json.loads(out.read_text())
+        self.assertEqual(set(envelope), {"packet", "mac"})
+        self.assertEqual([l["source_identity"] for l in envelope["packet"]["links"]], [IDENT])
+        links.authenticated_packet(envelope, key=key)
+        # The signed file is byte-identical to signing the clean row alone.
+        records = links.with_title_hash(d.verified_source(repo, head, FAMILY))
+        clean = [r for r in records if r["source_identity"] == IDENT]
+        evidence = rights.source_evidence(repo, head)
+        self.assertEqual(out.read_text(), json.dumps(
+            links.sign_links(clean, key=key, source_evidence=evidence), sort_keys=True))
+
+
 def commit_run(repo, run_id, *, terms, raw=None):
     """Commit a later collector run to custody; returns the new pinned commit.
 
