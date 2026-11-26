@@ -52,6 +52,11 @@
 {% set ph_machine = daily_machine_records | default([]) %}
 {% set ph_original_count = ph_machine | selectattr('original_text') | list | length %}
 {% set ph_explained = ph_machine | map(attribute='source_identity') | list %}
+{# Only the newest five explanations are listed (each costs about 900 bytes
+   of the 120,000-byte budget); counts stay totals and the published archive
+   search lists every record. #}
+{% set ph_machine_shown = ph_machine[:5] %}
+{% set ph_explained_shown = ph_machine_shown | map(attribute='source_identity') | list %}
 {# Counts come only from admitted production rows and released machine
    records. Private originals and shadow history are never counted here. #}
 <dl class="stat-rows" data-philippines-lanes>
@@ -71,9 +76,9 @@
 <section class="desk-section" aria-labelledby="daily-machine-heading" data-philippines-machine-explanations>
   <p class="eyebrow">Machine output · automatic · not human-reviewed</p>
   <h2 id="daily-machine-heading">Machine explanations of official publications</h2>
-  <p>Short readings of AFP and NSC publications, written by a model in its own words and attributed to the publisher. They describe what an institution reports. They do not verify events and are not IPR analysis. Newest official date first.</p>
+  <p>Short readings of AFP and NSC publications, written by a model in its own words and attributed to the publisher. They describe what an institution reports. They do not verify events and are not IPR analysis. {% if ph_machine | length > ph_machine_shown | length %}The latest {{ ph_machine_shown | length }} of {{ ph_machine | length }}, newest{% else %}Newest{% endif %} official date first.</p>
   <ol class="desk-reference-list" aria-label="Machine explanations">
-    {% for rec in ph_machine %}
+    {% for rec in ph_machine_shown %}
     <li data-machine-explanation-id="{{ rec.source_identity }}">
       <h3><a href="{{ rec.record_path }}">{% if rec.original_title %}{{ rec.original_title }}{% else %}{{ rec.source_label }} · {{ rec.published_date }} · {{ rec.source_identity }}{% endif %}</a></h3>
       <p>{{ rec.summary }}</p>
@@ -83,6 +88,7 @@
     {% endfor %}
   </ol>
   <p class="meta">Records include provenance and model details. Where available, the Record also includes the source title and original text.</p>
+  <p><a href="archive.html?desk=philippines&amp;scope=published">Browse all {{ ph_machine | length }} Philippines machine explanations</a></p>
 </section>
 {% endif %}
 {% endif -%}
@@ -186,7 +192,7 @@
     <li data-regional-official-source-id="{{ ref.source_identity }}">
       <p><a href="{{ ref.canonical_official_url }}" target="_blank"
             rel="noopener noreferrer">{{ ref.label }}</a> · Official date <time datetime="{{ ref.publisher_posted_date }}">{{ ref.publisher_posted_date }}</time></p>
-      <p class="meta">Official-link metadata only{% if ref.source_identity in ph_explained %} · <span class="evidence evidence--model">Machine explanation published above</span>{% endif %}</p>
+      <p class="meta">Official-link metadata only{% if ref.source_identity in ph_explained_shown %} · <span class="evidence evidence--model">Machine explanation published above</span>{% elif ref.source_identity in ph_explained %} · <span class="evidence evidence--model">Machine explanation in the published archive</span>{% endif %}</p>
     </li>
     {% endfor %}
   </ol>

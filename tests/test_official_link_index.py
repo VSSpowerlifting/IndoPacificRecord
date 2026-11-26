@@ -10,6 +10,7 @@ workflow text all fail closed.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
 import re
@@ -22,6 +23,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
+from core import daily_machine_records as machine_records
 from core import official_link_index as link_index
 from core import korea_official_live_links as korea_live
 from core import regional_official_link_render as regional_render
@@ -125,6 +127,42 @@ KOREA_EXTRA = korea_synthetic_rows()
 KOREA_FLOOR_DAY = "2026-11-21"
 _ORIGINAL_REGIONAL = regional_render.load_admitted_links
 _ORIGINAL_KOREA = korea_live.load_live_korea_official_links
+_ORIGINAL_MACHINE = machine_records.load
+
+# Sixty released Philippines machine explanations bound to the newest synthetic
+# admitted links (AFP and NSC), newer than every committed record. At about
+# 900 bytes each, listing all of them would exceed philippines.html's cap.
+PH_MACHINE_GROWTH = 60
+PH_FAMILIES = {PH_AFP: "ph_afp_articles", PH_NSC: "ph_nsc_official_statements"}
+_PH_MACHINE_CACHE = []
+
+
+def philippines_machine_rows(real):
+    """Synthetic released records cloned from committed ones, load() fields."""
+    templates = {r["source_family"]: r for r in real
+                 if r["desk_id"] == "philippines" and not r["original_text"]}
+    rows = []
+    for link in PH_ROWS[:PH_MACHINE_GROWTH]:
+        family = PH_FAMILIES[link["publisher_label"]]
+        sid = link["source_identity"]
+        rows.append(dict(
+            templates[family], source_identity=sid,
+            record_path="record/source-" + hashlib.sha256(
+                (family + ":" + sid).encode()).hexdigest()[:24] + ".html",
+            url=link["canonical_official_url"],
+            published_date=link["publisher_posted_date"],
+            summary="IPR synthetic machine explanation of %s for budget growth." % sid,
+            original_title=None, original_text=None))
+    return rows
+
+
+def fake_machine(db_path):
+    real = _ORIGINAL_MACHINE(db_path)
+    if not _PH_MACHINE_CACHE:
+        _PH_MACHINE_CACHE.extend(philippines_machine_rows(real))
+    return sorted(real + [dict(r) for r in _PH_MACHINE_CACHE],
+                  key=lambda r: (r["published_date"], r["source_identity"]),
+                  reverse=True)
 
 
 def fake_regional(db_path, desk):
@@ -327,6 +365,7 @@ class RenderedIndexTests(unittest.TestCase):
             mock.patch.object(regional_render, "load_admitted_links", fake_regional),
             mock.patch.object(readback, "load_admitted_links", fake_regional),
             mock.patch.object(korea_live, "load_live_korea_official_links", fake_korea),
+            mock.patch.object(machine_records, "load", fake_machine),
         ]
         for patch in cls.patches:
             patch.start()
@@ -484,6 +523,53 @@ class RenderedIndexTests(unittest.TestCase):
             self.assertEqual(budget.html_css_cap(route), 120000, route)
         result = budget.verify(self.out, only=routes)
         self.assertEqual(result["failures"], [])
+
+    def test_philippines_machine_explanations_are_bounded_and_counts_stay_totals(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import verify_frontend_delivery as budget
+        machine = [r for r in fake_machine(DB) if r["desk_id"] == "philippines"]
+        self.assertGreater(len(machine), PH_MACHINE_GROWTH)
+        desk = self.read("philippines.html")
+        # Only the newest five, in load() order, are listed on the desk.
+        self.assertEqual(re.findall(r'data-machine-explanation-id="([^"]+)"', desk),
+                         [r["source_identity"] for r in machine[:5]])
+        for rec in machine[5:]:
+            self.assertNotIn(rec["summary"], desk)
+        afp = sum(r["source_label"] == "AFP" for r in machine)
+        nsc = sum(r["source_label"] == "NSC" for r in machine)
+        self.assertTrue(afp and nsc)
+        self.assertEqual(afp + nsc, len(machine))
+        originals = sum(bool(r["original_text"]) for r in machine)
+        self.assertTrue(originals)  # committed, now outside the newest five
+        self.assertFalse(any(r["original_text"] for r in machine[:5]))
+        self.assertIn('<dt>Machine explanations</dt><dd>%d <span class="meta">(AFP %d · NSC %d)'
+                      % (len(machine), afp, nsc), desk)
+        self.assertIn("<dt>Records with original text</dt><dd>%d</dd>" % originals, desk)
+        self.assertIn('href="#daily-machine-heading">Machine explanations (%d)</a>'
+                      % len(machine), desk)
+        self.assertIn("The latest 5 of %d, newest official date first." % len(machine), desk)
+        self.assertEqual(desk.count(
+            '<a href="archive.html?desk=philippines&amp;scope=published">'
+            'Browse all %d Philippines machine explanations</a>' % len(machine)), 1)
+        # Listed links say where their explanation is: above, or in the archive.
+        listed = {sid for sid, _ in rows_in(desk, "philippines")}
+        above = {r["source_identity"] for r in machine[:5]}
+        explained = {r["source_identity"] for r in machine} & listed
+        self.assertTrue(explained - above)
+        self.assertEqual(desk.count("Machine explanation published above"),
+                         len(explained & above))
+        self.assertEqual(desk.count("Machine explanation in the published archive"),
+                         len(explained - above))
+        # Every record, listed or not, is in the published archive search.
+        rows = {r["id"]: r for r in json.loads(
+            self.read("archive-research-index.json"))["records"]}
+        for rec in machine:
+            row = rows["machine:" + rec["source_identity"]]
+            self.assertEqual(row["desks"], ["philippines"])
+            self.assertEqual(row["record_type"], "machine_explanation")
+            self.assertTrue((self.out / rec["record_path"]).is_file(), rec["record_path"])
+        self.assertEqual(budget.html_css_cap("philippines.html"), 120000)
+        self.assertEqual(budget.verify(self.out, only=["philippines.html"])["failures"], [])
 
     def test_vietnam_and_japan_keep_full_lists_and_no_index(self):
         for slug in ("vietnam", "japan", "singapore"):

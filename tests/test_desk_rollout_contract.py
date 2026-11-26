@@ -709,7 +709,13 @@ class TestPendingDeskReferenceBrowser(DeskCase):
         self.assertNotIn("Individually reviewed official-source references", html)
         self.assertNotIn("No individual source references have completed", html)
         self.assertNotIn('data-reference-list', html)
-        self.assertNotIn("archive.html?desk=" + slug, html)
+        # No link to the default (selected-corpus) archive view, which holds no
+        # Philippines record. The only archive link is the published-material
+        # scope, where the released machine explanations are listed (as on the
+        # Indonesia and Japan desks).
+        self.assertNotIn('href="archive.html?desk=' + slug + '"', html)
+        self.assertEqual(re.findall(r'archive\.html\?desk=%s[^"]*' % slug, html),
+                         ["archive.html?desk=%s&amp;scope=published" % slug])
         self.assertIn("Individually reviewed official-source references", self.page("indonesia.html"))
 
     def test_progressive_enhancement_files_are_produced(self):
