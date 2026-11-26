@@ -140,9 +140,9 @@ class PhilippinesPublicPages(DeskCase):
             '<a href="archive.html?desk=philippines&amp;scope=published">'
             'Browse all %d Philippines machine explanations</a>' % len(machine)), 1)
         # Every released record, listed or not, is in the published archive
-        # search that link opens (desk and record type both match).
-        archive = json.loads((REPO_ROOT / "output" / "archive-research-index.json")
-                             .read_text("utf-8"))
+        # search that link opens (desk and record type both match). Read from
+        # this build, not committed output, so newly released records count.
+        archive = json.loads(self.page("archive-research-index.json"))
         rows = {r["id"]: r for r in archive["records"]}
         for rec in machine:
             with self.subTest(archive=rec["source_identity"]):
