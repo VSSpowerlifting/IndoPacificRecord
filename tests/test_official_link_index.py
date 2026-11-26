@@ -130,21 +130,37 @@ _ORIGINAL_KOREA = korea_live.load_live_korea_official_links
 _ORIGINAL_MACHINE = machine_records.load
 
 # Sixty released Philippines machine explanations bound to the newest synthetic
-# admitted links (AFP and NSC), newer than every committed record. At about
-# 900 bytes each, listing all of them would exceed philippines.html's cap.
+# admitted links (AFP and NSC). They REPLACE the committed Philippines records,
+# as fake_regional replaces the committed Philippines links, so Daily releases
+# (any date, with or without original text) cannot change which five records
+# the desk lists. At about 900 bytes each, listing all sixty would exceed
+# philippines.html's cap.
 PH_MACHINE_GROWTH = 60
 PH_FAMILIES = {PH_AFP: "ph_afp_articles", PH_NSC: "ph_nsc_official_statements"}
+# The oldest synthetic link (an AFP row) carries original text, so the
+# original-text count, Record page and archive title are exercised outside the
+# newest five.
+PH_ORIGINAL_INDEX = PH_MACHINE_GROWTH - 1
+PH_ORIGINAL_TITLE = "IPR synthetic official title for the growth test"
+PH_ORIGINAL_TEXT = ("IPR synthetic original paragraph one.\n\n"
+                    "IPR synthetic original paragraph two.")
 _PH_MACHINE_CACHE = []
 
 
 def philippines_machine_rows(real):
-    """Synthetic released records cloned from committed ones, load() fields."""
-    templates = {r["source_family"]: r for r in real
-                 if r["desk_id"] == "philippines" and not r["original_text"]}
+    """Synthetic released records cloned from committed ones, load() fields.
+
+    Any committed record of the family serves as the template: identity, URL,
+    date, summary and original fields are all overwritten here."""
+    templates = {}
+    for r in real:
+        if r["desk_id"] == "philippines":
+            templates.setdefault(r["source_family"], r)
     rows = []
-    for link in PH_ROWS[:PH_MACHINE_GROWTH]:
+    for i, link in enumerate(PH_ROWS[:PH_MACHINE_GROWTH]):
         family = PH_FAMILIES[link["publisher_label"]]
         sid = link["source_identity"]
+        original = i == PH_ORIGINAL_INDEX
         rows.append(dict(
             templates[family], source_identity=sid,
             record_path="record/source-" + hashlib.sha256(
@@ -152,7 +168,8 @@ def philippines_machine_rows(real):
             url=link["canonical_official_url"],
             published_date=link["publisher_posted_date"],
             summary="IPR synthetic machine explanation of %s for budget growth." % sid,
-            original_title=None, original_text=None))
+            original_title=PH_ORIGINAL_TITLE if original else None,
+            original_text=PH_ORIGINAL_TEXT if original else None))
     return rows
 
 
@@ -160,7 +177,8 @@ def fake_machine(db_path):
     real = _ORIGINAL_MACHINE(db_path)
     if not _PH_MACHINE_CACHE:
         _PH_MACHINE_CACHE.extend(philippines_machine_rows(real))
-    return sorted(real + [dict(r) for r in _PH_MACHINE_CACHE],
+    others = [r for r in real if r["desk_id"] != "philippines"]
+    return sorted(others + [dict(r) for r in _PH_MACHINE_CACHE],
                   key=lambda r: (r["published_date"], r["source_identity"]),
                   reverse=True)
 
@@ -528,7 +546,8 @@ class RenderedIndexTests(unittest.TestCase):
         sys.path.insert(0, str(ROOT / "scripts"))
         import verify_frontend_delivery as budget
         machine = [r for r in fake_machine(DB) if r["desk_id"] == "philippines"]
-        self.assertGreater(len(machine), PH_MACHINE_GROWTH)
+        # Only synthetic Philippines records: a Daily release cannot reorder them.
+        self.assertEqual(len(machine), PH_MACHINE_GROWTH)
         desk = self.read("philippines.html")
         # Only the newest five, in load() order, are listed on the desk.
         self.assertEqual(re.findall(r'data-machine-explanation-id="([^"]+)"', desk),
@@ -540,8 +559,18 @@ class RenderedIndexTests(unittest.TestCase):
         self.assertTrue(afp and nsc)
         self.assertEqual(afp + nsc, len(machine))
         originals = sum(bool(r["original_text"]) for r in machine)
-        self.assertTrue(originals)  # committed, now outside the newest five
+        self.assertEqual(originals, 1)
+        with_original = [i for i, r in enumerate(machine) if r["original_text"]]
+        self.assertTrue(with_original and min(with_original) >= 5, with_original)
         self.assertFalse(any(r["original_text"] for r in machine[:5]))
+        # The count covers a record the desk does not list; its Record and
+        # archive row still carry the original title and text.
+        self.assertNotIn(PH_ORIGINAL_TITLE, desk)
+        original_rec = machine[with_original[0]]
+        page = self.read(original_rec["record_path"])
+        self.assertIn(">%s</h1>" % PH_ORIGINAL_TITLE, page)
+        for paragraph in PH_ORIGINAL_TEXT.split("\n\n"):
+            self.assertIn(paragraph, page)
         self.assertIn('<dt>Machine explanations</dt><dd>%d <span class="meta">(AFP %d · NSC %d)'
                       % (len(machine), afp, nsc), desk)
         self.assertIn("<dt>Records with original text</dt><dd>%d</dd>" % originals, desk)
@@ -568,6 +597,8 @@ class RenderedIndexTests(unittest.TestCase):
             self.assertEqual(row["desks"], ["philippines"])
             self.assertEqual(row["record_type"], "machine_explanation")
             self.assertTrue((self.out / rec["record_path"]).is_file(), rec["record_path"])
+        self.assertEqual(rows["machine:" + original_rec["source_identity"]]["title"],
+                         PH_ORIGINAL_TITLE)
         self.assertEqual(budget.html_css_cap("philippines.html"), 120000)
         self.assertEqual(budget.verify(self.out, only=["philippines.html"])["failures"], [])
 
