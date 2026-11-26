@@ -350,8 +350,10 @@ class Definition(unittest.TestCase):
                          ("us-indopacific", False, "en"))
         self.assertTrue(_evidence_bound(profile))
         self.assertFalse(_fact_only(profile))
-        self.assertEqual((profile.prompt_version + "+" + profile.analysis_prompt_version,),
-                         SOURCES[FAMILY].prompt_versions)
+        # The profile emits the newest registered pair; earlier pairs stay
+        # admissible (tests/test_uscc_v2_name_discipline.py).
+        self.assertEqual(profile.prompt_version + "+" + profile.analysis_prompt_version,
+                         SOURCES[FAMILY].prompt_versions[0])
 
     def test_prompts_attribute_the_commission_and_disclaim_policy(self):
         from analysis import uscc_daily_prompts as prompts

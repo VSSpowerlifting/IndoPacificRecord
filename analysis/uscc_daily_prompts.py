@@ -16,8 +16,32 @@ import json
 
 from analysis.philippines_prompts import evidence_passages  # noqa: F401  (shared exact-excerpt IDs)
 
-VERSION = "us-uscc-relevance-v1+us-uscc-analysis-v1"
+VERSION = "us-uscc-relevance-v1+us-uscc-analysis-v2"
 RELEVANCE_VERSION, ANALYSIS_VERSION = VERSION.split("+")
+
+# v2 (prompt only; relevance and every quality check unchanged). All three v1
+# attempts held at daily_name_or_office_unsupported: the unchanged
+# single-passage token check exempts only the sentence openers The, According,
+# It and This plus USCC and the Commission's own name words, and the passages
+# write possessives with a typographic apostrophe, so an ASCII possessive
+# (People's, Commission's, USCC's) or another capitalized opener (During) is a
+# token the cited passage does not contain.
+NAME_DISCIPLINE = (
+    "Begin every sentence with exactly 'The USCC' or 'According to the USCC,' "
+    "and never with any other capitalized word (not During, On, In, After, "
+    "While or a name). Never write a possessive or any word with an "
+    "apostrophe: not for a name, an office, a country, the Commission or the "
+    "USCC (write the USCC delegation, never the USCC's delegation). If a name "
+    "in the passage contains an apostrophe, use a shorter accurate form whose "
+    "every word appears in that passage, or leave the name out. Every "
+    "capitalized word other than the sentence opener and USCC must appear, "
+    "spelled and capitalized exactly the same way, in the ONE passage you "
+    "cite for that sentence; never add a title, office, country, demonym or "
+    "month that passage does not contain. Never copy 12 or more consecutive "
+    "words of the source, counting every word of a name or office; reorder "
+    "and rephrase instead. Do not end a sentence with an abbreviation that "
+    "has its own period (such as U.S. or Jr.): rephrase so the sentence ends "
+    "on an ordinary word. ")
 
 # Commission institutional activity, not the defense taxonomy: a Commission
 # trip to China is not military diplomacy and an appointment is not personnel
@@ -89,7 +113,7 @@ def analysis_messages(title, body):
         "invent novelty, intent or strategic importance. No direct quotations, "
         "copied publisher sentences or sequences of 12 source words. "
         "Independently rephrase facts. Keep numerical quantities and date ranges "
-        "exactly as written. Avoid unsupported negative claims. "
+        "exactly as written. Avoid unsupported negative claims. " + NAME_DISCIPLINE +
         "Flag only substantive developments. If flagged, briefly restate one "
         "supported summary fact with explicit attribution and its passage ID. "
         "Summary plus flag_reason above 90 words is rejected outright. "
