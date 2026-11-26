@@ -646,7 +646,11 @@ SOURCES: Dict[str, DailySource] = {s.family: s for s in (
         language="en", label="USCC",
         publisher="U.S.-China Economic and Security Review Commission",
         public_issuer="U.S.-China Economic and Security Review Commission",
-        prompt_versions=("us-uscc-relevance-v1+us-uscc-analysis-v1",),
+        # v2 is what the processor now emits (prompt-only: sentence openers,
+        # no possessives); v1 stays admissible for any output signed before
+        # the switch (none passed factual QA).
+        prompt_versions=("us-uscc-relevance-v1+us-uscc-analysis-v2",
+                         "us-uscc-relevance-v1+us-uscc-analysis-v1"),
         identity_max_length=140,
         links="core.daily_sources:_uscc_links",
         approved_input="core.daily_sources:_uscc_approved_input",
