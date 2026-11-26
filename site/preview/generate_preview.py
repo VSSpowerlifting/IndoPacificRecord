@@ -2669,6 +2669,24 @@ def compact_indonesia_admitted(page, expected):
     return re.sub(r"(?m)^[ \t]+", "", page)
 
 
+def strip_flow_indentation(page):
+    """Drop leading indentation from every line; keep the newlines.
+
+    Used for the bounded Philippines desk page, which has no <pre> or
+    <textarea>; newlines remain, so adjacent words and inline elements keep
+    their spacing and the rendered page is unchanged.
+    """
+    if re.search(r"<(pre|textarea)\b", page):
+        raise ValueError("indentation is significant in this page")
+    return re.sub(r"(?m)^[ \t]+", "", page)
+
+
+# Each index's pages load the same support stylesheet as its desk page.
+INDEX_SUPPORT_STYLESHEETS = {"indonesia": "indonesia-shell.css",
+                             "korea": "korea-shell.css",
+                             "philippines": "support.css"}
+
+
 def render_official_link_index(env, desk, rows, **ctx):
     """{route: html} for a desk's official-link hub and month pages.
 
@@ -2687,9 +2705,7 @@ def render_official_link_index(env, desk, rows, **ctx):
     common = dict(ctx, desk=desk, index_desk=desk.slug, index_hub=hub,
                   index_total=len(rows),
                   index_shown=min(len(rows), oli.DESK_LINK_LIMIT),
-                  support_stylesheet=("indonesia-shell.css"
-                                      if desk.slug == "indonesia"
-                                      else "korea-shell.css"))
+                  support_stylesheet=INDEX_SUPPORT_STYLESHEETS[desk.slug])
     pages = {hub: tmpl.render(page=hub, nested=False, index_kind="hub",
                               index_months=entries, **common)}
     for position, (month, items) in enumerate(months):
@@ -3602,20 +3618,20 @@ def build(out_dir: Path, title: str, db_path: Path,
         desk_korea_auto_links = (korea_auto_official_rows
                                  if desk.slug == "korea" else [])
         index_rows = None
-        if desk.slug == "indonesia":
+        if desk.slug in ("indonesia", "philippines"):
             index_rows = regional_official_links
         elif desk.slug == "korea" and not review_korea:
             index_rows = korea_auto_official_rows
-        official_link_index = None
-        if index_rows:
+        official_link_index = official_link_index_mod.desk_context(desk.slug, index_rows)
+        if official_link_index:
             shown = official_link_index_mod.latest(desk.slug, index_rows)
-            official_link_index = {
-                "total": len(index_rows), "shown": len(shown),
-                "hub": official_link_index_mod.hub_route(desk.slug)}
             if desk.slug == "indonesia":
                 desk_regional_links = shown
-            else:
+            elif desk.slug == "korea":
                 desk_korea_auto_links = shown
+            # Philippines: the desk's counts stay totals
+            # (regional_official_links); the template lists only the bounded
+            # rows in official_link_index["groups"], grouped AFP then NSC.
         desk_page = desk_tmpl.render(page=desk.route, desk=desk, locator=locator_view(desk.slug),
                              support_stylesheet=("indonesia-shell.css"
                                  if desk.slug == "indonesia" else
@@ -3647,6 +3663,8 @@ def build(out_dir: Path, title: str, db_path: Path,
                                  desk, source_views), **ctx)
         if desk.slug == "indonesia" and desk_regional_links:
             desk_page = compact_indonesia_admitted(desk_page, len(desk_regional_links))
+        elif desk.slug == "philippines" and official_link_index:
+            desk_page = strip_flow_indentation(desk_page)
         (out_dir / desk.route).write_text(desk_page, encoding="utf-8")
         written.append(desk.route)
         if desk.slug in official_link_index_mod.INDEX_DESKS and not (

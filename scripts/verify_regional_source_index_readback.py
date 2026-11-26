@@ -207,7 +207,8 @@ class OfficialLinkHubParser(HTMLParser):
 
 
 # The source URL each index desk's month pages link out to, per admitted row.
-INDEX_URL_KEY = {"indonesia": "canonical_official_url", "korea": "source_url"}
+INDEX_URL_KEY = {"indonesia": "canonical_official_url", "korea": "source_url",
+                 "philippines": "canonical_official_url"}
 _SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 
 
@@ -324,8 +325,13 @@ def index_partition(desk, rows):
 
 
 def latest_rows(desk, rows):
+    """The rows the desk page lists, in its display order.
+
+    The newest DESK_LINK_LIMIT rows in DB order; a desk with publisher groups
+    (Philippines: AFP, then NSC) lists those same rows group by group.
+    """
     try:
-        return link_index.latest(desk, rows)
+        return link_index.desk_listing(desk, rows)
     except link_index.IndexHold:
         raise ReadbackHold("admitted_rows_not_indexable_by_official_date") from None
 
@@ -500,7 +506,8 @@ def verify(db_path, site_dir, *, pages_dir=None, require_records=False,
         index = None
         if desk in link_index.INDEX_DESKS:
             # The desk page lists exactly the newest DESK_LINK_LIMIT rows in
-            # DB order; the hub and month pages carry every admitted row.
+            # DB order (grouped by publisher where the desk declares groups);
+            # the hub and month pages carry every admitted row in DB order.
             shown = latest_rows(desk, expected)
             validate_page(html, shown, explanations=explanations, ordered=True)
             if expected:

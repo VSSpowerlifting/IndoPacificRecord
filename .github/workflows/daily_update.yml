@@ -726,6 +726,10 @@ jobs:
           if [ -e output/indonesia-official-links.html ]; then
             deployed_routes+=(indonesia-official-links.html indonesia-official-links)
           fi
+          # Likewise the bounded Philippines desk and its full index.
+          if [ -e output/philippines-official-links.html ]; then
+            deployed_routes+=(philippines-official-links.html philippines-official-links)
+          fi
           git archive origin/gh-pages "${deployed_routes[@]}" | tar -x -C "$vietnam_pages"
           python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
             --site-dir output --deployed-dir "$vietnam_pages" --require-desk vietnam

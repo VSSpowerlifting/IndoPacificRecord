@@ -18,6 +18,7 @@ from pathlib import Path
 
 from core.daily_machine_records import load as load_machine_records
 from core.desk_registry import RegistryError, load_registry
+from core.official_link_index import desk_listing
 from core.regional_official_link_render import load_admitted_links
 from scripts.verify_regional_source_index_readback import validate_page
 from tests.test_desk_rollout_contract import REPO_ROOT, TRACKED_DB, DeskCase
@@ -96,12 +97,15 @@ class PhilippinesPublicPages(DeskCase):
         nsc = [r for r in links if r["publisher_label"] == "National Security Council"]
         self.assertTrue(afp and nsc)
         self.assertEqual(len(links), len(afp) + len(nsc))
-        self.assertEqual(set(re.findall(r'data-regional-official-source-id="([^"]+)"', page)),
-                         {r["source_identity"] for r in links})
-        self.assertEqual(page.count("data-regional-official-source-id="), len(links))
+        # The desk lists the newest DESK_LINK_LIMIT, grouped AFP then NSC; the
+        # full index by month carries every admitted link exactly once.
+        shown = self.assertPhilippinesLinksReachableOnce(page, links)
+        listed = desk_listing("philippines", links)
+        self.assertEqual(page.count("data-regional-official-source-id="), len(shown))
+        # Group headings keep the admitted totals, not the listed subset.
         self.assertIn('id="ph-afp-links">Armed Forces of the Philippines · %d links' % len(afp), page)
         self.assertIn('id="ph-nsc-links">National Security Council · %d link<' % len(nsc), page)
-        self.assertEqual(validate_page(page, links), len(links))
+        self.assertEqual(validate_page(page, listed, ordered=True), len(listed))
 
     def test_summary_counts_come_from_their_own_tables_and_never_enter_corpus(self):
         page = self.page("philippines.html")
@@ -113,21 +117,61 @@ class PhilippinesPublicPages(DeskCase):
         self.assertIn("<dt>Records with original text</dt><dd>%s</dd>" % (originals or "None yet"), page)
         self.assertNotIn('href="archive.html?desk=philippines"', page)
 
-    def test_every_released_machine_explanation_is_listed_with_its_labels(self):
+    def test_latest_machine_explanations_are_listed_and_all_are_reachable(self):
         page = self.page("philippines.html")
         machine = self.machine()
         self.assertTrue(machine)
-        for rec in machine:
+        # The desk lists the newest five in load() order; counts stay totals.
+        shown_machine = machine[:5]
+        self.assertEqual(re.findall(r'data-machine-explanation-id="([^"]+)"', page),
+                         [rec["source_identity"] for rec in shown_machine])
+        for rec in shown_machine:
             with self.subTest(record=rec["source_identity"]):
-                self.assertIn('data-machine-explanation-id="%s"' % rec["source_identity"], page)
                 self.assertIn(rec["summary"], page)
                 self.assertIn('href="%s"' % rec["record_path"], page)
-                self.assertIn("Machine explanation", page)
+        for rec in machine[5:]:
+            with self.subTest(unlisted=rec["source_identity"]):
+                self.assertNotIn('data-machine-explanation-id="%s"' % rec["source_identity"], page)
+        self.assertIn("Machine explanation", page)
         self.assertIn("not human-reviewed", page)
-        self.assertEqual(page.count("data-machine-explanation-id="), len(machine))
-        # A link whose machine explanation exists says so; the row keeps exactly
-        # one outbound anchor so the readback gate still parses it.
-        self.assertEqual(page.count("Machine explanation published above"), len(machine))
+        self.assertIn('href="#daily-machine-heading">Machine explanations (%d)</a>'
+                      % len(machine), page)
+        self.assertEqual(page.count(
+            '<a href="archive.html?desk=philippines&amp;scope=published">'
+            'Browse all %d Philippines machine explanations</a>' % len(machine)), 1)
+        # Every released record, listed or not, is in the published archive
+        # search that link opens (desk and record type both match). Read from
+        # this build, not committed output, so newly released records count.
+        archive = json.loads(self.page("archive-research-index.json"))
+        rows = {r["id"]: r for r in archive["records"]}
+        for rec in machine:
+            with self.subTest(archive=rec["source_identity"]):
+                row = rows.get("machine:" + rec["source_identity"])
+                self.assertIsNotNone(row)
+                self.assertIn("philippines", row["desks"])
+                self.assertEqual(row["record_type"], "machine_explanation")
+                self.assertEqual(row["ipr_url"],
+                                 "https://indopacificrecord.org/" + rec["record_path"])
+        # A listed link whose machine explanation is listed above says so; one
+        # whose explanation is older points to the archive instead. The row
+        # keeps exactly one outbound anchor so the readback gate still parses it.
+        shown = {r["source_identity"]
+                 for r in desk_listing("philippines", self.admitted())}
+        above = {rec["source_identity"] for rec in shown_machine}
+        explained_rows = [rec for rec in machine if rec["source_identity"] in shown]
+        self.assertEqual(page.count("Machine explanation published above"),
+                         sum(rec["source_identity"] in above for rec in explained_rows))
+        self.assertEqual(page.count("Machine explanation in the published archive"),
+                         sum(rec["source_identity"] not in above for rec in explained_rows))
+        for rec in explained_rows:
+            with self.subTest(listed=rec["source_identity"]):
+                row = re.search(r'<li data-regional-official-source-id="%s">.*?</li>'
+                                % re.escape(rec["source_identity"]), page, re.S)
+                self.assertIsNotNone(row)
+                self.assertIn("Machine explanation published above"
+                              if rec["source_identity"] in above
+                              else "Machine explanation in the published archive",
+                              row.group(0))
 
     def test_other_desks_machine_explanations_are_not_listed(self):
         page = self.page("philippines.html")

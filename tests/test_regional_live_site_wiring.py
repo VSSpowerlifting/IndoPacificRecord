@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import sqlite3
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -13,6 +14,7 @@ from types import SimpleNamespace
 
 from jinja2 import Environment, FileSystemLoader
 
+from core import official_link_index
 from core.regional_official_link_release import SCHEMA_SQL
 from core.regional_official_link_render import (
     RegionalRenderHold, load_admitted_links,
@@ -37,17 +39,40 @@ def desk(slug):
     )
 
 
-def html_for(slug, references):
+def template_env():
     from tests.preview_filters import with_filters
-    env = with_filters(Environment(loader=FileSystemLoader(
+    return with_filters(Environment(loader=FileSystemLoader(
         str(ROOT / "site" / "preview" / "templates")),
         autoescape=True, trim_blocks=True, lstrip_blocks=True))
+
+
+def index_pages_for(slug, references):
+    """{route: html} for the bounded desk's full official-link index, rendered
+    by the production renderer exactly as build() writes it.
+
+    generate_preview loads config (and dotenv), so it is imported here, not
+    at module level: the source-free wiring job installs only jinja2 and never
+    calls this helper.
+    """
+    sys.path.insert(0, str(ROOT / "site" / "preview"))
+    import generate_preview as gp
+    return gp.render_official_link_index(
+        template_env(), desk(slug), references, title="Indo-Pacific Record",
+        maintainer=SimpleNamespace(name="Example Maintainer",
+                                   email="staff@example.invalid"))
+
+
+def html_for(slug, references):
+    env = template_env()
     return env.get_template("desk.html").render(
         title="Indo-Pacific Record", page=slug + ".html",
         desk=desk(slug),
         maintainer=SimpleNamespace(name="Example Maintainer",
                                    email="staff@example.invalid"),
         regional_official_links=references,
+        official_link_index=(official_link_index.desk_context(slug, references)
+                             if slug in official_link_index.INDEX_DESKS
+                             else None),
         public_source_links=[],
         published_research=[],
         public_source_options=[],

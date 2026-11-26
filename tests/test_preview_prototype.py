@@ -7054,7 +7054,8 @@ class TestStop4RoutesAreIntact(PreviewCase):
             load_admitted_links as regional_admitted)
         index_months = set()
         for desk, rows in (("indonesia", regional_admitted(TRACKED_DB, "indonesia")),
-                           ("korea", korea_index_rows(TRACKED_DB))):
+                           ("korea", korea_index_rows(TRACKED_DB)),
+                           ("philippines", regional_admitted(TRACKED_DB, "philippines"))):
             expected = {r for r in link_index.index_routes(desk, rows) if "/" in r}
             folder = self.out / link_index.month_dir(desk)
             built = ({link_index.month_dir(desk) + "/" + q.name
