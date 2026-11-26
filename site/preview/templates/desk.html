@@ -313,11 +313,21 @@
   <p><a href="archive.html?desk=us-indopacific&amp;scope=published">Browse all {{ daily_machine_records | length }} U.S. machine explanations</a></p>
 </section>
 {% endif %}
+{# Only the newest five explanations are listed above; a listed USCC link
+   whose explanation is not among them points to the published archive. #}
 {% set uscc_explained = daily_machine_records | default([]) | map(attribute='source_identity') | list %}
+{% set uscc_explained_shown = (daily_machine_records | default([]))[:5] | map(attribute='source_identity') | list %}
 
 {# The first genuine recurring U.S. metadata source is a congressional commission,
    NOT PACOM, DVIDS or an IPR-authored article. These rows come from a typed
-   admitted production SQLite table, never an unverified HTML scraper output. #}
+   admitted production SQLite table, never an unverified HTML scraper output.
+   The desk lists only the newest GROUP_LINK_LIMITS rows of each U.S.
+   publisher (USCC, Treasury, BIS); counts elsewhere stay totals and the full
+   index by month carries every admitted row. Each section looks up its own
+   group, so it also renders alone; without an index context (a
+   template-only render) a section lists the rows it is given. #}
+{% set uscc_group = ((official_link_index.groups | selectattr('id', 'equalto', 'uscc-official-links') | first)
+   if desk.slug == 'us-indopacific' and (official_link_index | default(none)) else none) %}
 {% if desk.slug == 'us-indopacific' and uscc_official_links | default([]) %}
 <section class="desk-references uscc-source-links" aria-labelledby="uscc-official-links-heading">
   <p class="eyebrow">Automatically collected · official URL and date metadata</p>
@@ -330,13 +340,16 @@
     headlines, article text, documents, photographs and translations are
     not republished here.</p>
   <ol class="desk-reference-list" aria-label="Collected USCC official metadata records">
-    {% for ref in uscc_official_links %}
+    {% for ref in (uscc_group.rows if uscc_group else uscc_official_links) %}
     <li data-uscc-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
-      <p class="meta">Issuer: U.S.-China Economic and Security Review Commission · Official publication date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Official link metadata only{% if desk.slug == 'us-indopacific' and ref.source_identity in uscc_explained %} · <span class="evidence evidence--model">Machine explanation published above</span>{% endif %}</p>
+      <p class="meta">Issuer: U.S.-China Economic and Security Review Commission · Official publication date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Official link metadata only{% if desk.slug == 'us-indopacific' and ref.source_identity in uscc_explained_shown %} · <span class="evidence evidence--model">Machine explanation published above</span>{% elif desk.slug == 'us-indopacific' and ref.source_identity in uscc_explained %} · <span class="evidence evidence--model">Machine explanation in the published archive</span>{% endif %}</p>
     </li>
     {% endfor %}
   </ol>
+  {% if uscc_group %}
+  <p class="meta" data-official-link-group="{{ uscc_group.id }}" data-official-link-index-note="{{ uscc_group.rows | length }}/{{ uscc_group.total }}">{% if uscc_group.older %}Showing the latest {{ uscc_group.rows | length }} of {{ uscc_group.total }} USCC links; older links continue in the full index, from <a href="{{ uscc_group.older.route }}">{{ uscc_group.older.label }}</a>. {% endif %}<a href="{{ official_link_index.hub }}">Browse all {{ official_link_index.total }} U.S. official links by month</a></p>
+  {% endif %}
   <p class="meta">The collecting feed covers its observed first-party listing,
     not an exhaustive historical archive. Official publisher content remains on
     the source website; changes or access errors may interrupt new collection.
@@ -347,6 +360,8 @@
 
 {# Executive Treasury press metadata: different issuer from USCC or PACOM.
    Read only from verified production SQLite metadata, not press article bodies. #}
+{% set treasury_group = ((official_link_index.groups | selectattr('id', 'equalto', 'us-treasury-official-links') | first)
+   if desk.slug == 'us-indopacific' and (official_link_index | default(none)) else none) %}
 {% if desk.slug == 'us-indopacific' and us_treasury_official_links | default([]) %}
 <section class="desk-references us-treasury-source-links" aria-labelledby="us-treasury-official-links-heading">
   <p class="eyebrow">Automatically collected · official executive-department link metadata</p>
@@ -359,13 +374,16 @@
     independently verify claims, or constitute IPR original analysis. Original
     release text, headlines, documents and media are not rehosted.</p>
   <ol class="desk-reference-list" aria-label="Collected Treasury government source metadata">
-    {% for ref in us_treasury_official_links %}
+    {% for ref in (treasury_group.rows if treasury_group else us_treasury_official_links) %}
     <li data-us-treasury-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
       <p class="meta">Issuer: U.S. Department of the Treasury · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · First-party link metadata only</p>
     </li>
     {% endfor %}
   </ol>
+  {% if treasury_group %}
+  <p class="meta" data-official-link-group="{{ treasury_group.id }}" data-official-link-index-note="{{ treasury_group.rows | length }}/{{ treasury_group.total }}">{% if treasury_group.older %}Showing the latest {{ treasury_group.rows | length }} of {{ treasury_group.total }} Treasury links; older links continue in the full index, from <a href="{{ treasury_group.older.route }}">{{ treasury_group.older.label }}</a>. {% endif %}<a href="{{ official_link_index.hub }}">Browse all {{ official_link_index.total }} U.S. official links by month</a></p>
+  {% endif %}
   <p class="meta">This is not a comprehensive historical archive. Observed listing
     metadata are preserved in a separate production table; new collection may stop
     if publisher access or page structure changes. These entries are not counted
@@ -376,6 +394,8 @@
 {# Commerce/BIS links: only genuine-schedule-attested typed production metadata.
    Missing or unverified BIS tables render nothing, without any shadow fallback.
    Never count these as original-source article records or curated analysis. #}
+{% set bis_group = ((official_link_index.groups | selectattr('id', 'equalto', 'us-bis-official-links') | first)
+   if desk.slug == 'us-indopacific' and (official_link_index | default(none)) else none) %}
 {% if desk.slug == 'us-indopacific' and us_bis_authenticated_links | default([]) %}
 <section class="desk-references us-bis-source-links" aria-labelledby="us-bis-official-links-heading">
   <p class="eyebrow">Automatically collected · first-party official link metadata</p>
@@ -387,13 +407,16 @@
     the publisher's claims, or represent IPR-authored analysis. Original
     release headlines, article bodies, files and photographs are not copied.</p>
   <ol class="desk-reference-list" aria-label="Collected Commerce BIS official press metadata">
-    {% for ref in us_bis_authenticated_links %}
+    {% for ref in (bis_group.rows if bis_group else us_bis_authenticated_links) %}
     <li data-us-bis-official-link="{{ ref.source_identity }}">
       <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
       <p class="meta">Issuer: U.S. Department of Commerce · Bureau of Industry and Security · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Outbound official link metadata only</p>
     </li>
     {% endfor %}
   </ol>
+  {% if bis_group %}
+  <p class="meta" data-official-link-group="{{ bis_group.id }}" data-official-link-index-note="{{ bis_group.rows | length }}/{{ bis_group.total }}">{% if bis_group.older %}Showing the latest {{ bis_group.rows | length }} of {{ bis_group.total }} BIS links; older links continue in the full index, from <a href="{{ bis_group.older.route }}">{{ bis_group.older.label }}</a>. {% endif %}<a href="{{ official_link_index.hub }}">Browse all {{ official_link_index.total }} U.S. official links by month</a></p>
+  {% endif %}
   <p class="meta">These reference links are separate from IPR's original-document
     corpus and do not add article records or analysis. BIS access may change.
     PACOM remains access-blocked; the DVIDS media-service feed remains paused.</p>

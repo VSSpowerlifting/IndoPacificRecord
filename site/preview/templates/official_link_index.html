@@ -16,6 +16,12 @@
   <p class="lede">All {{ index_total }} admitted official-link metadata
   {{ 'record' if index_total == 1 else 'records' }}, grouped by the month of
   the official date.
+  {% elif index_desk == 'us-indopacific' %}
+  <p class="lede">All {{ index_total }} admitted official-link metadata
+  {{ 'record' if index_total == 1 else 'records' }} from the U.S.-China
+  Economic and Security Review Commission, the U.S. Department of the Treasury
+  and the Commerce Bureau of Industry and Security, grouped by the month of the
+  publisher date.
   {% else %}
   <p class="lede">All {{ index_total }} automatically admitted official
   {{ 'link' if index_total == 1 else 'links' }} not already listed among the
@@ -23,7 +29,7 @@
   the portal posting date.
   {% endif %}
   The <a href="{{ root }}{{ desk.route }}">desk page</a> lists
-  {{ 'the latest %d' % index_shown if index_shown < index_total else 'all of them' }}.</p>
+  {{ ('the latest %d from each publisher' % index_group_limit) if index_group_limit and index_shown < index_total else ('the latest %d' % index_shown if index_shown < index_total else 'all of them') }}.</p>
 </header>
 <section class="desk-references" aria-labelledby="official-link-months-title">
   <h2 id="official-link-months-title">Months</h2>
@@ -68,7 +74,42 @@
   <p class="meta">Article bodies, photos, document files, translations and
   automatic analysis are excluded. Held records cannot appear in this index.</p>
 </section>
-{% else %}
+{% elif index_desk == 'us-indopacific' %}
+{# Each row keeps its own publisher's marker, issuer, date label and
+   metadata-only wording, exactly as on the desk page (without the desk's
+   machine-explanation badge). #}
+<section class="desk-references us-official-link-index" aria-labelledby="us-official-links-title">
+  <p class="eyebrow">Automatically collected · official URL, date and issuer metadata</p>
+  <h2 id="us-official-links-title">U.S. official link metadata — USCC, Treasury and BIS</h2>
+  <p>Verified links to releases by a U.S. congressional commission and two
+  federal executive agencies, admitted into the IPR metadata database. They are
+  not U.S. Pacific Command statements, do not establish Indo-Pacific relevance
+  or independently verify the publisher's claims, and are not IPR analysis.</p>
+  <ol class="desk-reference-list" aria-label="Admitted U.S. official link metadata">
+    {% for ref in index_rows %}
+    {% if ref.publisher_label == 'U.S.-China Economic and Security Review Commission' %}
+    <li data-uscc-official-link="{{ ref.source_identity }}">
+      <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
+      <p class="meta">Issuer: U.S.-China Economic and Security Review Commission · Official publication date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Official link metadata only</p>
+    </li>
+    {% elif ref.publisher_label == 'U.S. Department of the Treasury' %}
+    <li data-us-treasury-official-link="{{ ref.source_identity }}">
+      <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
+      <p class="meta">Issuer: U.S. Department of the Treasury · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · First-party link metadata only</p>
+    </li>
+    {% elif ref.publisher_label == 'U.S. Department of Commerce · Bureau of Industry and Security' %}
+    <li data-us-bis-official-link="{{ ref.source_identity }}">
+      <h3><a href="{{ ref.source_url }}" target="_blank" rel="noopener noreferrer">{{ ref.neutral_label }}</a></h3>
+      <p class="meta">Issuer: U.S. Department of Commerce · Bureau of Industry and Security · Publisher date <time datetime="{{ ref.published_date }}">{{ ref.published_date }}</time> · Outbound official link metadata only</p>
+    </li>
+    {% endif %}
+    {% endfor %}
+  </ol>
+  <p class="meta">Original release headlines, article text, documents,
+  photographs and translations are not republished. Held records cannot appear
+  in this index.</p>
+</section>
+{% elif index_desk == 'korea' %}
 <section class="korea-automatically-admitted-official-links" aria-labelledby="korea-auto-official-title">
   <p class="eyebrow">Continuously collected · official government links only</p>
   <h2 id="korea-auto-official-title">Verified Korean government references</h2>

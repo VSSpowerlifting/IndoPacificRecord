@@ -44,7 +44,13 @@ class VerifiedBISPublicationContracts(unittest.TestCase):
         self.assertIn("group: daily-update",self.wf)
         self.assertIn("git add -- pla_watch.db output/us-indopacific.html",self.wf)
         self.assertIn("cp ../output/us-indopacific.html us-indopacific.html",self.wf)
-        self.assertIn("test \"$changed\" = \"us-indopacific.html\"",self.wf)
+        # Pages may receive only the desk and the full U.S. official-link
+        # index routes (hub and month pages), each staged by name.
+        self.assertIn("grep -vE '^(us-indopacific\\.html|us-indopacific-official-links\\.html|"
+                      "us-indopacific-official-links/[0-9]{4}-[0-9]{2}\\.html)$'",self.wf)
+        self.assertIn("grep -vE '^(pla_watch\\.db|output/us-indopacific\\.html|"
+                      "output/us-indopacific-official-links\\.html|"
+                      "output/us-indopacific-official-links/[0-9]{4}-[0-9]{2}\\.html|)$'",self.wf)
         self.assertIn("git push origin HEAD:refs/heads/gh-pages",self.wf)
         self.assertIn("source-free-release-contracts:",self.wf)
         self.assertIn("genuine-scheduled-source-only:",self.wf)
@@ -61,7 +67,27 @@ class VerifiedBISPublicationContracts(unittest.TestCase):
         self.assertIn("load_public_links",self.wf)
         self.assertIn("PACOM remains access-blocked",self.wf)
         self.assertIn("DVIDS paused",self.wf)
-        self.assertIn("sha256sum output/us-indopacific.html",self.wf)
+        self.assertIn('while read -r route; do sha256sum "output/$route"; done',self.wf)
+
+    def test_bounded_desk_and_full_index_are_gated_before_staging(self):
+        # The desk lists the newest BIS rows only; every admitted U.S. link is
+        # read back on the desk or the index, and every route the DB requires
+        # passes the 120 KB delivery gate before anything is staged.
+        self.assertIn('shown=group_latest("us-indopacific",rows)',self.wf)
+        self.assertIn("assert len(links)==len(shown)",self.wf)
+        verify=self.wf.index("python -m scripts.verify_us_official_link_index --db pla_watch.db \\\n"
+                             "            --site-dir output")
+        routes=self.wf.index('--print-routes > "$RUNNER_TEMP/us-routes"')
+        gate=self.wf.index('--receipt "$RUNNER_TEMP/bis-budget.json" "${only[@]}"')
+        stage=self.wf.index("git add -- pla_watch.db output/us-indopacific.html")
+        self.assertLess(verify,routes)
+        self.assertLess(routes,gate)
+        self.assertLess(gate,stage)
+        self.assertIn('test "$(head -n 1 "$RUNNER_TEMP/us-routes")" = "us-indopacific.html"',self.wf)
+        self.assertIn('while read -r route; do git add -- "output/$route"; done < "$RUNNER_TEMP/us-routes"',self.wf)
+        self.assertIn("rm -rf us-indopacific-official-links.html us-indopacific-official-links",self.wf)
+        self.assertIn("cp -R ../output/us-indopacific-official-links us-indopacific-official-links",self.wf)
+        self.assertIn('while read -r route; do cmp "../output/$route" "$route"; done',self.wf)
 
     def test_source_branch_and_main_locks_precede_both_pushes(self):
         self.assertIn("bis-source-before.sha",self.wf)

@@ -1,7 +1,8 @@
-"""Bounded Indonesia/Korea/Philippines desk lists and full official-link indexes.
+"""Bounded Indonesia/Korea/Philippines/U.S. desk lists and full official-link indexes.
 
-The desk pages list the newest DESK_LINK_LIMIT admitted rows; a hub and one
-page per publisher-posted month carry every admitted row exactly once. These
+The desk pages list the newest DESK_LINK_LIMIT admitted rows (the U.S. desk:
+the newest GROUP_LINK_LIMITS of each publisher); a hub and one page per
+publisher-posted month carry every admitted row exactly once. These
 tests build a real site from the production database with synthetic admitted
 rows layered over the loaders (no DB writes), then prove the renderer, the
 local/deployed/HTTPS readbacks, the pre-commit budget gate and the writer
@@ -27,7 +28,12 @@ from core import daily_machine_records as machine_records
 from core import official_link_index as link_index
 from core import korea_official_live_links as korea_live
 from core import regional_official_link_render as regional_render
+from core import us_bis_authenticated_metadata as bis_meta
+from core import us_treasury_official_metadata as treasury_meta
+from core import uscc_official_metadata as uscc_meta
 import scripts.verify_korea_official_link_index as korea_readback
+import scripts.verify_us_bis_deployed_metadata as bis_readback
+import scripts.verify_us_official_link_index as us_readback
 import scripts.verify_regional_source_index_readback as readback
 from scripts.verify_regional_source_index_readback import ReadbackHold
 
@@ -121,6 +127,81 @@ def korea_synthetic_rows():
     } for i in range(link_index.DESK_LINK_LIMIT + 1)]
 
 
+US_DESK = "us-indopacific"
+# 200 synthetic rows per U.S. publisher, 20 a month over ten months: twenty
+# times the 10-row desk bound, far past every real publisher's history. A
+# month carries 60 rows (the busiest real month, November 2026, had 26 by the
+# 26th). Slugs are longer than the real USCC, Treasury and
+# BIS averages, so desk and month pages measure a pessimistic row size.
+US_GROWTH_ROWS = 200
+US_ROWS_PER_MONTH = 20
+US_PUBLISHERS = (
+    ("uscc-press:", "https://www.uscc.gov/press-releases/", "USCC official press reference"),
+    ("us-treasury-press:", "https://home.treasury.gov/news/press-releases/",
+     "U.S. Treasury official press reference"),
+    ("us-bis-homepage-press:", "https://www.bis.gov/press-release/",
+     "BIS official press reference"))
+
+
+def us_rows(prefix, base, label):
+    """One publisher's synthetic rows in its loader's newest-first order."""
+    rows = []
+    for i in range(US_GROWTH_ROWS):
+        year, month0 = divmod(2026 * 12 + 10 - i // US_ROWS_PER_MONTH, 12)
+        day = "%04d-%02d-%02d" % (year, month0 + 1, 28 - i % US_ROWS_PER_MONTH)
+        slug = ("ipr-synthetic-growth-row-%03d-a-long-official-announcement-slug-"
+                "for-us-desk-budget-headroom" % i)
+        rows.append({"source_identity": prefix + slug, "source_url": base + slug,
+                     "published_date": day, "neutral_label": "%s · %s" % (label, day)})
+    return rows
+
+
+US_GROUP_ROWS = tuple(us_rows(*publisher) for publisher in US_PUBLISHERS)
+US_ROWS = link_index.merge_groups(US_DESK, US_GROUP_ROWS)
+# Ten released USCC machine explanations bound to the ten newest synthetic
+# USCC links. They REPLACE any committed U.S. records, as the synthetic rows
+# replace the three U.S. loaders, so a Daily USCC release cannot change the
+# desk. The desk lists the newest five; every listed USCC row carries a badge
+# (five "published above", five "in the published archive"). Each summary has
+# the 90-word maximum english_official_quality admits, in long words.
+US_MACHINE_GROWTH = 10
+US_SUMMARY_WORDS = 90
+_US_MACHINE_CACHE = []
+
+
+def us_machine_rows(real):
+    """Synthetic USCC records cloned from a committed record, load() fields.
+
+    A committed USCC record is the template when one exists, else any
+    committed record: desk, family, identity, URL, date, summary and original
+    fields are all overwritten here."""
+    template = next((r for r in real if r["source_family"] == "us_uscc_press_en"), real[0])
+    rows = []
+    for i, link in enumerate(US_GROUP_ROWS[0][:US_MACHINE_GROWTH]):
+        sid = link["source_identity"]
+        words = ("IPR synthetic USCC machine explanation %d for the U.S. desk growth test."
+                 % i).split()
+        summary = " ".join(words + ["Indo-Pacific"] * (US_SUMMARY_WORDS - len(words)))
+        rows.append(dict(
+            template, desk_id=US_DESK, source_family="us_uscc_press_en", source_label="USCC",
+            publisher="U.S.-China Economic and Security Review Commission",
+            issuer="U.S.-China Economic and Security Review Commission",
+            prompt_version="us-uscc-relevance-v1+us-uscc-analysis-v2",
+            source_identity=sid,
+            record_path="record/source-" + hashlib.sha256(
+                ("us_uscc_press_en:" + sid).encode()).hexdigest()[:24] + ".html",
+            url=link["source_url"], published_date=link["published_date"],
+            summary=summary, model_flagged=False, flag_reason=None,
+            original_title=None, original_text=None))
+    return rows
+
+
+def us_loader(index):
+    def load(db_path):
+        return [dict(r) for r in US_GROUP_ROWS[index]]
+    return load
+
+
 ID_ROWS = indonesia_rows()
 PH_ROWS = philippines_rows()
 KOREA_EXTRA = korea_synthetic_rows()
@@ -177,8 +258,10 @@ def fake_machine(db_path):
     real = _ORIGINAL_MACHINE(db_path)
     if not _PH_MACHINE_CACHE:
         _PH_MACHINE_CACHE.extend(philippines_machine_rows(real))
-    others = [r for r in real if r["desk_id"] != "philippines"]
-    return sorted(others + [dict(r) for r in _PH_MACHINE_CACHE],
+    if not _US_MACHINE_CACHE:
+        _US_MACHINE_CACHE.extend(us_machine_rows(real))
+    others = [r for r in real if r["desk_id"] not in ("philippines", US_DESK)]
+    return sorted(others + [dict(r) for r in _PH_MACHINE_CACHE + _US_MACHINE_CACHE],
                   key=lambda r: (r["published_date"], r["source_identity"]),
                   reverse=True)
 
@@ -324,7 +407,63 @@ class CoreIndexTests(unittest.TestCase):
         self.assertEqual([g["older"] for g in few], [None, None])
         self.assertEqual(few[1]["total"], 0)
 
-    def test_desk_context_is_pure_and_groups_only_philippines(self):
+    def test_us_groups_bound_each_publisher_and_merge_newest_first(self):
+        uscc, treasury, bis = US_GROUP_ROWS
+        limit = link_index.GROUP_LINK_LIMITS[US_DESK]
+        self.assertEqual(limit, 10)
+        self.assertEqual(link_index.group_latest(US_DESK, uscc), uscc[:limit])
+        with self.assertRaises(link_index.IndexHold):
+            link_index.group_latest("philippines", PH_ROWS)
+        labels = [label for _anchor, label in link_index.DESK_GROUPS[US_DESK]]
+        merged = link_index.merge_groups(US_DESK, US_GROUP_ROWS)
+        self.assertEqual(len(merged), 3 * US_GROWTH_ROWS)
+        days = [r["published_date"] for r in merged]
+        self.assertEqual(days, sorted(days, reverse=True))
+        # One day keeps group order (USCC, Treasury, BIS); inputs are copied.
+        self.assertEqual([r["publisher_label"] for r in merged[:3]], labels)
+        self.assertNotIn("publisher_label", uscc[0])
+        self.assertEqual(link_index.desk_listing(US_DESK, merged),
+                         [dict(r, publisher_label=label)
+                          for rows, label in zip(US_GROUP_ROWS, labels) for r in rows[:limit]])
+        ctx = link_index.desk_context(US_DESK, merged)
+        self.assertEqual((ctx["total"], ctx["shown"], ctx["hub"]),
+                         (3 * US_GROWTH_ROWS, 3 * limit, "us-indopacific-official-links.html"))
+        older = {"label": "November 2026", "route": "us-indopacific-official-links/2026-11.html"}
+        self.assertEqual([(g["id"], g["total"], len(g["rows"]), g["older"]) for g in ctx["groups"]],
+                         [(anchor, US_GROWTH_ROWS, limit, older)
+                          for anchor, _label in link_index.DESK_GROUPS[US_DESK]])
+        few = link_index.desk_context(US_DESK, link_index.merge_groups(
+            US_DESK, (uscc[:3], [], bis[:limit])))
+        self.assertEqual([(g["total"], len(g["rows"]), g["older"]) for g in few["groups"]],
+                         [(3, 3, None), (0, 0, None), (limit, limit, None)])
+        # The month older than a group's newest hidden row is where it continues.
+        late = link_index.desk_context(US_DESK, link_index.merge_groups(
+            US_DESK, (uscc, treasury[:limit], bis[:limit + 1])))
+        self.assertEqual(late["groups"][2]["older"]["route"],
+                         link_index.month_route(US_DESK, bis[limit]["published_date"][:7]))
+
+    def test_us_merge_holds_instead_of_guessing(self):
+        uscc, treasury, bis = US_GROUP_ROWS
+        cases = (
+            ("two groups", (uscc, treasury)),
+            ("group out of order", (uscc[::-1], treasury, bis)),
+            ("identity repeated within a group", (uscc[:2] + uscc[1:2], treasury, bis)),
+            ("identity repeated across groups",
+             (uscc, treasury, [dict(bis[0], source_identity=uscc[0]["source_identity"])])),
+            ("impossible date", (uscc, [dict(treasury[0], published_date="2026-02-30")], bis)),
+            ("missing date", (uscc, treasury, [dict(bis[0], published_date=None)])),
+        )
+        for label, groups in cases:
+            with self.subTest(label), self.assertRaises(link_index.IndexHold):
+                link_index.merge_groups(US_DESK, groups)
+        with self.assertRaisesRegex(ReadbackHold,
+                                    "^admitted_rows_not_indexable_by_official_date$"):
+            us_readback.merged_rows((uscc[::-1], treasury, bis))
+        with self.assertRaisesRegex(ReadbackHold,
+                                    "^admitted_rows_not_indexable_by_official_date$"):
+            us_readback.group_latest(uscc[::-1])
+
+    def test_desk_context_is_pure_and_groups_only_philippines_and_us(self):
         self.assertIsNone(link_index.desk_context("philippines", []))
         ph = link_index.desk_context("philippines", PH_ROWS)
         self.assertEqual((ph["total"], ph["shown"], ph["hub"]),
@@ -333,6 +472,7 @@ class CoreIndexTests(unittest.TestCase):
         self.assertEqual([r for g in ph["groups"] for r in g["rows"]],
                          link_index.desk_listing("philippines", PH_ROWS))
         self.assertNotIn("groups", link_index.desk_context("indonesia", ID_ROWS))
+        self.assertEqual(len(link_index.desk_context(US_DESK, US_ROWS)["groups"]), 3)
 
     def test_source_free_wiring_module_loads_without_generate_preview(self):
         # The regional live-site wiring job installs only jinja2; config.py
@@ -384,6 +524,10 @@ class RenderedIndexTests(unittest.TestCase):
             mock.patch.object(readback, "load_admitted_links", fake_regional),
             mock.patch.object(korea_live, "load_live_korea_official_links", fake_korea),
             mock.patch.object(machine_records, "load", fake_machine),
+            mock.patch.object(uscc_meta, "load_public_links", us_loader(0)),
+            mock.patch.object(treasury_meta, "load_public_links", us_loader(1)),
+            mock.patch.object(bis_meta, "load_public_links", us_loader(2)),
+            mock.patch.object(bis_readback, "load_public_links", us_loader(2)),
         ]
         for patch in cls.patches:
             patch.start()
@@ -787,18 +931,259 @@ class RenderedIndexTests(unittest.TestCase):
         import verify_frontend_delivery as budget
         routes = (link_index.index_routes("indonesia", ID_ROWS)
                   + link_index.index_routes("korea", self.korea_rows)
-                  + link_index.index_routes("philippines", PH_ROWS))
-        for route in routes + ["philippines.html"]:
+                  + link_index.index_routes("philippines", PH_ROWS)
+                  + link_index.index_routes(US_DESK, US_ROWS))
+        for route in routes + ["philippines.html", "us-indopacific.html"]:
             self.assertEqual(budget.html_css_cap(route), 120000, route)
         result = budget.verify(self.out, only=routes + ["indonesia.html", "korea.html",
-                                                        "philippines.html"])
+                                                        "philippines.html",
+                                                        "us-indopacific.html"])
         self.assertEqual(result["failures"], [])
 
     def test_sitemap_lists_index_routes(self):
         sitemap = self.read("sitemap.xml")
         for route in (link_index.index_routes("indonesia", ID_ROWS)
-                      + link_index.index_routes("philippines", PH_ROWS)):
+                      + link_index.index_routes("philippines", PH_ROWS)
+                      + link_index.index_routes(US_DESK, US_ROWS)):
             self.assertIn("/" + route + "<", sitemap)
+
+    # -- U.S. desk: newest 10 per publisher, full index by month --------
+    US_ROW = re.compile(r'<li (data-uscc-official-link|data-us-treasury-official-link|'
+                        r'data-us-bis-official-link)="([^"]+)">(.*?)</li>', re.S)
+    US_ISSUER = {
+        "data-uscc-official-link": "Issuer: U.S.-China Economic and Security Review "
+                                   "Commission · Official publication date <time",
+        "data-us-treasury-official-link": "Issuer: U.S. Department of the Treasury · "
+                                          "Publisher date <time",
+        "data-us-bis-official-link": "Issuer: U.S. Department of Commerce · Bureau of "
+                                     "Industry and Security · Publisher date <time"}
+
+    def us_rows_in(self, html, marker=None):
+        return [(m, sid, body) for m, sid, body in self.US_ROW.findall(html)
+                if marker in (None, m)]
+
+    def us_holds(self, reason=None, **kwargs):
+        ctx = (self.assertRaisesRegex(ReadbackHold, "^%s$" % reason) if reason
+               else self.assertRaises(ReadbackHold))
+        with ctx:
+            us_readback.verify(DB, self.out, **kwargs)
+
+    @staticmethod
+    def main_of(html):
+        return html[html.index("<main"):html.index("</main>")]
+
+    def test_us_desk_lists_ten_per_publisher_and_index_carries_every_row(self):
+        desk = self.read("us-indopacific.html")
+        markers = link_index.ROW_MARKERS[US_DESK]
+        for marker, rows in zip(markers, US_GROUP_ROWS):
+            with self.subTest(marker):
+                listed = self.us_rows_in(desk, marker)
+                self.assertEqual([sid for _m, sid, _b in listed],
+                                 [r["source_identity"]
+                                  for r in link_index.group_latest(US_DESK, rows)])
+                for (_m, _sid, body), row in zip(listed, rows):
+                    self.assertIn('<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+                                  % (row["source_url"], row["neutral_label"]), body)
+                    self.assertIn(self.US_ISSUER[marker], body)
+        self.assertEqual(len(self.us_rows_in(desk)), 30)
+        self.assertEqual(desk.count("data-us-pacom-link="), 9)
+        self.assertEqual(desk.count('data-official-link-index-note="10/%d"' % US_GROWTH_ROWS), 3)
+        self.assertEqual(desk.count(
+            '<a href="us-indopacific-official-links.html">Browse all %d U.S. official links '
+            'by month</a>' % len(US_ROWS)), 3)
+        self.assertEqual(desk.count(
+            'older links continue in the full index, from <a href='
+            '"us-indopacific-official-links/2026-11.html">November 2026</a>'), 3)
+        hub = self.read(link_index.hub_route(US_DESK))
+        months = link_index.partition(US_DESK, US_ROWS)
+        self.assertEqual(len(months), US_GROWTH_ROWS // US_ROWS_PER_MONTH)
+        self.assertEqual(hub.count("data-official-link-month="), len(months))
+        self.assertEqual(self.us_rows_in(hub), [])
+        pages = {link_index.hub_route(US_DESK): hub}
+        indexed = []
+        for month, rows in months:
+            route = link_index.month_route(US_DESK, month)
+            page = pages[route] = self.read(route)
+            found = self.us_rows_in(page)
+            self.assertEqual([(m, sid) for m, sid, _b in found],
+                             [(us_readback.MARKER_OF[r["publisher_label"]], r["source_identity"])
+                              for r in rows], route)
+            for (marker, _sid, body), row in zip(found, rows):
+                self.assertIn('<a href="%s" target="_blank" rel="noopener noreferrer">%s</a>'
+                              % (row["source_url"], row["neutral_label"]), body)
+                self.assertIn(self.US_ISSUER[marker], body)
+                self.assertIn('<time datetime="%s">' % row["published_date"], body)
+            indexed += [sid for _m, sid, _b in found]
+        self.assertEqual(sorted(indexed), sorted(r["source_identity"] for r in US_ROWS))
+        # Hub and month pages carry only U.S. copy: no Korea or Philippines
+        # index wording, markers or publishers inside <main>.
+        for route, page in pages.items():
+            main = self.main_of(page)
+            for text in us_readback.FOREIGN + ("Korea", "Philippines", "AFP", "NSC",
+                                               "Kemhan", "data-regional-official-source-id"):
+                self.assertNotIn(text, main, (route, text))
+            if route != link_index.hub_route(US_DESK):
+                self.assertIn("U.S. official link metadata — USCC, Treasury and BIS", main)
+
+    def test_us_growth_corpus_fits_the_default_budget(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import verify_frontend_delivery as budget
+        routes = us_readback.index_routes(DB)
+        self.assertEqual(routes, ["us-indopacific.html"]
+                         + link_index.index_routes(US_DESK, US_ROWS))
+        for route in routes:
+            self.assertEqual(budget.html_css_cap(route), 120000, route)
+        result = budget.verify(self.out, only=routes)
+        self.assertEqual(result["failures"], [])
+        sizes = {r["route"]: r["html_css_bytes"] for r in result["routes"]}
+        # Measured 26 Nov 2026 with this growth corpus: us-indopacific.html
+        # 116,261 B HTML+CSS (3,739 B under the 120,000 B cap) and the largest
+        # 60-row month page 111,705 B. The desk keeps at least 3,000 B of
+        # headroom however long the three publishers' lists grow.
+        self.assertLessEqual(sizes["us-indopacific.html"], 117000)
+
+    def test_us_machine_explanations_badge_every_listed_uscc_row(self):
+        machine = [r for r in fake_machine(DB) if r["desk_id"] == US_DESK]
+        newest = [r["source_identity"] for r in US_GROUP_ROWS[0][:US_MACHINE_GROWTH]]
+        # Only synthetic U.S. records, bound to the newest ten USCC links.
+        self.assertEqual([r["source_identity"] for r in machine], newest)
+        self.assertTrue(all(len(r["summary"].split()) == US_SUMMARY_WORDS for r in machine))
+        desk = self.read("us-indopacific.html")
+        self.assertEqual(re.findall(r'data-machine-source="([^"]+)"', desk), newest[:5])
+        for rec in machine[:5]:
+            self.assertIn(rec["summary"], desk)
+        for rec in machine[5:]:
+            self.assertNotIn(rec["summary"], desk)
+        self.assertEqual(desk.count(
+            '<a href="archive.html?desk=us-indopacific&amp;scope=published">Browse all %d '
+            'U.S. machine explanations</a>' % len(machine)), 1)
+        listed = self.us_rows_in(desk, "data-uscc-official-link")
+        self.assertEqual([sid for _m, sid, _b in listed], newest)
+        for _m, sid, body in listed:
+            with self.subTest(sid):
+                badge = ("Machine explanation published above" if sid in newest[:5]
+                         else "Machine explanation in the published archive")
+                self.assertIn(badge, body)
+        self.assertEqual(desk.count("Machine explanation published above"), 5)
+        self.assertEqual(desk.count("Machine explanation in the published archive"), 5)
+        for rec in machine:
+            self.assertTrue((self.out / rec["record_path"]).is_file(), rec["record_path"])
+
+    def test_us_readback_accepts_exact_build(self):
+        receipt = us_readback.verify(DB, self.out)
+        self.assertEqual(receipt["admitted_official_link_count"], len(US_ROWS))
+        self.assertEqual(receipt["desk_official_link_count"], 30)
+        self.assertEqual(sorted(receipt["admitted_by_publisher"].values()),
+                         [US_GROWTH_ROWS] * 3)
+        self.assertEqual(receipt["full_index"]["months"],
+                         {m: len(rows) for m, rows in link_index.partition(US_DESK, US_ROWS)})
+        pages = self.make_pages_dir(us_readback.index_routes(DB))
+        us_readback.verify(DB, self.out, pages_dir=pages)
+        month = pages / link_index.month_route(US_DESK, "2026-10")
+        month.write_bytes(month.read_bytes() + b"\n")
+        self.us_holds(pages_dir=pages)
+
+    def test_us_desk_mutations_hold(self):
+        route = "us-indopacific.html"
+        desk = self.read(route)
+        uscc = self.us_rows_in(desk, "data-uscc-official-link")
+        treasury = self.us_rows_in(desk, "data-us-treasury-official-link")
+        first_t = re.search(r'<li data-us-treasury-official-link=.*?</li>', desk, re.S).group(0)
+        last_u = re.findall(r'<li data-uscc-official-link=.*?</li>', desk, re.S)[-1]
+        hidden = US_GROUP_ROWS[1][10]
+        cases = (
+            ("drop a USCC row", lambda h: h.replace(last_u, "", 1), None),
+            ("eleventh Treasury row", lambda h: h.replace(first_t, first_t + first_t.replace(
+                treasury[0][1], hidden["source_identity"]).replace(
+                US_GROUP_ROWS[1][0]["source_url"], hidden["source_url"]).replace(
+                US_GROUP_ROWS[1][0]["published_date"], hidden["published_date"]), 1), None),
+            ("row under another publisher's marker", lambda h: h.replace(
+                '<li data-us-bis-official-link=', '<li data-us-treasury-official-link=', 1), None),
+            ("swapped USCC rows", lambda h: h.replace(uscc[0][1], "SWAP").replace(
+                uscc[1][1], uscc[0][1]).replace("SWAP", uscc[1][1]), None),
+            ("index note count", lambda h: h.replace(
+                'data-official-link-index-note="10/%d"' % US_GROWTH_ROWS,
+                'data-official-link-index-note="10/%d"' % (US_GROWTH_ROWS - 1), 1),
+             "desk_index_note_disagrees_with_db"),
+            ("older month link", lambda h: h.replace(
+                'from <a href="us-indopacific-official-links/2026-11.html">',
+                'from <a href="us-indopacific-official-links/2026-10.html">'),
+             "desk_older_month_link_missing"),
+            ("missing hub link", lambda h: h.replace(
+                '<a href="us-indopacific-official-links.html">', '<a href="desks.html">', 1),
+             "desk_page_full_index_link_missing_or_repeated"),
+        )
+        for label, change, reason in cases:
+            with self.subTest(label), self.mutated(route, change):
+                self.us_holds(reason)
+
+    def test_us_month_and_hub_mutations_hold(self):
+        month = link_index.month_route(US_DESK, "2026-10")
+        page = self.read(month)
+        rows = re.findall(r'<li data-us-[a-z]+-official-link=.*?</li>', page, re.S)
+        hub = link_index.hub_route(US_DESK)
+        cases = (
+            (month, "missing row", lambda h: h.replace(rows[-1], "", 1), None),
+            (month, "duplicate row", lambda h: h.replace(rows[0], rows[0] + rows[0], 1), None),
+            (month, "row under another publisher's marker", lambda h: h.replace(
+                '<li data-uscc-official-link=', '<li data-us-bis-official-link=', 1), None),
+            (month, "altered url", lambda h: h.replace(
+                'href="https://www.bis.gov/press-release/', 'href="https://www.bis.gov/x/', 1), None),
+            (month, "Korea index copy", lambda h: h.replace(
+                "</main>", "<p>Verified Korean government references</p></main>", 1),
+             "us_official_link_route_carries_another_desk_index_copy"),
+            (month, "Philippines row marker", lambda h: h.replace(
+                "</main>", '<p data-regional-official-source-id="afp:1"></p></main>', 1),
+             None),
+            (hub, "row on the hub", lambda h: h.replace(
+                "</main>", '<p data-uscc-official-link="x"></p></main>', 1), None),
+        )
+        for route, label, change, reason in cases:
+            with self.subTest(label), self.mutated(route, change):
+                self.us_holds(reason)
+
+    def test_us_db_drift_holds(self):
+        uscc, treasury, bis = US_GROUP_ROWS
+        for label, groups in (("one Treasury row fewer", (uscc, treasury[:-1], bis)),
+                              ("one BIS row more", (uscc, treasury, bis + [dict(
+                                  bis[-1], source_identity="us-bis-homepage-press:x",
+                                  source_url="https://www.bis.gov/press-release/x")]))):
+            with self.subTest(label), mock.patch.object(
+                    us_readback, "us_group_rows", lambda db, g=groups: g):
+                self.us_holds()
+
+    def test_us_bis_deployed_readback_checks_hidden_rows(self):
+        bis = US_GROUP_ROWS[2]
+        pages = self.make_pages_dir(us_readback.index_routes(DB))
+        desk = self.out / "us-indopacific.html"
+        http = Path(self.tmp.name) / "bis-http.html"
+        shutil.copyfile(desk, http)
+        args = (DB, desk, pages / "us-indopacific.html", http)
+        report = bis_readback.verify(*args, main_site=self.out, pages_site=pages)
+        self.assertEqual((report["records"], report["desk_records"],
+                          report["full_index_records"]), (len(bis), 10, len(bis)))
+        hold = bis_readback.BISReadbackHold
+        with self.assertRaisesRegex(hold, "^hidden_bis_rows_need_full_index_readback$"):
+            bis_readback.verify(*args)
+        with self.assertRaisesRegex(hold,
+                                    "^bis_full_index_readback_needs_both_site_directories$"):
+            bis_readback.verify(*args, main_site=self.out)
+        month = pages / link_index.month_route(US_DESK, "2026-10")
+        original = month.read_bytes()
+        month.write_bytes(original + b"\n")
+        with self.assertRaisesRegex(hold, "^github_pages_month_page_differs$"):
+            bis_readback.verify(*args, main_site=self.out, pages_site=pages)
+        month.unlink()
+        with self.assertRaisesRegex(hold, "^github_pages_month_inventory_differs$"):
+            bis_readback.verify(*args, main_site=self.out, pages_site=pages)
+        month.write_bytes(original)
+        # A BIS row the DB admits but neither month page carries holds.
+        extra = dict(bis[-1], source_identity="us-bis-homepage-press:ipr-unlisted",
+                     source_url="https://www.bis.gov/press-release/ipr-unlisted")
+        with mock.patch.object(bis_readback, "load_public_links",
+                               lambda db: [dict(r) for r in bis] + [extra]):
+            with self.assertRaisesRegex(hold, "^bis_reference_count_wrong$"):
+                bis_readback.verify(*args, main_site=self.out, pages_site=pages)
 
     # -- Indonesia local readback ----------------------------------------
     def test_indonesia_readback_accepts_exact_build(self):
@@ -1263,6 +1648,79 @@ class WriterWorkflowTextTests(unittest.TestCase):
     }
     PH_WRITERS = ("ph_afp_verified_official_link_production.yml",
                   "ph_nsc_verified_official_link_production.yml")
+    # U.S. file-only writers: (first desk staging, whether main may stage the DB).
+    US_WRITERS = {
+        "us_bis_verified_official_links_release.yml":
+            ("git add -- pla_watch.db output/us-indopacific.html", True),
+        "us_pacom_pages_file_only_release.yml":
+            ("git add -- output/us-indopacific.html", False),
+    }
+
+    def test_us_writers_gate_stage_and_publish_the_full_index(self):
+        for name, (first_add, stages_db) in self.US_WRITERS.items():
+            flow = self.flow(name)
+            with self.subTest(name):
+                stage = flow.index(first_add)
+                # The release job's own route listing and gate, before staging.
+                routes = flow.rindex('--print-routes > "$RUNNER_TEMP/us-routes"', 0, stage)
+                verify = flow.rindex("python -m scripts.verify_us_official_link_index "
+                                     "--db pla_watch.db \\\n            --site-dir output",
+                                     0, routes)
+                gate = flow.index("python scripts/verify_frontend_delivery.py --root output",
+                                  routes)
+                self.assertLess(verify, routes)
+                self.assertLess(gate, stage)
+                self.assertLess(gate, flow.index("git commit"))
+                self.assertIn('"${only[@]}"', flow[gate:gate + 200])
+                self.assertIn('while read -r route; do git add -- "output/$route"; done '
+                              '< "$RUNNER_TEMP/us-routes"', flow[stage:])
+                pages_step = flow.index("cp ../output/us-indopacific.html us-indopacific.html")
+                self.assertLess(flow.index('git show "HEAD:output/$route" | cmp - '
+                                           '"output/$route"'), pages_step)
+                for text in ("rm -rf us-indopacific-official-links.html "
+                             "us-indopacific-official-links",
+                             "cp -R ../output/us-indopacific-official-links "
+                             "us-indopacific-official-links",
+                             'while read -r route; do cmp "../output/$route" "$route"; done',
+                             "git ls-tree --name-only HEAD us-indopacific-official-links/"):
+                    self.assertIn(text, flow[pages_step:])
+                patterns = re.findall(r"grep -vE '(\^\(.*?\)\$)'", flow)
+                self.assertEqual(len(patterns), 2, name)
+                main, pages = (re.compile(p) for p in patterns)
+                for path in ("output/us-indopacific.html", "output/us-indopacific-official-links.html",
+                             "output/us-indopacific-official-links/2026-11.html"):
+                    self.assertTrue(main.match(path), (name, path))
+                self.assertEqual(bool(main.match("pla_watch.db")), stages_db, name)
+                for path in ("output/index.html", "output/philippines.html", "output/sitemap.xml",
+                             "output/us-indopacific-official-links/2026-11.json",
+                             "output/us-indopacific-official-links/2026-11xhtml",
+                             "output/us-indopacific-official-links/x/2026-11.html",
+                             "output/us-indopacific-official-links.html.bak", "pla_watchxdb"):
+                    self.assertFalse(main.match(path), (name, path))
+                for path in ("us-indopacific.html", "us-indopacific-official-links.html",
+                             "us-indopacific-official-links/2026-09.html"):
+                    self.assertTrue(pages.match(path), (name, path))
+                for path in ("index.html", "pla_watch.db", "us-indopacific-official-links/2026-9.html",
+                             "output/us-indopacific.html", "philippines-official-links.html",
+                             "us-indopacific-official-links/../index.html"):
+                    self.assertFalse(pages.match(path), (name, path))
+
+    def test_us_rehearsals_check_the_bounded_desk_and_the_full_index(self):
+        for name, db in (("uscc_verified_official_links_release.yml", "uscc-rehearsal"),
+                         ("treasury_verified_official_links_release.yml",
+                          "treasury-rehearsal")):
+            flow = self.flow(name)
+            with self.subTest(name):
+                self.assertIn('shown=group_latest("us-indopacific",rows)', flow)
+                self.assertIn("len(rendered)==len(shown)", flow)
+                self.assertNotIn("len(rendered)==len(rows)", flow)
+                self.assertIn('python -m scripts.verify_us_official_link_index \\\n'
+                              '            --db "$RUNNER_TEMP/%s.sqlite" --site-dir output' % db,
+                              flow)
+        readback_flow = self.flow("us_bis_deployed_metadata_readback.yml")
+        self.assertIn("--main-site-dir output", readback_flow)
+        self.assertIn("--pages-site-dir bis-existing-pages", readback_flow)
+        self.assertIn("diff -r output/us-indopacific-official-links", readback_flow)
 
     def flow(self, name):
         return (WORKFLOWS / name).read_text(encoding="utf-8")
@@ -1282,11 +1740,17 @@ class WriterWorkflowTextTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             bin_dir = Path(tmp) / "bin"
             bin_dir.mkdir()
-            (bin_dir / "python").symlink_to(PYTHON)
+            # A wrapper, not a symlink: a symlinked venv interpreter loses its
+            # site-packages (the U.S. route listing imports the BIS loader,
+            # which needs bs4, as in CI after requirements.txt).
+            wrapper = bin_dir / "python"
+            wrapper.write_text('#!/bin/sh\nexec "%s" "$@"\n' % PYTHON, encoding="utf-8")
+            wrapper.chmod(0o755)
             writers = ((("indonesia_verified_official_link_production.yml", "indonesia"),
                         ("korea_verified_official_link_production.yml", "korea"),
                         ("korea_standing_original_text_production.yml", "korea"))
-                       + tuple((name, "philippines") for name in self.PH_WRITERS))
+                       + tuple((name, "philippines") for name in self.PH_WRITERS)
+                       + tuple((name, US_DESK) for name in self.US_WRITERS))
             for name, desk in writers:
                 with self.subTest(name):
                     m = re.search(r"\n( *)(python -m scripts\.verify_\w+ --db pla_watch\.db"

@@ -176,7 +176,8 @@ class OfficialLinkHubParser(HTMLParser):
                  "official_link_index_hub_unmarked_month_entry")
         need(a.get("data-source-scope") != "official-link-only"
              and not {"data-regional-official-source-id",
-                      "data-korea-auto-official-link"} & set(a),
+                      "data-korea-auto-official-link",
+                      *link_index.ROW_MARKERS["us-indopacific"]} & set(a),
              "official_link_index_hub_contains_source_rows")
         if "data-official-link-index" in a:
             need(tag == "ol" and a["data-official-link-index"] == self.desk,
@@ -208,7 +209,8 @@ class OfficialLinkHubParser(HTMLParser):
 
 # The source URL each index desk's month pages link out to, per admitted row.
 INDEX_URL_KEY = {"indonesia": "canonical_official_url", "korea": "source_url",
-                 "philippines": "canonical_official_url"}
+                 "philippines": "canonical_official_url",
+                 "us-indopacific": "source_url"}
 _SCHEME = re.compile(r"[A-Za-z][A-Za-z0-9+.-]*:")
 
 
