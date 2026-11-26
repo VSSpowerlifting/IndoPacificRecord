@@ -138,7 +138,12 @@ FAMILY_SUMMARY = {
 SLOW_EXCLUDED = {"test_preview_prototype"}
 # Compares committed output/ with the database. A grown copy without
 # re-rendered output always differs; a genuine Daily commits both together.
-OUTPUT_CONSISTENCY_EXCLUDED = {"test_briefs_enrichment"}
+OUTPUT_CONSISTENCY_EXCLUDED = {
+    "test_briefs_enrichment",
+    # Reconciles committed output/japan.html's JCG machine section against the
+    # tracked DB (Daily commits both together); its fixture tests cover growth.
+    "test_guard_japan_official_reference_release",
+}
 NEVER_PARENT = {"15aug26-speech", "16sep26-speech"}
 
 
