@@ -52,6 +52,32 @@ class DeskCase(unittest.TestCase):
     def page(self, name: str) -> str:
         return (self.out / name).read_text(encoding="utf-8")
 
+    def assertPhilippinesLinksReachableOnce(self, page, links):
+        """The bounded desk lists exactly the newest DESK_LINK_LIMIT admitted
+        links, grouped AFP then NSC, each once; its single full-index link
+        leads to a hub and month pages that together carry every admitted
+        link exactly once, with no orphan or missing month page."""
+        from core import official_link_index as oli
+        marker = r'data-regional-official-source-id="([^"]+)"'
+        shown = [r["source_identity"]
+                 for r in oli.desk_listing("philippines", links)]
+        self.assertEqual(len(shown), min(len(links), oli.DESK_LINK_LIMIT))
+        self.assertEqual(re.findall(marker, page), shown)
+        hub = oli.hub_route("philippines")
+        self.assertEqual(page.count('href="%s"' % hub), 1)
+        routes = oli.index_routes("philippines", links)
+        self.assertEqual(routes[0], hub)
+        self.assertTrue((self.out / hub).is_file())
+        self.assertEqual(sorted(p.relative_to(self.out).as_posix() for p in
+                                (self.out / oli.month_dir("philippines")).glob("*.html")),
+                         sorted(routes[1:]))
+        indexed = []
+        for route in routes[1:]:
+            indexed += re.findall(marker, self.page(route))
+        self.assertEqual(len(indexed), len(set(indexed)))
+        self.assertEqual(indexed, [r["source_identity"] for r in links])
+        return shown
+
     @staticmethod
     def db():
         """
@@ -638,9 +664,13 @@ class TestPhilippinesShadowIsNotPublicCoverage(DeskCase):
                         r'data-regional-official-source-id="([^"]+)"', page)), vietnam_links)
                 elif philippines_links:
                     self.assertIn("Official links and machine explanations, published automatically", page)
-                    self.assertEqual(set(re.findall(
-                        r'data-regional-official-source-id="([^"]+)"', page)),
-                        philippines_links)
+                    # The desk is bounded; its full index carries the rest.
+                    from core.regional_official_link_render import load_admitted_links
+                    ordered = load_admitted_links(TRACKED_DB, "philippines")
+                    self.assertEqual({r["source_identity"] for r in ordered},
+                                     philippines_links)
+                    shown = self.assertPhilippinesLinksReachableOnce(page, ordered)
+                    self.assertLessEqual(set(shown), philippines_links)
                 else:
                     self.assertIn("Shadow evaluation — not in corpus", page)
                 if name == "philippines":

@@ -136,17 +136,57 @@ jobs:
               "SELECT source_identity, canonical_official_url FROM regional_official_source_links "
               "WHERE desk='philippines'")}
           nsc = {k: v for k, v in rows.items() if k.startswith("nsc:")}
+          from core import official_link_index as link_index
+          from core.regional_official_link_render import load_admitted_links
+          admitted = load_admitted_links(Path("pla_watch.db"), "philippines")
+          assert {r["source_identity"]: r["canonical_official_url"] for r in admitted} == rows
+          def listed(html):
+              soup = BeautifulSoup(html, "html.parser")
+              return [(li["data-regional-official-source-id"], li.find("a")["href"])
+                      for li in soup.select("li[data-regional-official-source-id]")]
           page = Path("output/philippines.html").read_text(encoding="utf-8")
-          soup = BeautifulSoup(page, "html.parser")
-          items = soup.select("li[data-regional-official-source-id]")
-          got = {li["data-regional-official-source-id"]: li.find("a")["href"] for li in items}
-          assert got == rows, "rendered Philippines links differ from SQLite"
+          # The desk lists exactly the newest DESK_LINK_LIMIT admitted links
+          # (AFP, then NSC); the full index below carries every admitted link.
+          shown = link_index.desk_listing("philippines", admitted)
+          assert listed(page) == [
+              (r["source_identity"], r["canonical_official_url"]) for r in shown
+          ], "rendered Philippines desk links differ from the newest SQLite rows"
+          assert page.count('href="%s"' % link_index.hub_route("philippines")) == 1
           assert all(u.startswith("https://nsc.gov.ph/") for u in nsc.values()), "NSC URL outside publisher"
-          for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
-              assert forbidden not in page, forbidden
-          print("Admitted Philippines links rendered:", len(rows), "NSC:", len(nsc))
+          got = {}
+          index_pages = [Path("output", link_index.hub_route("philippines"))]
+          assert listed(index_pages[0].read_text(encoding="utf-8")) == []
+          for month, month_rows in link_index.partition("philippines", admitted):
+              month_path = Path("output", link_index.month_route("philippines", month))
+              index_pages.append(month_path)
+              month_got = listed(month_path.read_text(encoding="utf-8"))
+              assert month_got == [(r["source_identity"], r["canonical_official_url"])
+                                   for r in month_rows], month
+              for sid, href in month_got:
+                  assert sid not in got, sid
+                  got[sid] = href
+          # Every admitted link exactly once across the month pages.
+          assert got == rows, "full official-link index differs from SQLite"
+          for html in [page] + [p.read_text(encoding="utf-8") for p in index_pages]:
+              for forbidden in ("title_original", "text_original", "summary_english", "<iframe"):
+                  assert forbidden not in html, forbidden
+          print("Admitted Philippines links rendered:", len(rows), "NSC:", len(nsc),
+                "desk:", len(shown), "index pages:", len(index_pages))
           PY
-          sha256sum output/philippines.html > "$RUNNER_TEMP/nsc-prod-page-sha"
+          python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+            --site-dir output --require-desk philippines
+          python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+            --print-routes philippines > "$RUNNER_TEMP/nsc-routes"
+          test "$(head -n 1 "$RUNNER_TEMP/nsc-routes")" = "philippines.html"
+          # Pre-commit budget gate: the desk and every hub/month route keep the
+          # default 120 KB cap. A route over its cap, or a route the DB requires
+          # but the render lacks, HOLDs this writer before anything is staged.
+          only=()
+          while read -r route; do only+=(--only "$route"); done < "$RUNNER_TEMP/nsc-routes"
+          python scripts/verify_frontend_delivery.py --root output \
+            --receipt "$RUNNER_TEMP/nsc-budget.json" "${only[@]}"
+          while read -r route; do sha256sum "output/$route"; done \
+            < "$RUNNER_TEMP/nsc-routes" > "$RUNNER_TEMP/nsc-prod-page-sha"
           echo "All rendered output changes listed for audit, not bulk publication:"
           git diff --name-only -- output/
       - name: Refuse a moved production main
@@ -164,12 +204,20 @@ jobs:
         run: |
           set -euo pipefail
           git add -- pla_watch.db output/philippines.html
+          # The full official-link index: stage each budget-gated route by
+          # name (hub plus month pages); -u records only the removal of a
+          # tracked month that no longer has admitted rows. An unlisted new
+          # file stays untracked and holds the Pages step before publication.
+          while read -r route; do git add -- "output/$route"; done < "$RUNNER_TEMP/nsc-routes"
+          if [ -n "$(git ls-files -- output/philippines-official-links.html output/philippines-official-links)" ]; then
+            git add -u -- output/philippines-official-links.html output/philippines-official-links
+          fi
           staged="$(git diff --cached --name-only)"
           if [ -z "$staged" ]; then
             echo "No new admitted NSC links; nothing to commit"
             exit 0
           fi
-          if echo "$staged" | grep -vE '^(pla_watch.db|output/philippines.html)$'; then
+          if echo "$staged" | grep -vE '^(pla_watch\.db|output/philippines\.html|output/philippines-official-links\.html|output/philippines-official-links/[0-9]{4}-[0-9]{2}\.html)$'; then
             echo "::error::Unexpected staged file; full-site publish prohibited"
             exit 1
           fi
@@ -195,6 +243,10 @@ jobs:
             exit 1
           }
           git show HEAD:output/philippines.html | cmp - output/philippines.html
+          while read -r route; do
+            git show "HEAD:output/$route" | cmp - "output/$route"
+          done < "$RUNNER_TEMP/nsc-routes"
+          test -z "$(git ls-files --others -- output/philippines-official-links.html output/philippines-official-links)"
           python - <<'PY'
           from scripts.verify_regional_source_index_readback import verify_philippines_original_routes
           verify_philippines_original_routes("pla_watch.db", "philippines-existing-pages")
@@ -203,9 +255,22 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=all)"
           pages_old="$(git rev-parse HEAD)"
           cp ../output/philippines.html philippines.html
+          rm -rf philippines-official-links.html philippines-official-links
+          if [ -e ../output/philippines-official-links.html ]; then
+            cp ../output/philippines-official-links.html philippines-official-links.html
+            cp -R ../output/philippines-official-links philippines-official-links
+          fi
+          while read -r route; do cmp "../output/$route" "$route"; done < "$RUNNER_TEMP/nsc-routes"
           git add -- philippines.html
+          while read -r route; do git add -- "$route"; done < "$RUNNER_TEMP/nsc-routes"
+          if [ -n "$(git ls-files -- philippines-official-links.html philippines-official-links)" ]; then
+            git add -u -- philippines-official-links.html philippines-official-links
+          fi
           staged="$(git diff --cached --name-only)"
-          test -z "$staged" || test "$staged" = "philippines.html"
+          if [ -n "$staged" ] && echo "$staged" | grep -vE '^(philippines\.html|philippines-official-links\.html|philippines-official-links/[0-9]{4}-[0-9]{2}\.html)$'; then
+            echo "::error::Unexpected staged Pages file; full-site publish prohibited"
+            exit 1
+          fi
           if [ -n "$staged" ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -232,6 +297,30 @@ jobs:
             exit 1
           }
           echo "PASS: main:output/philippines.html == gh-pages:philippines.html ($main_sha)"
+          # The full index: identical month inventory and bytes on both refs.
+          test "$(git ls-tree --name-only origin/main output/philippines-official-links/ | sed 's|^output/||')" = \
+            "$(git ls-tree --name-only origin/gh-pages philippines-official-links/)" || {
+            echo "::error::main output and gh-pages Philippines index months differ"
+            exit 1
+          }
+          while read -r route; do
+            test "$(git show "origin/main:output/$route" | sha256sum)" = \
+              "$(git show "origin/gh-pages:$route" | sha256sum)" || {
+              echo "::error::main output and gh-pages differ for $route"
+              exit 1
+            }
+          done < "$RUNNER_TEMP/nsc-routes"
+      - name: Independent fixed-origin HTTPS readback of desk and full index
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Pages builds take 22-71 s; bounded wait (24 x 10 s), then fail.
+          for attempt in $(seq 1 24); do
+            if python -m scripts.verify_regional_source_index_readback --db pla_watch.db \
+              --site-dir output --require-desk philippines --https-desk philippines; then exit 0; fi
+            sleep 10
+          done
+          exit 1
 
 # NSC originals stay in private custody (archive/ph-nsc). No source clone,
 # artifact upload, bulk site push, AI request or editor email happens here.

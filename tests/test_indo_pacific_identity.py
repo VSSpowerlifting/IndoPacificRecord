@@ -140,7 +140,7 @@ class TestTheMastheadIsTheNewIdentity(IdentityCase):
                                "and source-linked research, with findings, counterevidence and revision history.")
             elif name == "team.html":
                 description = "Meet the team behind Indo-Pacific Record's source-grounded defense and security research."
-            elif re.match(r"(indonesia|korea)-official-links(\.html|/\d{4}-\d{2}\.html)\Z", name):
+            elif re.match(r"(indonesia|korea|philippines)-official-links(\.html|/\d{4}-\d{2}\.html)\Z", name):
                 # Official-link index pages (2026-11-21) describe their own
                 # scope: the hub, or one month of admitted metadata records.
                 from core import official_link_index as link_index

@@ -12,7 +12,7 @@
 {{ breadcrumb([('Desks', root ~ 'desks.html'), (desk.name, root ~ desk.route), ('Official links by month', none)]) }}
 <header class="page-head">
   <h1 class="page-name">{{ desk.name }} official links by month</h1>
-  {% if index_desk == 'indonesia' %}
+  {% if index_desk in ('indonesia', 'philippines') %}
   <p class="lede">All {{ index_total }} admitted official-link metadata
   {{ 'record' if index_total == 1 else 'records' }}, grouped by the month of
   the official date.
@@ -47,7 +47,7 @@
 <nav class="official-link-month-nav" aria-label="Official-link months">
   <p class="meta">{% if index_newer %}<a href="{{ root }}{{ index_newer.route }}">Newer: {{ index_newer.label }}</a> · {% endif %}<a href="{{ root }}{{ index_hub }}">All months</a>{% if index_older %} · <a href="{{ root }}{{ index_older.route }}">Older: {{ index_older.label }}</a>{% endif %}</p>
 </nav>
-{% if index_desk == 'indonesia' %}
+{% if index_desk in ('indonesia', 'philippines') %}
 <section class="desk-references regional-official-live-links"
          data-source-scope="official-link-only"
          aria-labelledby="regional-official-live-links-title">

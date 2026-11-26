@@ -1,4 +1,4 @@
-"""Bounded Indonesia/Korea desk lists and their full official-link indexes.
+"""Bounded Indonesia/Korea/Philippines desk lists and full official-link indexes.
 
 The desk pages list the newest DESK_LINK_LIMIT admitted rows; a hub and one
 page per publisher-posted month carry every admitted row exactly once. These
@@ -56,15 +56,49 @@ def indonesia_rows():
     return rows
 
 
-def philippines_rows():
-    """65 synthetic AFP rows: the Philippines desk keeps its full list."""
-    return [{
-        "source_identity": "afp:%d" % (990000 + i),
-        "canonical_official_url": "https://www.afp.mil.ph/news/ipr-synthetic-%d" % i,
-        "publisher_posted_date": "2026-11-%02d" % (20 - i // 4),
-        "label": "AFP official source",
-        "publisher_label": "Armed Forces of the Philippines",
-    } for i in range(65)]
+PH_AFP = "Armed Forces of the Philippines"
+PH_NSC = "National Security Council"
+# Ten times the 74 rows that pushed philippines.html over its 120 KB cap
+# (25 Nov 2026), at about 35 rows a month over 22 months.
+PH_GROWTH_ROWS = 740
+PH_ROWS_PER_MONTH = 35
+
+
+def philippines_rows(count=PH_GROWTH_ROWS):
+    """Synthetic AFP and NSC rows in load_admitted_links order.
+
+    Newest official date first, then source identity, as read_live_links
+    orders them; every 74th row is NSC, so NSC rows fall both inside and
+    outside the latest DESK_LINK_LIMIT and the desk's AFP-then-NSC grouping
+    differs from DB order. URLs are longer than the real AFP average.
+    """
+    rows = []
+    for i in range(count):
+        year, month0 = divmod(2026 * 12 + 10 - i // PH_ROWS_PER_MONTH, 12)
+        day = "%04d-%02d-%02d" % (year, month0 + 1, 28 - (i % PH_ROWS_PER_MONTH) // 2)
+        if i % 74 == 37:
+            rows.append({
+                "source_identity": "nsc:%d" % (80000 + i),
+                "canonical_official_url": "https://nsc.gov.ph/%s/statement-of-the-"
+                                          "national-security-adviser-ipr-synthetic-%d/"
+                                          % (day.replace("-", "/"), i),
+                "publisher_posted_date": day,
+                "label": "NSC official source",
+                "publisher_label": PH_NSC,
+            })
+            continue
+        rows.append({
+            "source_identity": "afp:%d" % (990000 + i),
+            "canonical_official_url": "https://www.afp.mil.ph/news/ipr-synthetic-growth-"
+                                      "row-%04d-statement-on-a-long-official-headline-slug"
+                                      "-for-budget-headroom" % i,
+            "publisher_posted_date": day,
+            "label": "AFP official source",
+            "publisher_label": PH_AFP,
+        })
+    rows.sort(key=lambda r: r["source_identity"])
+    rows.sort(key=lambda r: r["publisher_posted_date"], reverse=True)
+    return rows
 
 
 def korea_synthetic_rows():
@@ -112,6 +146,7 @@ def fake_korea(db_path, *, exclude=()):
 
 
 ROW = {"indonesia": r'<li data-regional-official-source-id="([^"]+)">.*?</li>',
+       "philippines": r'<li data-regional-official-source-id="([^"]+)">.*?</li>',
        "korea": r'<li data-korea-auto-official-link="([^"]+)">.*?</li>'}
 
 
@@ -158,9 +193,82 @@ class CoreIndexTests(unittest.TestCase):
         for month in ("2026-13", "2026-1", "26-11", "../x"):
             with self.subTest(month), self.assertRaises(link_index.IndexHold):
                 link_index.month_route("indonesia", month)
-        for desk in ("philippines", "vietnam", "japan"):
+        for desk in ("vietnam", "japan", "singapore"):
             with self.subTest(desk), self.assertRaises(link_index.IndexHold):
                 link_index.hub_route(desk)
+            with self.subTest(desk + " listing"), self.assertRaises(link_index.IndexHold):
+                link_index.desk_listing(desk, [])
+
+    def test_philippines_listing_is_latest_rows_grouped_afp_then_nsc(self):
+        shown = link_index.desk_listing("philippines", PH_ROWS)
+        latest = PH_ROWS[:link_index.DESK_LINK_LIMIT]
+        self.assertEqual(sorted(r["source_identity"] for r in shown),
+                         sorted(r["source_identity"] for r in latest))
+        self.assertEqual(shown, [r for r in latest if r["publisher_label"] == PH_AFP]
+                         + [r for r in latest if r["publisher_label"] == PH_NSC])
+        # The corpus makes the grouping matter: an NSC row sits among the
+        # latest AFP rows, so display order is not DB order.
+        self.assertNotEqual(shown, latest)
+        self.assertEqual(sum(r["publisher_label"] == PH_NSC for r in shown), 1)
+        self.assertEqual(link_index.desk_listing("philippines", PH_ROWS[:5]),
+                         [r for r in PH_ROWS[:5] if r["publisher_label"] == PH_AFP]
+                         + [r for r in PH_ROWS[:5] if r["publisher_label"] == PH_NSC])
+        self.assertEqual(link_index.hub_route("philippines"), "philippines-official-links.html")
+        self.assertEqual(link_index.month_route("philippines", "2026-07"),
+                         "philippines-official-links/2026-07.html")
+
+    def test_philippines_growth_partition_is_exact_and_monthly(self):
+        months = link_index.partition("philippines", PH_ROWS)
+        self.assertEqual(len(PH_ROWS), PH_GROWTH_ROWS)
+        self.assertEqual(len(months), -(-PH_GROWTH_ROWS // PH_ROWS_PER_MONTH))
+        self.assertEqual(months[0][0], "2026-11")
+        self.assertTrue(all(len(items) <= PH_ROWS_PER_MONTH for _, items in months))
+        flat = [r["source_identity"] for _, items in months for r in items]
+        self.assertEqual(flat, [r["source_identity"] for r in PH_ROWS])
+        self.assertEqual(len(set(flat)), len(flat))
+
+    def test_philippines_holds_instead_of_guessing(self):
+        rows = PH_ROWS[:70]
+        cases = {
+            "misordered": [rows[65]] + rows[:65] + rows[66:],
+            "duplicate": rows[:10] + [rows[3]],
+            "missing identity": [dict(rows[0], source_identity="")] + rows[1:],
+            "bad date": [dict(rows[0], publisher_posted_date="25 Nov 2026")] + rows[1:],
+            "impossible date": [dict(rows[0], publisher_posted_date="2026-11-31")] + rows[1:],
+        }
+        for label, bad in cases.items():
+            for fn in (link_index.partition, link_index.latest, link_index.desk_listing):
+                with self.subTest(label, fn=fn.__name__), self.assertRaises(link_index.IndexHold):
+                    fn("philippines", bad)
+        # A row from no declared publisher group is never dropped or appended.
+        stray = [dict(rows[0], publisher_label="Department of National Defense")] + rows[1:]
+        with self.assertRaises(link_index.IndexHold):
+            link_index.desk_listing("philippines", stray)
+        # Desks without groups are unaffected by publisher labels.
+        self.assertEqual(link_index.desk_listing("indonesia", ID_ROWS), ID_ROWS[:60])
+
+    def test_philippines_groups_point_older_rows_to_their_month(self):
+        sys.path.insert(0, str(ROOT / "site" / "preview"))
+        import generate_preview as preview
+        afp = [r for r in PH_ROWS if r["publisher_label"] == PH_AFP][:70]
+        nsc_old = dict(PH_ROWS[-1], source_identity="nsc:3108",
+                       publisher_posted_date="2026-07-08", publisher_label=PH_NSC)
+        rows = afp + [nsc_old]
+        groups = preview.philippines_link_groups(
+            rows, link_index.desk_listing("philippines", rows))
+        self.assertEqual([g["id"] for g in groups], ["ph-afp-links", "ph-nsc-links"])
+        afp_group, nsc_group = groups
+        self.assertEqual((afp_group["total"], len(afp_group["rows"])), (70, 60))
+        self.assertEqual(afp_group["older"]["route"], link_index.month_route(
+            "philippines", afp[60]["publisher_posted_date"][:7]))
+        # The real 25 Nov shape: the only NSC row is older than the latest 60,
+        # so its group lists nothing and points to the month that holds it.
+        self.assertEqual((nsc_group["total"], nsc_group["rows"]), (1, []))
+        self.assertEqual(nsc_group["older"], {
+            "label": "July 2026", "route": "philippines-official-links/2026-07.html"})
+        few = preview.philippines_link_groups(afp[:5], afp[:5])
+        self.assertEqual([g["older"] for g in few], [None, None])
+        self.assertEqual(few[1]["total"], 0)
 
     def test_stale_month_and_empty_index_are_removed(self):
         sys.path.insert(0, str(ROOT / "site" / "preview"))
@@ -301,29 +409,258 @@ class RenderedIndexTests(unittest.TestCase):
             self.assertNotIn('data-korea-auto-official-link="%s"' % row["source_identity"], desk)
             self.assertIn(row["source_url"], archive)
 
-    def test_philippines_and_vietnam_keep_full_lists_and_no_index(self):
-        ph = self.read("philippines.html")
-        self.assertEqual(ph.count("data-regional-official-source-id="), len(PH_ROWS))
-        for row in PH_ROWS:
-            self.assertIn('data-regional-official-source-id="%s"' % row["source_identity"], ph)
-        for slug in ("philippines", "vietnam", "japan"):
+    def test_philippines_desk_is_bounded_and_index_carries_every_row_once(self):
+        desk = self.read("philippines.html")
+        shown = link_index.desk_listing("philippines", PH_ROWS)
+        self.assertEqual([sid for sid, _ in rows_in(desk, "philippines")],
+                         [r["source_identity"] for r in shown])
+        self.assertEqual(desk.count('href="philippines-official-links.html"'), 1)
+        # Counts and in-page navigation stay totals, not the bounded list.
+        afp_total = sum(r["publisher_label"] == PH_AFP for r in PH_ROWS)
+        nsc_total = len(PH_ROWS) - afp_total
+        self.assertIn('<h3 id="ph-afp-links">%s · %d links</h3>' % (PH_AFP, afp_total), desk)
+        self.assertIn('<h3 id="ph-nsc-links">%s · %d links</h3>' % (PH_NSC, nsc_total), desk)
+        self.assertIn('href="#ph-afp-links">AFP links (%d)</a>' % afp_total, desk)
+        self.assertIn('href="#ph-nsc-links">NSC links (%d)</a>' % nsc_total, desk)
+        self.assertIn('data-official-link-index-note="60/%d"' % len(PH_ROWS), desk)
+        for group in ("ph-afp-links", "ph-nsc-links"):
+            self.assertIn('data-official-link-older="%s"' % group, desk)
+        # Every listed row keeps its reader semantics.
+        for sid, li in rows_in(desk, "philippines"):
+            self.assertIn('target="_blank"', li)
+            self.assertIn('rel="noopener noreferrer"', li)
+            self.assertIn("Official date <time datetime=", li)
+            self.assertIn("Official-link metadata only", li)
+        months = link_index.partition("philippines", PH_ROWS)
+        self.assertEqual(
+            sorted(p.name for p in (self.out / "philippines-official-links").iterdir()),
+            sorted(month + ".html" for month, _ in months))
+        union = []
+        for month, items in months:
+            page = self.read(link_index.month_route("philippines", month))
+            got = rows_in(page, "philippines")
+            self.assertEqual([sid for sid, _ in got], [r["source_identity"] for r in items])
+            for (sid, li), row in zip(got, items):
+                self.assertIn('href="%s"' % row["canonical_official_url"], li)
+                self.assertIn('rel="noopener noreferrer"', li)
+                self.assertIn('<time datetime="%s">' % row["publisher_posted_date"], li)
+                self.assertIn("Publisher: %s" % row["publisher_label"], li)
+            union += [sid for sid, _ in got]
+        # Every admitted row is on exactly one month page, in DB order.
+        self.assertEqual(union, [r["source_identity"] for r in PH_ROWS])
+        hub = self.read("philippines-official-links.html")
+        self.assertIn('data-official-link-total="%d"' % len(PH_ROWS), hub)
+        self.assertNotIn("data-regional-official-source-id", hub)
+        self.assertEqual(hub.count("data-official-link-month="), len(months))
+
+    def test_philippines_growth_corpus_fits_the_default_budget(self):
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import verify_frontend_delivery as budget
+        routes = readback.index_routes(DB, "philippines")
+        self.assertEqual(routes, ["philippines.html"]
+                         + link_index.index_routes("philippines", PH_ROWS))
+        self.assertEqual(len(routes), 2 + len(link_index.partition("philippines", PH_ROWS)))
+        for route in routes:
+            self.assertEqual(budget.html_css_cap(route), 120000, route)
+        result = budget.verify(self.out, only=routes)
+        self.assertEqual(result["failures"], [])
+
+    def test_vietnam_and_japan_keep_full_lists_and_no_index(self):
+        for slug in ("vietnam", "japan", "singapore"):
             self.assertFalse((self.out / ("%s-official-links.html" % slug)).exists())
             self.assertFalse((self.out / ("%s-official-links" % slug)).exists())
-        readback.verify(DB, self.out, required_desks=("philippines",))
+        vietnam = _ORIGINAL_REGIONAL(DB, "vietnam")
+        self.assertEqual(self.read("vietnam.html").count("data-regional-official-source-id="),
+                         len(vietnam))
+
+    # -- Philippines local, deployed and HTTPS readback -------------------
+    def philippines_holds(self, reason=None, **kwargs):
+        ctx = (self.assertRaisesRegex(ReadbackHold, "^%s$" % reason) if reason
+               else self.assertRaises(ReadbackHold))
+        with ctx:
+            readback.verify(DB, self.out, required_desks=("philippines",), **kwargs)
+
+    def test_philippines_readback_accepts_exact_build(self):
+        receipt = readback.verify(DB, self.out, required_desks=("philippines",))
+        family = receipt["source_families"]["ph_afp_articles"]
+        self.assertEqual(family["admitted_official_link_count"], len(PH_ROWS))
+        self.assertEqual(family["desk_official_link_count"], 60)
+        self.assertEqual(family["full_index"]["months"],
+                         {m: len(items) for m, items in
+                          link_index.partition("philippines", PH_ROWS)})
+
+    def test_philippines_desk_mutations_hold(self):
+        desk = "philippines.html"
+        first_hidden = PH_ROWS[link_index.DESK_LINK_LIMIT]
+        self.assertEqual(first_hidden["publisher_label"], PH_AFP)
+
+        def lis(html):
+            return rows_in(html, "philippines")
+
+        # The first hidden row, in exactly the desk's own row markup.
+        template = lis(self.read(desk))[0][1]
+        row_60 = re.sub(r'source-id="[^"]+"',
+                        'source-id="%s"' % first_hidden["source_identity"], template)
+        row_60 = re.sub(r'href="[^"]+"', 'href="%s"' % first_hidden["canonical_official_url"],
+                        row_60)
+        row_60 = re.sub(r'datetime="[^"]+">[^<]+<',
+                        'datetime="%s">%s<' % ((first_hidden["publisher_posted_date"],) * 2),
+                        row_60)
+
+        def add_61(html):
+            last = lis(html)[-1][1]
+            return html.replace(last, last + row_60, 1)
+
+        def drop_last(html):
+            return html.replace(lis(html)[-1][1], "", 1)
+
+        def duplicate(html):
+            first = lis(html)[0][1]
+            return html.replace(first, first + first, 1)
+
+        def swap(html):
+            a, b = lis(html)[0][1], lis(html)[1][1]
+            return html.replace(a, "\0", 1).replace(b, a, 1).replace("\0", b, 1)
+
+        def db_order(html):
+            # NSC listed where DB order puts it (among AFP rows) holds: the
+            # desk must list AFP, then NSC.
+            nsc = [li for sid, li in lis(html) if sid.startswith("nsc:")][0]
+            first = lis(html)[0][1]
+            return html.replace(nsc, "", 1).replace(first, nsc + first, 1)
+
+        def older_in(html):
+            return html.replace(lis(html)[-2][1], row_60, 1)
+
+        def altered(field_old, field_new):
+            def change(html):
+                li = lis(html)[2][1]
+                return html.replace(li, li.replace(field_old(li), field_new(li), 1), 1)
+            return change
+
+        url = altered(lambda li: re.search(r'href="([^"]+)"', li).group(1),
+                      lambda li: re.search(r'href="([^"]+)"', li).group(1) + "?x=1")
+        date = altered(lambda li: re.search(r'datetime="([^"]+)"', li).group(0),
+                       lambda li: 'datetime="2026-01-01"')
+        label = altered(lambda li: "AFP official source", lambda li: "AFP official sources")
+        identity = altered(lambda li: re.search(r'source-id="([^"]+)"', li).group(0),
+                           lambda li: 'source-id="afp:1"')
+        for label_, change in (("61 rows", add_61), ("59 rows", drop_last),
+                               ("duplicated row", duplicate), ("wrong order", swap),
+                               ("DB order instead of groups", db_order),
+                               ("older row swapped in", older_in),
+                               ("altered URL", url), ("altered date", date),
+                               ("altered label", label), ("altered identity", identity)):
+            with self.subTest(label_), self.mutated(desk, change):
+                self.philippines_holds()
+        with self.mutated(desk, lambda h: h.replace('href="philippines-official-links.html"',
+                                                    'href="archive.html"')):
+            self.philippines_holds("desk_page_full_index_link_missing_or_repeated")
+
+    def test_philippines_month_mutations_hold(self):
+        months = link_index.partition("philippines", PH_ROWS)
+        first, second = (link_index.month_route("philippines", m) for m, _ in months[:2])
+        first_rows = rows_in(self.read(first), "philippines")
+
+        def lis(html):
+            return rows_in(html, "philippines")
+
+        def missing(html):
+            return html.replace(lis(html)[3][1], "", 1)
+
+        def duplicate(html):
+            li = lis(html)[3][1]
+            return html.replace(li, li + li, 1)
+
+        def from_other_month(html):
+            li = lis(html)[0][1]
+            return html.replace(li, first_rows[0][1] + li, 1)
+
+        def altered_url(html):
+            li = lis(html)[1][1]
+            href = re.search(r'href="([^"]+)"', li).group(1)
+            return html.replace(li, li.replace(href, href + "-changed", 1), 1)
+
+        def altered_date(html):
+            li = lis(html)[1][1]
+            day = re.search(r'datetime="([^"]+)"', li).group(1)
+            return html.replace(li, li.replace('datetime="%s"' % day,
+                                               'datetime="2026-10-02"', 1), 1)
+
+        for label, change in (("month missing a row", missing),
+                              ("duplicated row", duplicate),
+                              ("same id in two months", from_other_month),
+                              ("altered URL", altered_url),
+                              ("altered date", altered_date)):
+            with self.subTest(label), self.mutated(second, change):
+                self.philippines_holds()
+        folder = self.out / "philippines-official-links"
+        orphan = folder / "2020-01.html"
+        orphan.write_bytes((self.out / second).read_bytes())
+        try:
+            self.philippines_holds("official_link_index_month_pages_disagree_with_db")
+        finally:
+            orphan.unlink()
+        with self.mutated("philippines-official-links.html", lambda h: h.replace(
+                'data-official-link-total="%d"' % len(PH_ROWS),
+                'data-official-link-total="%d"' % (len(PH_ROWS) - 1))):
+            self.philippines_holds("official_link_index_hub_total_disagrees_with_db")
+
+    def test_philippines_db_drift_holds(self):
+        newer = dict(PH_ROWS[0], source_identity="afp:999999",
+                     canonical_official_url="https://www.afp.mil.ph/news/ipr-new")
+        for label, rows in (("new admitted row", [newer] + PH_ROWS),
+                            ("row withdrawn", PH_ROWS[1:]),
+                            ("older row withdrawn", PH_ROWS[:-1]),
+                            ("URL changed", [dict(PH_ROWS[0], canonical_official_url=
+                                                  PH_ROWS[0]["canonical_official_url"] + "/")]
+                             + PH_ROWS[1:])):
+            with self.subTest(label), mock.patch.object(
+                    readback, "load_admitted_links",
+                    lambda db, desk, rows=rows: ([dict(r) for r in rows]
+                                                 if desk == "philippines" else fake_regional(db, desk))):
+                self.philippines_holds()
+
+    def test_philippines_deployed_and_https_readback(self):
+        routes = (["philippines.html", "indonesia.html"]
+                  + link_index.index_routes("philippines", PH_ROWS)
+                  + link_index.index_routes("indonesia", ID_ROWS))
+        pages = self.make_pages_dir(routes)
+        readback.verify(DB, self.out, required_desks=("philippines",), pages_dir=pages)
+        month = pages / link_index.index_routes("philippines", PH_ROWS)[-1]
+        good = month.read_bytes()
+        month.write_bytes(good.replace(b"</main>", b"<!-- drift --></main>", 1))
+        self.philippines_holds("deployed_pages_route_differs_from_committed_site",
+                               pages_dir=pages)
+        month.write_bytes(good)
+        (pages / "philippines-official-links.html").unlink()
+        self.philippines_holds("deployed_pages_route_differs_from_committed_site",
+                               pages_dir=pages)
+        receipt = readback.verify_https(DB, self.out, "philippines", fetch=self.fetch_from())
+        self.assertEqual(receipt["routes"], readback.index_routes(DB, "philippines"))
+        self.assertEqual(receipt["admitted_official_link_count"], len(PH_ROWS))
+        hub = "philippines-official-links.html"
+        with self.assertRaisesRegex(ReadbackHold,
+                                    "^philippines_https_bytes_differ_from_committed_output$"):
+            readback.verify_https(DB, self.out, "philippines",
+                                  fetch=self.fetch_from({hub: b"<html>stale</html>"}))
 
     def test_index_routes_fit_the_default_budget(self):
         sys.path.insert(0, str(ROOT / "scripts"))
         import verify_frontend_delivery as budget
         routes = (link_index.index_routes("indonesia", ID_ROWS)
-                  + link_index.index_routes("korea", self.korea_rows))
-        for route in routes:
+                  + link_index.index_routes("korea", self.korea_rows)
+                  + link_index.index_routes("philippines", PH_ROWS))
+        for route in routes + ["philippines.html"]:
             self.assertEqual(budget.html_css_cap(route), 120000, route)
-        result = budget.verify(self.out, only=routes + ["indonesia.html", "korea.html"])
+        result = budget.verify(self.out, only=routes + ["indonesia.html", "korea.html",
+                                                        "philippines.html"])
         self.assertEqual(result["failures"], [])
 
     def test_sitemap_lists_index_routes(self):
         sitemap = self.read("sitemap.xml")
-        for route in link_index.index_routes("indonesia", ID_ROWS):
+        for route in (link_index.index_routes("indonesia", ID_ROWS)
+                      + link_index.index_routes("philippines", PH_ROWS)):
             self.assertIn("/" + route + "<", sitemap)
 
     # -- Indonesia local readback ----------------------------------------
@@ -469,7 +806,10 @@ class RenderedIndexTests(unittest.TestCase):
 
     # -- Indonesia deployed readback -------------------------------------
     def test_indonesia_deployed_readback_requires_identical_bytes(self):
+        # The default Philippines desk is now indexed too, so its full index
+        # must also be byte-identical in the deployed checkout.
         routes = (["philippines.html", "indonesia.html"]
+                  + link_index.index_routes("philippines", PH_ROWS)
                   + link_index.index_routes("indonesia", ID_ROWS))
         pages = self.make_pages_dir(routes)
         readback.verify(DB, self.out, required_desks=("indonesia",), pages_dir=pages)
@@ -740,8 +1080,24 @@ class BudgetGateTests(unittest.TestCase):
             self.assertEqual(self.run_gate(root, "indonesia.html").returncode, 1)
             self.write(root, "korea-official-links.html", 120001)
             self.assertEqual(self.run_gate(root, "korea-official-links.html").returncode, 1)
+            # Philippines desk and index routes keep the default 120 KB cap.
+            ph_month = "philippines-official-links/2026-11.html"
+            self.write(root, "philippines.html", 120000)
+            self.write(root, "philippines-official-links.html", 1000)
+            self.write(root, ph_month, 120000)
+            ph_routes = ("philippines.html", "philippines-official-links.html", ph_month)
+            ok = self.run_gate(root, *ph_routes)
+            self.assertEqual(ok.returncode, 0, ok.stdout + ok.stderr)
+            for route in ph_routes:
+                with self.subTest(over=route):
+                    self.write(root, route, 120001)
+                    over = self.run_gate(root, *ph_routes)
+                    self.assertEqual(over.returncode, 1)
+                    self.assertIn("1 delivery budget failures", over.stdout)
+                    self.write(root, route, 1000)
             for bad in ("korea-official-links/2026-11.html", "../outside.html",
-                        "indonesia-official-links"):
+                        "indonesia-official-links", "philippines-official-links/2026-10.html",
+                        "philippines-official-links"):
                 with self.subTest(bad):
                     missing = self.run_gate(root, bad)
                     self.assertEqual(missing.returncode, 1)
@@ -761,7 +1117,15 @@ class WriterWorkflowTextTests(unittest.TestCase):
         "korea_standing_original_text_production.yml":
             ('--print-routes > "$RUNNER_TEMP/korea-text-routes"',
              "git add -A -- research/korea_published_original_texts.json"),
+        "ph_afp_verified_official_link_production.yml":
+            ('--print-routes philippines > "$RUNNER_TEMP/ph-routes"',
+             "git add -- pla_watch.db output/philippines.html"),
+        "ph_nsc_verified_official_link_production.yml":
+            ('--print-routes philippines > "$RUNNER_TEMP/nsc-routes"',
+             "git add -- pla_watch.db output/philippines.html"),
     }
+    PH_WRITERS = ("ph_afp_verified_official_link_production.yml",
+                  "ph_nsc_verified_official_link_production.yml")
 
     def flow(self, name):
         return (WORKFLOWS / name).read_text(encoding="utf-8")
@@ -782,9 +1146,11 @@ class WriterWorkflowTextTests(unittest.TestCase):
             bin_dir = Path(tmp) / "bin"
             bin_dir.mkdir()
             (bin_dir / "python").symlink_to(PYTHON)
-            for name, desk in (("indonesia_verified_official_link_production.yml", "indonesia"),
-                               ("korea_verified_official_link_production.yml", "korea"),
-                               ("korea_standing_original_text_production.yml", "korea")):
+            writers = ((("indonesia_verified_official_link_production.yml", "indonesia"),
+                        ("korea_verified_official_link_production.yml", "korea"),
+                        ("korea_standing_original_text_production.yml", "korea"))
+                       + tuple((name, "philippines") for name in self.PH_WRITERS))
+            for name, desk in writers:
                 with self.subTest(name):
                     m = re.search(r"\n( *)(python -m scripts\.verify_\w+ --db pla_watch\.db"
                                   r" \\\n *--print-routes[^\n]*\n\1test [^\n]*)\n",
@@ -802,14 +1168,16 @@ class WriterWorkflowTextTests(unittest.TestCase):
 
     def test_staging_allowlists_reject_stray_files(self):
         for name, desk in (("indonesia_verified_official_link_production.yml", "indonesia"),
-                           ("korea_verified_official_link_production.yml", "korea")):
+                           ("korea_verified_official_link_production.yml", "korea")) \
+                + tuple((name, "philippines") for name in self.PH_WRITERS):
             patterns = re.findall(r"grep -vE '(\^\(.*?\)\$)'", self.flow(name))
             self.assertEqual(len(patterns), 2, name)
             main, pages = (re.compile(p) for p in patterns)
             good_main = ["pla_watch.db", "output/%s.html" % desk,
                          "output/%s-official-links.html" % desk,
                          "output/%s-official-links/2026-11.html" % desk]
-            bad_main = ["output/index.html", "output/philippines.html",
+            other = "output/indonesia.html" if desk == "philippines" else "output/philippines.html"
+            bad_main = ["output/index.html", other, "output/sitemap.xml",
                         "output/%s-official-links/2026-11.json" % desk,
                         "output/%s-official-links/2026-11xhtml" % desk,
                         "output/%s-official-links/x/2026-11.html" % desk,
@@ -851,7 +1219,8 @@ class WriterWorkflowTextTests(unittest.TestCase):
 
     def test_writers_publish_and_read_back_the_full_index(self):
         for name, desk in (("indonesia_verified_official_link_production.yml", "indonesia"),
-                           ("korea_verified_official_link_production.yml", "korea")):
+                           ("korea_verified_official_link_production.yml", "korea")) \
+                + tuple((name, "philippines") for name in self.PH_WRITERS):
             flow = self.flow(name)
             with self.subTest(name):
                 self.assertIn("cp -R ../output/%s-official-links %s-official-links"
@@ -864,6 +1233,16 @@ class WriterWorkflowTextTests(unittest.TestCase):
         self.assertIn("git ls-tree --name-only origin/gh-pages indonesia-official-links/",
                       indonesia)
         self.assertIn('"$(git show "origin/gh-pages:$route" | sha256sum)"', indonesia)
+        for name in self.PH_WRITERS:
+            flow = self.flow(name)
+            with self.subTest(name):
+                self.assertIn("--require-desk philippines --https-desk philippines", flow)
+                self.assertIn("git ls-tree --name-only origin/gh-pages "
+                              "philippines-official-links/", flow)
+                self.assertIn('"$(git show "origin/gh-pages:$route" | sha256sum)"', flow)
+                # The desk check is the bounded listing; every admitted row is
+                # checked exactly once across the month pages.
+                self.assertIn('link_index.desk_listing("philippines", admitted)', flow)
         for name, pages in (("korea_verified_official_link_production.yml",
                              "korea-existing-pages"),
                             ("korea_standing_original_text_production.yml",
@@ -901,6 +1280,8 @@ class WriterWorkflowTextTests(unittest.TestCase):
         self.assertIn("deployed_routes=(philippines.html indonesia.html vietnam.html)", flow)
         self.assertIn("deployed_routes+=(indonesia-official-links.html indonesia-official-links)",
                       flow)
+        self.assertIn("deployed_routes+=(philippines-official-links.html "
+                      "philippines-official-links)", flow)
         self.assertIn('git archive origin/gh-pages "${deployed_routes[@]}"', flow)
 
 

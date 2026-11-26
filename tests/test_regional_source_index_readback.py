@@ -15,7 +15,7 @@ from scripts.verify_regional_source_index_readback import (
     ReadbackHold, MetadataOnlySourceParser, main, validate_page, verify,
     vietnam_explanations, verify_vietnam_https,
 )
-from tests.test_regional_live_site_wiring import html_for
+from tests.test_regional_live_site_wiring import html_for, index_pages_for
 from tests.test_regional_official_link_render import insert
 from core.regional_official_link_render import load_admitted_links
 
@@ -59,6 +59,10 @@ class RegionalReadbackTests(unittest.TestCase):
             rows = load_admitted_links(self.db, desk)
             (self.site / (desk + ".html")).write_text(
                 html_for(desk, rows), encoding="utf-8")
+            # The bounded desk's full index by month, as build() writes it.
+            for route, html in index_pages_for(desk, rows).items():
+                (self.site / route).parent.mkdir(parents=True, exist_ok=True)
+                (self.site / route).write_text(html, encoding="utf-8")
 
     def digest(self):
         return hashlib.sha256(self.db.read_bytes()).hexdigest()
@@ -106,7 +110,8 @@ class RegionalReadbackTests(unittest.TestCase):
             "source_identity":"afp:1499",
             "canonical_official_url":"https://www.afp.mil.ph/news/fake",
             "publisher_posted_date":"2026-10-15",
-            "label":"AFP official source"}])
+            "label":"AFP official source",
+            "publisher_label":"Armed Forces of the Philippines"}])
         (self.site/"philippines.html").write_text(fake,encoding="utf-8")
         with self.assertRaisesRegex(ReadbackHold, "presence_disagrees_with_db"):
             verify(self.db,self.site)
@@ -168,16 +173,14 @@ class RegionalReadbackTests(unittest.TestCase):
 
     def test_pages_byte_parity_succeeds_if_equal(self):
         self.admit_afp()
-        for page in self.site.glob("*.html"):
-            shutil.copyfile(page,self.pages/page.name)
+        shutil.copytree(self.site,self.pages,dirs_exist_ok=True)
         receipt=verify(self.db,self.site,pages_dir=self.pages)
         self.assertTrue(receipt["site_bytes_match_deployed_checkout"])
         self.assertFalse(receipt["actual_pages_deployed_by_this_check"])
 
     def test_changed_deployed_page_fails_even_with_same_number_of_links(self):
         self.admit_afp()
-        for page in self.site.glob("*.html"):
-            shutil.copyfile(page,self.pages/page.name)
+        shutil.copytree(self.site,self.pages,dirs_exist_ok=True)
         page=self.pages/"philippines.html"
         page.write_bytes(page.read_bytes()+b"\n<!-- injected stale edit -->\n")
         with self.assertRaisesRegex(ReadbackHold,"deployed_pages_route_differs"):

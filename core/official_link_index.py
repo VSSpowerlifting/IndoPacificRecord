@@ -1,7 +1,7 @@
 """Bounded desk lists and full month indexes for admitted official links.
 
-Indonesia and Korea desk pages show only the newest DESK_LINK_LIMIT admitted
-official-link rows. The full admitted set moves to a hub route listing months
+Indonesia, Korea and Philippines desk pages show only the newest
+DESK_LINK_LIMIT admitted official-link rows. The full admitted set moves to a hub route listing months
 and one page per publisher-posted month. This module is pure: it never reads
 the database, fetches publishers or changes which rows are admitted. It only
 slices and partitions rows that callers already loaded in their canonical
@@ -14,13 +14,21 @@ import re
 from datetime import date
 
 DESK_LINK_LIMIT = 60
-INDEX_DESKS = ("indonesia", "korea")
+INDEX_DESKS = ("indonesia", "korea", "philippines")
 # The official date each desk's rows are ordered and partitioned by.
-DAY_KEYS = {"indonesia": "publisher_posted_date", "korea": "published_date"}
+DAY_KEYS = {"indonesia": "publisher_posted_date", "korea": "published_date",
+            "philippines": "publisher_posted_date"}
 # The attribute that identifies each row in rendered markup.
 ROW_MARKERS = {"indonesia": "data-regional-official-source-id",
-               "korea": "data-korea-auto-official-link"}
-DESK_NAMES = {"indonesia": "Indonesia", "korea": "South Korea"}
+               "korea": "data-korea-auto-official-link",
+               "philippines": "data-regional-official-source-id"}
+DESK_NAMES = {"indonesia": "Indonesia", "korea": "South Korea",
+              "philippines": "Philippines"}
+# Desks whose bounded desk list is shown in fixed publisher groups (matched on
+# publisher_label), each group keeping the canonical newest-first order. The
+# Philippines desk lists AFP, then NSC; its month pages keep one combined list.
+DESK_GROUPS = {"philippines": ("Armed Forces of the Philippines",
+                               "National Security Council")}
 _DAY = re.compile(r"\A(\d{4})-(\d{2})-(\d{2})\Z")
 _MONTH = re.compile(r"\A\d{4}-(0[1-9]|1[0-2])\Z")
 
@@ -89,6 +97,28 @@ def _checked(desk: str, rows) -> list:
 def latest(desk: str, rows) -> list:
     """The newest DESK_LINK_LIMIT rows, in the caller's canonical order."""
     return _checked(desk, rows)[:DESK_LINK_LIMIT]
+
+
+def grouped(desk: str, rows) -> list:
+    """Rows in the desk page's display order: its publisher groups, if any.
+
+    Identity for desks without groups. A row outside every declared group is
+    a hold, never silently dropped or appended.
+    """
+    rows = _checked(desk, rows)
+    groups = DESK_GROUPS.get(desk)
+    if not groups:
+        return rows
+    ordered = [row for group in groups for row in rows
+               if row.get("publisher_label") == group]
+    if len(ordered) != len(rows):
+        raise IndexHold("admitted row outside the desk's publisher groups")
+    return ordered
+
+
+def desk_listing(desk: str, rows) -> list:
+    """The latest rows the desk page lists, in the order it lists them."""
+    return grouped(_desk(desk), latest(desk, rows))
 
 
 def partition(desk: str, rows) -> list:
