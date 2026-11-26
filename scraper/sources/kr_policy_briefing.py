@@ -24,6 +24,33 @@ from scraper.sources.id_kemhan import one
 HOST = "www.korea.kr"
 LISTING = "https://" + HOST + "/briefing/pressReleaseList.do"
 ISSUER = "국방부"
+MULTIPLE_HWPX_ATTACHMENTS = "multiple_hwpx_attachments"
+
+
+class MultipleHwpxAttachments(ValueError):
+    """A release page publishes more than one valid HWPX attachment.
+
+    Which variant (for example ``_게시`` or ``_제공``) is the release body is
+    an owner decision. Nothing is selected or downloaded: the release is
+    reported for review with every attachment link it published.
+    """
+
+    def __init__(self, title, published, attachments):
+        super().__init__("%d published HWPX attachments; no variant is selected "
+                         "automatically (owner review required)" % len(attachments))
+        self.title, self.published = title, published
+        self.attachments = tuple(sorted(attachments))  # (url, label) pairs
+
+
+def document_link(url):
+    """Return the validated Policy Briefing HWPX download URL, or refuse."""
+    parts = urlsplit(url)
+    query = parse_qs(parts.query)
+    if (parts.netloc != HOST or parts.scheme != "https" or parts.path != "/common/download.do" or
+            set(query) != {"fileId", "tblKey"} or query["tblKey"] != ["GMN"] or
+            len(query["fileId"]) != 1 or not query["fileId"][0].isdigit()):
+        raise ValueError("unexpected document link")
+    return url
 
 
 def article_url(url):
@@ -87,6 +114,7 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
         super().__init__(*args, **kwargs)
         self.documents = {}
         self.attachment_refusals = {}
+        self.attachment_ambiguities = {}
         self.robots_timeout_retries = 0
         self.transport_retries = 0
 
@@ -126,6 +154,7 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
         self.robots_timeout_retries = 0
         self.transport_retries = 0
         self.attachment_refusals = {}
+        self.attachment_ambiguities = {}
         return super().discover(window)
 
     def first_request(self, window):
@@ -189,18 +218,20 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
         issuer = one(info.select('a.gotosite[href="/news/ministryNewsList.do?repCode=A00005"]'), "release issuer")
         if not issuer.get_text(strip=True).startswith(ISSUER):
             raise ValueError("release issuer changed")
-        links = {urljoin(url, a["href"]) for a in soup.select('a[href*="/common/download.do"]')
-                 if a.get_text(strip=True).lower().endswith(".hwpx")}
-        if len(links) != 1:
+        labels = {}
+        for a in soup.select('a[href*="/common/download.do"]'):
+            label = a.get_text(strip=True)
+            if label.lower().endswith(".hwpx"):
+                labels.setdefault(urljoin(url, a["href"]), label)
+        if not labels:
             raise ValueError("exactly one published HWPX attachment required; other formats unmeasured")
-        document_url = links.pop()
-        parts = urlsplit(document_url)
-        query = parse_qs(parts.query)
-        if (parts.netloc != HOST or parts.scheme != "https" or parts.path != "/common/download.do" or
-                set(query) != {"fileId", "tblKey"} or query["tblKey"] != ["GMN"] or
-                len(query["fileId"]) != 1 or not query["fileId"][0].isdigit()):
-            raise ValueError("unexpected document link")
-        return title, published, document_url
+        # Every published HWPX link must meet the document contract before
+        # anything else is decided; one invalid link refuses the release.
+        for link in labels:
+            document_link(link)
+        if len(labels) > 1:
+            raise MultipleHwpxAttachments(title, published, labels.items())
+        return title, published, next(iter(labels))
 
     def titles_match(self, listed, collected):
         # The portal detail heading can repeat ASCII spaces from the listing.
@@ -208,11 +239,25 @@ class KoreaPolicyAdapter(ListingShadowAdapter):
         return re.sub(r" {2,}", " ", listed) == re.sub(r" {2,}", " ", collected)
 
     def fetch(self, reference):
+        self.attachment_ambiguities.pop(reference.url, None)
         capture = super().fetch(reference)
         if capture.status == st.OK:
             try:
-                title, published, url = self.metadata(capture.body, reference.url)
                 hint = self.references[reference.url]
+                try:
+                    title, published, url = self.metadata(capture.body, reference.url)
+                except MultipleHwpxAttachments as ambiguous:
+                    # Held for owner review only when the captured page is the
+                    # listed release; a disagreeing page is an ordinary failure.
+                    if (not self.titles_match(hint["title"], ambiguous.title) or
+                            ambiguous.published != hint["date"]):
+                        raise ValueError("release metadata disagrees with listing")
+                    # No attachment is requested and no variant is chosen.
+                    self.attachment_ambiguities[reference.url] = {
+                        "reason": MULTIPLE_HWPX_ATTACHMENTS, "detail": str(ambiguous),
+                        "attachment_urls": [link for link, _ in ambiguous.attachments],
+                        "attachment_labels": [label for _, label in ambiguous.attachments]}
+                    raise
                 if not self.titles_match(hint["title"], title) or published != hint["date"]:
                     raise ValueError("release metadata disagrees with listing")
                 try:
