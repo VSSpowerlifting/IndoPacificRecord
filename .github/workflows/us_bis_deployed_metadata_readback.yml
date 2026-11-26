@@ -9,6 +9,10 @@ on:
       - tests/test_us_bis_deployed_metadata.py
       - .github/workflows/us_bis_deployed_metadata_readback.yml
       - docs/engineering/US_BIS_DEPLOYED_METADATA_READBACK_2026-10-15.md
+      - core/official_link_index.py
+      - site/preview/templates/official_link_index.html
+      - site/preview/templates/desk.html
+      - scripts/verify_us_official_link_index.py
   workflow_run:
     workflows:
       - BIS — Authenticated Official Links U.S. Desk-Only Release

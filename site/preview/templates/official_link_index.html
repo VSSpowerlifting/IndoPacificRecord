@@ -29,7 +29,7 @@
   the portal posting date.
   {% endif %}
   The <a href="{{ root }}{{ desk.route }}">desk page</a> lists
-  {{ ('the latest %d from each publisher' % index_group_limit) if index_group_limit and index_shown < index_total else ('the latest %d' % index_shown if index_shown < index_total else 'all of them') }}.</p>
+  {{ ('up to the latest %d from each publisher' % index_group_limit) if index_group_limit and index_shown < index_total else ('the latest %d' % index_shown if index_shown < index_total else 'all of them') }}.</p>
 </header>
 <section class="desk-references" aria-labelledby="official-link-months-title">
   <h2 id="official-link-months-title">Months</h2>

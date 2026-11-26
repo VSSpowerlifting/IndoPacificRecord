@@ -9,6 +9,9 @@ on:
       - tests/test_us_bis_verified_official_links_release.py
       - docs/engineering/US_BIS_METADATA_GUARDED_PAGES_RELEASE_2026-10-15.md
       - scripts/verify_us_official_link_index.py
+      - core/official_link_index.py
+      - site/preview/templates/official_link_index.html
+      - site/preview/templates/desk.html
   workflow_run:
     workflows:
       - BIS Official Homepage Press Metadata — Scheduled Shadow
