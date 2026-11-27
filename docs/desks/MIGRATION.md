@@ -522,9 +522,10 @@ row, after admission, keeping its counts and `held:` detail.
   `collection_by_family`. (22 November: the reader accepts an optional signed
   `dispositions` count per bridge outcome code; the receipt adds
   `dispositions_by_family`, and the run detail appends `private bridge: N code`
-  for non-published codes without changing status or counts. Signing it stays
-  off behind `SIGN_DISPOSITIONS` until a follow-up flip after one public Daily
-  has run this reader: older verifiers refuse the key.)
+  for non-published codes without changing status or counts. The 26 November
+  scheduled Daily exercised the compatible reader before the signer flip.
+  Older verifiers refuse the key, so disable `SIGN_DISPOSITIONS` and restore
+  a compatible handoff before reverting the reader.)
 - Order: reader (this change; every live envelope is still `/1`, so every
   disposition is unchanged) -> shared and Vietnam producers, only after one
   public Daily has run reader code -> strict flip -> liveness. Cron values are
