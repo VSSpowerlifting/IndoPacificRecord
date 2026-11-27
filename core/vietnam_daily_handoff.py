@@ -65,13 +65,9 @@ DISPOSITIONS = (qa.HELD_RETRYABLE, qa.HELD_REVIEW, qa.HELD_RIGHTS, qa.HELD_SOURC
                 qa.HELD_ESCALATED, qa.SCREENED_OUT, bridge.SETTLED, bridge.DUPLICATE,
                 qa.PUBLISHED)
 DISPOSITIONS_INVALID = {"valid": False, "reason": "dispositions_invalid"}
-# Reader first (docs/desks/MIGRATION.md order): a verifier before this change
-# refuses any family entry carrying "dispositions", so a Daily re-run at an
-# older SHA, or a revert, would HOLD every Vietnam record. sign() emits the
-# block only once a follow-up change sets this True, after one public Daily
-# has run this reader. The private runner signs from public main, so that flip
-# needs no private change.
-SIGN_DISPOSITIONS = False
+# The 26 November scheduled Daily ran the compatible reader before this flip.
+# Roll back the signer before reverting the reader or rerunning an older SHA.
+SIGN_DISPOSITIONS = True
 _MAX_DISPOSITION_COUNT = 1_000_000
 
 

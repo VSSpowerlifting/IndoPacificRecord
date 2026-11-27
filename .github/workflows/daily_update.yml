@@ -915,13 +915,10 @@ jobs:
             PROBLEMS=$((PROBLEMS + 1))
           fi
 
-          # ── Sources: has any non-inert source gone quiet? ──────────────────
-          # Writes its own annotations and step summary. The script keeps no
-          # exemption list: a source is inert only when its adapter declares
-          # IS_STUB or its desk manifest disables it, so acknowledging silence
-          # is an edit in the place that already governs the source.
+          # Source liveness checks both observation and governed-run freshness.
+          # The checker writes the individual findings and the step summary.
           if ! python scripts/check_source_liveness.py; then
-            echo "::error title=Source silent::A source has stopped producing articles. Fix the scraper; or, if the silence is expected, declare IS_STUB on its adapter or set enabled:false in its desk manifest."
+            echo "::error title=Source liveness::Check the source liveness findings for observation freshness, governed-run failures, or checker errors."
             PROBLEMS=$((PROBLEMS + 1))
           fi
 

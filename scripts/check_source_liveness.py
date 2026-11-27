@@ -418,7 +418,7 @@ def emit_github(unhealthy: list[tuple[str, str]], lines: list[str],
         return
 
     for name, detail in unhealthy:
-        print(f"::warning title=Source silent::{name}: {detail}")
+        print(f"::warning title=Source liveness::{name}: {detail}")
     for name, detail in paused:
         print(f"::notice title=Source paused by owner decision::{name}: {detail}")
 
@@ -475,7 +475,7 @@ def main() -> int:
 
     if paused:
         print(f"\n{len(paused)} source(s) paused by owner decision; not a fault.")
-    print("\nAll non-inert sources are producing.")
+    print("\nAll applicable source liveness thresholds passed.")
     return 0
 
 

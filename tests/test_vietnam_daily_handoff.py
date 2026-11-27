@@ -409,7 +409,7 @@ class Handoff(unittest.TestCase):
         articles = sum(len(handoff._canonical(items[o["source_identity"]]["article"]))
                        for o in mixed["outcomes"] if o["outcome"] == qa.PUBLISHED)
         block = len(handoff._canonical({"dispositions": handoff._dispositions(mixed["outcomes"])}))
-        # Off (the default), an unsigned block costs nothing, so no record waits for it.
+        # With emission off, an unsigned block costs nothing.
         for emit, exact in ((True, 2048 + block + articles), (False, 2048 + articles)):
             for bound, deferred in ((exact, 0), (exact - 1, 1)):
                 with self.subTest(emit=emit, bound=bound), \
@@ -425,18 +425,17 @@ class Handoff(unittest.TestCase):
         report, _ = self.run_private(source_use=grant())
         ledgers = {MPS: json.loads(self.ledger.read_text())}
         fields = dict(key=BRIDGE_KEY, run_id="simulated-private-run", generated_utc=NOW)
-        old = handoff.sign([report], ledgers, **fields)  # the default signs the legacy shape
+        with patch.object(handoff, "SIGN_DISPOSITIONS", False):
+            old = handoff.sign([report], ledgers, **fields)
         self.assertNotIn("dispositions", old["families"][0])
-        with patch.object(handoff, "SIGN_DISPOSITIONS", True):
-            envelope = handoff.sign([report], ledgers, **fields)
+        envelope = handoff.sign([report], ledgers, **fields)
         self.assertIn("dispositions", envelope["families"][0])
         self.assertEqual(self.verify(old), self.verify(envelope))
         self.assertEqual(handoff.dispositions_by_family(old), {MPS: None})
 
-    def test_default_signer_stays_readable_by_the_previous_verifier(self):
-        """Reader first: until SIGN_DISPOSITIONS is flipped, every family entry
-        meets the exact family-key check of the verifier before this change, so a
-        Daily re-run at an older SHA, or a revert, still reads the handoff."""
+    @patch.object(handoff, "SIGN_DISPOSITIONS", False)
+    def test_rollback_signer_stays_readable_by_the_previous_verifier(self):
+        """Emission can be rolled back for a verifier with the previous key set."""
         from tests.test_collection_attempts import facts
         vpcp = handoff.source_use.VPCP
         report, _ = self.run_private(source_use=grant())
@@ -523,8 +522,7 @@ class Handoff(unittest.TestCase):
             self.assertEqual((code, out["counts"]), (0, {qa.PUBLISHED: 2}))
             self.assertEqual(out["by_family"], {MPS: {qa.PUBLISHED: 2}})
             self.assertEqual(out["collection_by_family"], {MPS: None})
-            # The default signer carries no block, so the row is exactly as before.
-            self.assertEqual(out["dispositions_by_family"], {MPS: None})
+            self.assertEqual(out["dispositions_by_family"], {MPS: {qa.PUBLISHED: 2}})
             self.assertEqual(out["generated_utc"], NOW)
             self.assertNotIn("summary_english", json.dumps(out))
             self.assertEqual(reported(out), ipr_pipeline.GovernedOutcome(st.OK, 2, 0))
