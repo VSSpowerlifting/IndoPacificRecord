@@ -46,7 +46,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Historical Actions census contracts, no live API or source access
         run: python -m unittest tests.test_fetch_indonesia_actions_census tests.test_indonesia_actions_attempts tests.test_indonesia_shadow_provenance -q
       - name: Check no protected database or public output changes
@@ -66,7 +66,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Record protected data/output baseline
         shell: bash
         run: |

@@ -24,9 +24,9 @@ import json
 import re
 from datetime import datetime
 from urllib.parse import urlparse
-from urllib.robotparser import RobotFileParser
 
 from bs4 import BeautifulSoup
+from scraper.sources.robots_prefix import legacy_can_fetch
 from scripts.collect_uscc_press_metadata import canonical
 
 POLICY = 'uscc-standing-family/1'
@@ -121,14 +121,13 @@ def _check_access(raw, url, access, robots_txt):
           'access_not_public_html')
     _need(type(access['robots_sha256']) is str and access['robots_sha256'] == _sha(robots_txt),
           'robots_receipt_mismatch')
-    parser = RobotFileParser()
     try:
-        parser.parse(robots_txt.decode('utf-8').splitlines())
+        policy = robots_txt.decode('utf-8').splitlines()
     except UnicodeDecodeError:
         raise USCCInputHold('robots_receipt_mismatch') from None
     agent = access['user_agent']
-    _need(type(agent) is str and agent and parser.can_fetch(agent, url)
-          and parser.can_fetch('*', url), 'robots_restricted')
+    _need(type(agent) is str and agent and legacy_can_fetch(policy, agent, url)
+          and legacy_can_fetch(policy, '*', url), 'robots_restricted')
 
 
 def _select(body):

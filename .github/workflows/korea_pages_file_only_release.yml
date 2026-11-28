@@ -28,7 +28,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Install existing site tests
         run: python -m pip install -r requirements.txt
       - name: Verify Korea source identities and file-only publication contract
@@ -61,7 +61,7 @@ jobs:
           persist-credentials: true
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
           cache: pip
       - name: Pin exact main and tracked production checksum
         shell: bash

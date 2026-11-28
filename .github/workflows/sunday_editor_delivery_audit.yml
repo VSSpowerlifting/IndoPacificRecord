@@ -17,10 +17,10 @@ jobs:
         with:
           ref: main
           persist-credentials: false
-      - name: Set up Python 3.9
+      - name: Set up Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Diagnose Sunday workflow metadata, not editor mail
         env:
           GITHUB_TOKEN: ${{ github.token }}

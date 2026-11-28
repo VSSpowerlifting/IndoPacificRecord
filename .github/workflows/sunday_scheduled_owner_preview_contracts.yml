@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Execute deterministic no-SMTP Sunday schedule contracts
         run: |
           python -m unittest tests.test_sunday_scheduled_owner_preview tests.test_weekly_briefs_sunday_window -v

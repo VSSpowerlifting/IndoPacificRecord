@@ -22,10 +22,10 @@ jobs:
         uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - name: Python 3.9
+      - name: Python 3.13
         uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Pure offline source/action/ref proof
         run: python -m unittest tests.test_vietnam_run_state_attestation -v
       - name: Assert all databases, outputs and source manifests remain untouched

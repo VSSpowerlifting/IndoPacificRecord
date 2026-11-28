@@ -27,7 +27,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Check signed-off boundaries, existing docket and review rules
         run: python -m unittest tests.test_ph_afp_review_docket tests.test_ph_afp_run_review tests.test_ph_afp_all22_review_docket_workflow -q
       - name: Assert tracked files unchanged
@@ -43,7 +43,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Run source-review and roster contract tests offline
         run: python -m unittest tests.test_ph_afp_review_docket tests.test_ph_afp_run_review tests.test_ph_afp_all22_review_docket_workflow -q
       - name: Verify exact historical state commits and single-state-only archive

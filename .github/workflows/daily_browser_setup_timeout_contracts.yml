@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   offline-preflight:
-    # Keep Python 3.9 installable; ubuntu-latest currently points to 26.04.
+    # Pinned runner image; ubuntu-latest moves without notice.
     runs-on: ubuntu-24.04
     timeout-minutes: 8
     steps:
@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Record tracked database SHA256
         id: baseline
         run: |

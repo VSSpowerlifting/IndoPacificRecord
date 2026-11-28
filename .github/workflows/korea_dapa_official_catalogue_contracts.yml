@@ -23,7 +23,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Offline authority, version, licensing and no-publication gates
         run: python -m unittest -v tests.test_korea_dapa_official_catalogue
       - name: No release or archive effects

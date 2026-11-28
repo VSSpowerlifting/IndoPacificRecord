@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install -r requirements.txt
       - name: Run negative source, robots, canonical date contracts
         run: python -m unittest tests.test_uscc_press_metadata -v
@@ -83,7 +83,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m pip install -r repo/requirements.txt
       - name: Collect bounded metadata-only official listing to temp
         shell: bash

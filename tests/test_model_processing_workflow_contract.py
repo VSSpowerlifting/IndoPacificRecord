@@ -82,7 +82,7 @@ class ModelProcessingWorkflow(unittest.TestCase):
 
     def test_no_credentials_production_mutations_or_paid_calls(self):
         self.assertFalse(self.steps[0]["with"]["persist-credentials"])
-        self.assertEqual(self.named["Set up Python 3.9"]["with"]["python-version"], "3.9")
+        self.assertEqual(self.named["Set up Python 3.13"]["with"]["python-version"], "3.13")
         commands = "\n".join(str(step.get("run", "")) for step in self.steps)
         for forbidden in ("pipeline.py", "site/render.py",
                           "git push", "git commit", "actions-gh-pages",

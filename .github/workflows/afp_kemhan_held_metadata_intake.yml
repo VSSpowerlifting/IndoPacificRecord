@@ -24,7 +24,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - run: python -m unittest tests.test_afp_kemhan_official_link_intake -v
       - run: |
           git diff --exit-code -- pla_watch.db output/ shadow/ 
@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Fetch existing unmodified shadow source Git branches to transient runner
         shell: bash
         run: |

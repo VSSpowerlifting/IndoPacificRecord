@@ -38,7 +38,6 @@ import hashlib
 import logging
 import re
 import time
-import urllib.robotparser
 from datetime import date, datetime, timedelta, timezone
 from html import unescape
 from typing import List, Optional, Tuple
@@ -53,6 +52,7 @@ from core.collection.contract import (
     ExtractedDocument, ExtractionResult, SourceAdapter, SourceHealthResult,
     SourceRunResult,
 )
+from scraper.sources import robots_prefix
 
 
 def _now() -> str:
@@ -447,9 +447,8 @@ class SGMindefAdapter(SourceAdapter):
     # -- policy ---------------------------------------------------------------
 
     def assert_robots_allows(self, robots_text: str, url: str) -> None:
-        rp = urllib.robotparser.RobotFileParser()
-        rp.parse(robots_text.splitlines())
-        if not rp.can_fetch(USER_AGENT, url):
+        if not robots_prefix.legacy_can_fetch(
+                robots_text.splitlines(), USER_AGENT, url):
             raise RobotsDisallowed(
                 "robots.txt disallows %s for this collector" % url)
 

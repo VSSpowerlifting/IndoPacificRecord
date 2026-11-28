@@ -47,7 +47,6 @@ from __future__ import annotations
 import hashlib
 import re
 import time
-import urllib.robotparser
 
 import requests
 import xml.etree.ElementTree as ET
@@ -61,6 +60,7 @@ from core.collection.contract import (
     ExtractedDocument, ExtractionResult, SourceAdapter, SourceHealthResult,
 )
 from processing import pdf_text
+from scraper.sources import robots_prefix
 
 HOST = "https://www.mod.go.jp"
 ROBOTS = HOST + "/robots.txt"
@@ -335,23 +335,10 @@ class JPModAdapter(SourceAdapter):
             if directive.strip().lower() in ("allow", "disallow") and any(
                     char in value for char in ("*", "$")):
                 raise RobotsDisallowed("unsupported robots path pattern; stopped", url=url)
-        parser = urllib.robotparser.RobotFileParser()
-        parser._add_entry = parser.entries.append  # preserve repeated wildcard groups
-        parser.parse(robots_text.lstrip("\ufeff").splitlines())
-        token = USER_AGENT.split("/")[0].lower()
-        matches = [(len(agent), entry) for entry in parser.entries
-                   for agent in entry.useragents if agent != "*" and agent.lower() in token]
-        specificity = max((length for length, _ in matches), default=0)
-        groups = ([entry for length, entry in matches if length == specificity]
-                  if matches else [entry for entry in parser.entries if "*" in entry.useragents])
-        merged = urllib.robotparser.Entry()
-        merged.rulelines = sorted([rule for entry in groups for rule in entry.rulelines],
-                                  key=lambda rule: (len(rule.path), rule.allowance), reverse=True)
-        parser.entries = []
-        parser.default_entry = merged
-        self._request_interval = max([REQUEST_INTERVAL] +
-                                     [entry.delay for entry in groups if entry.delay is not None])
-        if not parser.can_fetch(USER_AGENT, url):
+        allowed, delays = robots_prefix.evaluate(
+            robots_text.lstrip("\ufeff").splitlines(), USER_AGENT, url)
+        self._request_interval = max([REQUEST_INTERVAL] + delays)
+        if not allowed:
             raise RobotsDisallowed("robots.txt disallows %s" % url, url=url)
 
     def _ensure_robots(self):

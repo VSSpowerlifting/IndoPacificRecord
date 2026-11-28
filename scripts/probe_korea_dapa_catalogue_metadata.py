@@ -12,13 +12,13 @@ import json
 import time
 import urllib.error
 import urllib.request
-import urllib.robotparser
 from urllib.parse import urlsplit
 
 from scripts.probe_vietnam_mod_defrel_access import NoRedirect
 from scripts.qualify_korea_dapa_official_catalogue import (
     CatalogueHold, CATALOGUE_JSON_URL, MAX_INPUT_BYTES, qualify,
 )
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 HOST = "https://www.data.go.kr"
 ROBOTS = HOST + "/robots.txt"
@@ -74,9 +74,7 @@ def check_robots(raw):
         line.strip().lower().startswith("user-agent:") for line in txt.splitlines()
     ):
         raise ProbeHold("catalogue_robots_missing_or_challenged")
-    parser = urllib.robotparser.RobotFileParser()
-    parser.parse(txt.splitlines())
-    if not parser.can_fetch(USER_AGENT, JSON_URL):
+    if not legacy_can_fetch(txt.splitlines(), USER_AGENT, JSON_URL):
         raise ProbeHold("catalogue_robots_disallows_json")
     return True
 

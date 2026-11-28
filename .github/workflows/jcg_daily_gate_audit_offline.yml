@@ -25,7 +25,7 @@ jobs:
           persist-credentials: false
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.9'
+          python-version: '3.13'
       - name: Strict GitHub-only gate and state observation
         run: python -m unittest tests.test_jcg_daily_gate_audit tests.test_jcg_gate_actions_context -v
       - name: Confirm all production and shadow data remain untouched

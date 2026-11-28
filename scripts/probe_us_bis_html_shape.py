@@ -9,12 +9,12 @@ from __future__ import annotations
 import json
 import re
 import urllib.request
-import urllib.robotparser
 import urllib.parse
 from bs4 import BeautifulSoup
 from scripts.probe_us_navy_first_party_access import (
     AGENT, NoRedirect, _fetch, MAX_ROBOTS_BYTES
 )
+from scraper.sources.robots_prefix import legacy_can_fetch
 
 SCHEMA="ipr-bis-official-small-listing-canary/1"
 HOST="www.bis.gov"
@@ -35,11 +35,10 @@ def run(opener=None):
     except UnicodeError:return {**outcome,"robots_policy":"invalid_encoding"}
     if "user-agent:" not in text.lower() or "<html" in text.lower():
         return {**outcome,"robots_policy":"invalid_policy"}
-    parser=urllib.robotparser.RobotFileParser(ROBOTS)
-    parser.parse(text.splitlines())
+    policy=text.splitlines()
     for path in ROUTES:
         url="https://"+HOST+path
-        if not parser.can_fetch(AGENT,url):
+        if not legacy_can_fetch(policy,AGENT,url):
             outcome["routes"].append({"path":path,"status":"robots_disallowed"})
             continue
         body,stat=_fetch(opener,url,MAX_BYTES)
