@@ -49,6 +49,12 @@ Processing/institution/language/trail filters apply only to archive records.
 Dates are inclusive; missing publication dates stay missing. IPR publication dates
 come from public release records, never coverage weeks or approval dates.
 
+Entry and recovery (14 November): home search submits `scope=published&q=…`.
+`published` is the widest scope and contains `all`, which in turn contains `focus`.
+When a narrower scope is empty and `published` has matches, the empty state offers
+`scope=published` with the match count. The query is kept and the offer is announced.
+Otherwise the empty state offers to clear the search and filters.
+
 Selections use `sessionStorage`, are revalidated on reload and never uploaded.
 CSV/JSON retain reviewed attribution, formula protection and stable identities.
 First selection does not expand the mobile disclosure or move focus/scroll.

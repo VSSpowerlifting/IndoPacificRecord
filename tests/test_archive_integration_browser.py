@@ -138,6 +138,78 @@ class ArchiveIntegrationBrowser(unittest.TestCase):
         self.assertEqual(page.locator('#f-scope').input_value(),'published')
         self.assertEqual(errors,[])
 
+    def title_matches(self, query):
+        """The controller's `q` rule: a literal, case-insensitive substring of
+        the English title (where one is shown) and the original title."""
+        display, q = self.index['display'], query.lower()
+        def hay(r):
+            m = display.get(r['id'])
+            return ('' if m and not m['english'] else r['title'] or '') + ' ' + (r['original_title'] or '')
+        return [r for r in self.index['records'] if q in hay(r).lower()]
+
+    def published_only_title(self):
+        """A real published item whose title is found only outside the
+        preserved record: the case where a narrower scope used to dead-end."""
+        for r in self.index['records']:
+            if r['id'] in self.index['display'] or not r['title'] or not r['ipr_url']:
+                continue
+            hits = self.title_matches(r['title'])
+            if hits and not any(h['id'] in self.index['display'] for h in hits):
+                return r, hits
+        self.skipTest('no published-only title in this snapshot')
+
+    def test_empty_scope_offers_published_matches_and_keeps_the_query(self):
+        record, hits = self.published_only_title()
+        count = '{:,}'.format(len(hits))
+        offer = 'Search all published material (%s matching)' % count
+        for scope in ('focus', 'all'):
+            with self.subTest(scope=scope):
+                page = self.context().new_page(); errors = []
+                page.on('pageerror', lambda e: errors.append(str(e)))
+                self.open(page, dict(scope=scope, q=record['title']) if scope != 'focus' else dict(q=record['title']))
+                wide, clear = page.locator('#no-results button[value=published]'), page.locator('#no-results button[value=clear]')
+                self.assertTrue(wide.is_visible()); self.assertFalse(clear.is_visible())
+                self.assertEqual(wide.inner_text().strip(), offer)
+                self.assertEqual(page.locator('#result-live').text_content(), 'No records match. ' + offer + '.')
+                wide.focus(); page.keyboard.press('Enter')
+                page.wait_for_url('**scope=published**')
+                self.assertEqual(page.locator('#f-q').input_value(), record['title'])
+                self.assertTrue(page.locator('#f-q').evaluate('e=>e===document.activeElement'))
+                hrefs = page.locator('#results h3 a').evaluate_all('xs=>xs.map(x=>x.getAttribute("href"))')
+                self.assertEqual(len(hrefs), len(hits)); self.assertIn(record['ipr_url'], hrefs)
+                self.assertFalse(page.locator('#no-results').is_visible())
+                page.go_back(wait_until='networkidle')
+                self.assertEqual(page.locator('#f-scope').input_value(), scope)
+                self.assertTrue(wide.is_visible())
+                self.assertEqual(errors, [])
+
+    def test_genuine_no_match_offers_only_clearing_in_every_scope(self):
+        for scope in ('focus', 'all', 'published'):
+            with self.subTest(scope=scope):
+                page = self.context().new_page()
+                self.open(page, dict(scope=scope, q='zzqxjvk-no-such-title'))
+                self.assertFalse(page.locator('#no-results button[value=published]').is_visible())
+                clear = page.locator('#no-results button[value=clear]')
+                self.assertTrue(clear.is_visible())
+                self.assertEqual(page.locator('#result-live').text_content(), 'No records match.')
+                clear.click()
+                self.assertEqual(page.locator('#f-q').input_value(), '')
+                self.assertEqual(page.locator('#f-scope').input_value(), scope)
+
+    def test_home_search_lands_in_published_material_and_reaches_the_citation(self):
+        record, hits = self.published_only_title()
+        for width in (375, 1280):
+            with self.subTest(width=width):
+                page = self.context(viewport={'width': width, 'height': 900}).new_page()
+                page.goto(self.origin + '/index.html', wait_until='networkidle')
+                page.locator('#home-q').focus(); page.keyboard.type(record['title']); page.keyboard.press('Enter')
+                page.wait_for_url('**archive.html?scope=published**'); page.wait_for_load_state('networkidle')
+                self.assertEqual(page.locator('#f-scope').input_value(), 'published')
+                row = page.locator('#results .record-row').filter(has=page.locator('h3 a[href="%s"]' % record['ipr_url'])).first
+                row.locator('summary').focus(); page.keyboard.press('Enter')
+                self.assertEqual(row.locator('.archive-citation').inner_text(), record['citation'])
+                self.assertLessEqual(page.evaluate('document.documentElement.scrollWidth'), width)
+
     def test_mobile_disclosure_focus_overflow_and_clipboard_fallback(self):
         for width in (320,375,768,1280):
             with self.subTest(width=width):

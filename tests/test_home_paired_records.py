@@ -455,9 +455,16 @@ class TestReviewedHome(HomeCase):
                       flat(soup.select_one('.home-open-note')))
         form = soup.select_one('form.home-search')
         self.assertEqual(form['action'], 'archive.html')
-        self.assertEqual(form.select_one('input[name=scope]')['value'], 'all')
+        # Home search starts in the widest Archive scope, so a topic reaches
+        # its Briefs and cited sources; the count beside it stays the record
+        # count, and the note says what else the search covers.
+        self.assertEqual(form.select_one('input[name=scope]')['value'], 'published')
         self.assertEqual(flat(form.select_one('label[for=home-q]')),
-                         'Search titles in English or the original language')
+                         'Search titles of records and Briefs, in English or the original language')
+        self.assertEqual(form.select_one('#home-q')['aria-describedby'], 'home-search-scope')
+        self.assertIn('It also covers Briefs and everything else the Archive lists, including links '
+                      'to official pages and the sources Briefs cite.',
+                      flat(soup.select_one('#home-search-scope')))
         self.assertIn('a link to the original', flat(soup.select_one('dl.home-legend')))
         self.assertIn('Coverage is selective', flat(soup.select_one('.footer-standing')))
         # Desks with no public records are named once, each with its

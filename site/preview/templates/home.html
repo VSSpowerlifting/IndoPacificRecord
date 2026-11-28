@@ -24,14 +24,17 @@
   </div>
   </div>
   <div class="wrap home-finder">
+    {# Search starts in the Archive's widest scope, All published material, so a
+       topic finds its Briefs and cited sources as well as the records. The
+       count stays the record count; cited material is never added into it. #}
     <div class="home-finder-heading">
       <h2>Search the record</h2>
-      <p class="home-open-note">{{ corpus_total | count }} records. <a href="archive.html?scope=all">Browse all records</a></p>
+      <p class="home-open-note" id="home-search-scope">{{ corpus_total | count }} records. Search reads titles only. It also covers Briefs and everything else the Archive lists, including links to official pages and the sources Briefs cite. <a href="archive.html?scope=all">Browse all records</a></p>
     </div>
     <form action="archive.html" method="get" class="home-search" role="search">
-      <input type="hidden" name="scope" value="all">
-      <label for="home-q">Search titles in English or the original language</label>
-      <div class="home-search-row"><input id="home-q" type="search" name="q" autocomplete="off"><button class="btn btn--primary" type="submit">Search</button></div>
+      <input type="hidden" name="scope" value="published">
+      <label for="home-q">Search titles of records and Briefs, in English or the original language</label>
+      <div class="home-search-row"><input id="home-q" type="search" name="q" autocomplete="off" aria-describedby="home-search-scope"><button class="btn btn--primary" type="submit">Search</button></div>
     </form>
   </div>
   {% if hero %}
