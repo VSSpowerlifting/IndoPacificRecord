@@ -129,7 +129,16 @@ def reconcile_dossier_sources(sc, db_path, registry=None):
 
 
 def reconcile_external_sources(sc, db_path):
-    """Link-only official sources outside the corpus: identity checks only.
+    """Link-only sources outside the corpus: identity checks only.
+
+    External sources are official pages, with one recorded exception: under the
+    owner decision of 2026-11-14 (DECISION_LOG.md), the dossiers
+    ``philippine-coast-guard-97m-patrol-vessels`` and ``escoda-shoal-2024`` may
+    also carry attributed press reports, issued by ``independent_media``
+    institutions, where the official original was unreachable. The claim names
+    the official whose statement is relayed, and any characterisation that is
+    the outlet's own is labelled as the outlet's. That two-dossier limit is the
+    recorded decision, not a check made here.
 
     Nothing is fetched or stored; IPR projects attribution, date, publisher link
     and its own paraphrase. The issuing institution must already be registered.

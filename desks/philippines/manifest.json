@@ -9,7 +9,8 @@
     "config/philippines_daily_policy.json. No original title, body, image,",
     "translation or substantial excerpt enters the public corpus through this manifest.",
     "Registering the sources here gives them the same registry row, run-result row and",
-    "liveness disposition as every other production source. It enables no fetch."
+    "liveness disposition as every other production source. It enables no fetch.",
+    "Dossier-issuer institutions (ph_dfa, ph_dof, ph_dotr, ph_nmc, ph_ntf_wps, ph_pcg, ph_pia, ph_ptv, press_abscbn, press_bombo, press_dzrh, press_gma, press_inquirer, press_philstar, press_tribune) are registered only as issuers of Living Dossier external sources under the owner decision of 2026-11-14 (DECISION_LOG.md). They have no sources here: nothing is fetched, collected or admitted for them, and they change neither the desk's status nor its public institution count."
   ],
   "desk": {
     "desk_id": "philippines",
@@ -35,6 +36,81 @@
       "display_name": "National Security Council",
       "name_original": "National Security Council (Philippines)",
       "institution_type": "security_council"
+    },
+    {
+      "institution_id": "ph_dfa",
+      "display_name": "Department of Foreign Affairs (Embassy in Tokyo)",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "ph_dof",
+      "display_name": "Department of Finance",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "ph_dotr",
+      "display_name": "Department of Transportation",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "ph_nmc",
+      "display_name": "National Maritime Council",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "ph_ntf_wps",
+      "display_name": "National Task Force for the West Philippine Sea",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "ph_pcg",
+      "display_name": "Philippine Coast Guard",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "ph_pia",
+      "display_name": "Philippine Information Agency",
+      "institution_type": "state_news_agency"
+    },
+    {
+      "institution_id": "ph_ptv",
+      "display_name": "People's Television Network (PTV)",
+      "institution_type": "state_linked_media"
+    },
+    {
+      "institution_id": "press_abscbn",
+      "display_name": "ABS-CBN News",
+      "institution_type": "independent_media"
+    },
+    {
+      "institution_id": "press_bombo",
+      "display_name": "Bombo Radyo",
+      "institution_type": "independent_media"
+    },
+    {
+      "institution_id": "press_dzrh",
+      "display_name": "DZRH News",
+      "institution_type": "independent_media"
+    },
+    {
+      "institution_id": "press_gma",
+      "display_name": "GMA News",
+      "institution_type": "independent_media"
+    },
+    {
+      "institution_id": "press_inquirer",
+      "display_name": "Philippine Daily Inquirer",
+      "institution_type": "independent_media"
+    },
+    {
+      "institution_id": "press_philstar",
+      "display_name": "The Philippine Star",
+      "institution_type": "independent_media"
+    },
+    {
+      "institution_id": "press_tribune",
+      "display_name": "Daily Tribune",
+      "institution_type": "independent_media"
     }
   ],
   "sources": [

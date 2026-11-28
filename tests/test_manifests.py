@@ -56,7 +56,9 @@ class TestValidManifest(ManifestCase):
         self.assertEqual(cfg.desk.desk_id, "china")
         self.assertEqual(cfg.desk.public_status, "legacy")
         self.assertEqual(len(cfg.sources), 5)
-        self.assertEqual(len(cfg.institutions), 4)
+        # Four publishers of the five collected sources, plus three source-less
+        # dossier issuers (cn_ccg, cn_mfa, cn_embassy_ph; DECISION_LOG.md 2026-11-14).
+        self.assertEqual(len(cfg.institutions), 7)
 
     def test_china_manifest_matches_production_source_slugs(self):
         """

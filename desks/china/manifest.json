@@ -8,7 +8,8 @@
     "storage/schema.sql, so syncing this manifest into the database cannot",
     "rename or re-point an existing source.",
     "public_status is 'legacy' because this desk is already published under its",
-    "own brand and must keep behaving exactly as it does today."
+    "own brand and must keep behaving exactly as it does today.",
+    "Dossier-issuer institutions (cn_ccg, cn_mfa, cn_embassy_ph) are registered only as issuers of Living Dossier external sources under the owner decision of 2026-11-14 (DECISION_LOG.md). They have no sources here: nothing is fetched, collected or admitted for them, and they change neither the desk's status nor its public institution count."
   ],
   "desk": {
     "desk_id": "china",
@@ -48,6 +49,24 @@
       "display_name": "People's Daily Group",
       "name_original": "人民日报社",
       "institution_type": "state_linked_media"
+    },
+    {
+      "institution_id": "cn_ccg",
+      "display_name": "China Coast Guard",
+      "name_original": "中国海警局",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "cn_mfa",
+      "display_name": "Ministry of Foreign Affairs",
+      "name_original": "中华人民共和国外交部",
+      "institution_type": "other"
+    },
+    {
+      "institution_id": "cn_embassy_ph",
+      "display_name": "Embassy of China in the Philippines",
+      "name_original": "中华人民共和国驻菲律宾大使馆",
+      "institution_type": "other"
     }
   ],
   "sources": [

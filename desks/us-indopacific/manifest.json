@@ -20,7 +20,8 @@
     "(core/uscc_press_links.py, core/daily_sources.py). Quotations, linked reports, testimony,",
     "attachments, PDFs and media are excluded. The two metadata sources above are unchanged.",
     "Registering the sources here gives them the same registry row, run-result row and liveness",
-    "disposition as every other production source. It enables no fetch."
+    "disposition as every other production source. It enables no fetch.",
+    "Dossier-issuer institutions (press_usni, press_navalnews, press_portnews) are registered only as issuers of Living Dossier external sources under the owner decision of 2026-11-14 (DECISION_LOG.md). They have no sources here: nothing is fetched, collected or admitted for them, and they change neither the desk's status nor its public institution count."
   ],
   "desk": {
     "desk_id": "us-indopacific",
@@ -46,6 +47,21 @@
       "display_name": "U.S. Department of the Treasury",
       "name_original": "U.S. Department of the Treasury",
       "institution_type": "other"
+    },
+    {
+      "institution_id": "press_usni",
+      "display_name": "USNI News",
+      "institution_type": "independent_media"
+    },
+    {
+      "institution_id": "press_navalnews",
+      "display_name": "Naval News",
+      "institution_type": "independent_media"
+    },
+    {
+      "institution_id": "press_portnews",
+      "display_name": "PortNews",
+      "institution_type": "independent_media"
     }
   ],
   "sources": [

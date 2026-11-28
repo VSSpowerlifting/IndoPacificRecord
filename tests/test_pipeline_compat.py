@@ -392,7 +392,7 @@ class TestConfigSyncIsIdempotent(unittest.TestCase):
         conn.close()
         self.assertEqual(n, 17)         # 9 fetched + 8 manual registrations (PH x2, ID, JP x2, US x3)
         self.assertEqual(desks, 8)
-        self.assertEqual(insts, 16)     # Korea adds Policy Briefing and MND; Vietnam the Government Office; PH AFP+NSC, ID Kemhan, JP MOD+JCG, US USCC+Treasury
+        self.assertEqual(insts, 39)     # Korea adds Policy Briefing and MND; Vietnam the Government Office; PH AFP+NSC, ID Kemhan, JP MOD+JCG, US USCC+Treasury; plus 23 source-less dossier issuers (DECISION_LOG.md 2026-11-14)
 
     def test_sync_populates_authority_and_originality(self):
         conn = connect(self.db_path)
