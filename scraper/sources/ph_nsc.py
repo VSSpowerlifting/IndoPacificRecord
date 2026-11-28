@@ -302,30 +302,61 @@ def robots_allows(rules, target: str) -> bool:
     return best[1]
 
 
-def looks_challenged(headers: Dict[str, str], text: str) -> bool:
+#: Which detector branch recognised a challenge. Only these fixed labels are
+#: ever recorded; never page text.
+SIGNAL_HEADER = "cf-mitigated-header"
+SIGNAL_FORM = "challenge-form-element"
+SIGNAL_SCRIPT = "cf-chl-opt-script"
+SIGNAL_PHRASE = "challenge-phrase-unthemed-page"
+
+
+def challenge_signal(headers: Dict[str, str], text: str) -> Optional[str]:
     """
-    An edge challenge, recognised on any status including HTTP 200. The header
-    and active challenge form/script are authoritative even on a themed page.
-    Plain phrases are read only on an unthemed page, so quoted statement text
-    cannot trip them; other malformed themed pages fail their structural checks.
+    The detector branch that recognised an edge challenge, or None. Recognised
+    on any status including HTTP 200. The header and active challenge
+    form/script are authoritative even on a themed page. Plain phrases are read
+    only on an unthemed page, so quoted statement text cannot trip them; other
+    malformed themed pages fail their structural checks.
     """
     if headers.get("cf-mitigated", "").lower() == "challenge":
-        return True
+        return SIGNAL_HEADER
     try:
         soup = BeautifulSoup(text, "html.parser")
     except ParserRejectedMarkup:
         # The parser rejected the response itself; this alone does not prove
         # a challenge. Fetch/extract and robots validation still reject malformed
         # source content through their existing typed failure paths.
-        return not _THEME_BODY_RE.search(text) and bool(_CHALLENGE_RE.search(text))
+        return SIGNAL_PHRASE if (not _THEME_BODY_RE.search(text)
+                                 and _CHALLENGE_RE.search(text)) else None
     # Keep selector and script defects visible: they are not source markup
     # refusals and must not be misreported as innocuous HTML.
     if soup.select("form#challenge-form, #cf-browser-verification"):
-        return True
+        return SIGNAL_FORM
     if any(re.search(r"\b(?:window\.)?_cf_chl_opt\s*=", script.get_text(), re.I)
            for script in soup.find_all("script")):
-        return True
-    return not _THEME_BODY_RE.search(text) and bool(_CHALLENGE_RE.search(text))
+        return SIGNAL_SCRIPT
+    return SIGNAL_PHRASE if (not _THEME_BODY_RE.search(text)
+                             and _CHALLENGE_RE.search(text)) else None
+
+
+def looks_challenged(headers: Dict[str, str], text: str) -> bool:
+    """True when `challenge_signal` finds an edge challenge."""
+    return challenge_signal(headers, text) is not None
+
+
+def refusal_evidence(raw: "_Raw", signal: str) -> Dict[str, object]:
+    """
+    Sanitized metadata about a refused response, for the private ledger. Fixed
+    labels, the HTTP status, the media type and header presence only: no body
+    bytes or excerpts, and no header values beyond the media type.
+    """
+    ctype = raw.headers.get("content-type", "")
+    return {"http_status": raw.status,
+            "content_type": ctype.split(";", 1)[0].strip().lower()[:64] or None,
+            "detector": signal,
+            "server_header_present": "server" in raw.headers,
+            "cf_ray_present": "cf-ray" in raw.headers,
+            "body_bytes": len(raw.body)}
 
 
 def _one(nodes, what: str):
@@ -522,6 +553,8 @@ class PHNscAdapter(SourceAdapter):
         #: Populated by `discover()`; the shadow runner writes it to the ledger.
         self.robots_status: Optional[str] = None
         self.listing_report: Dict[str, object] = {}
+        #: Set when a challenge is refused; see `refusal_evidence`.
+        self.refusal_report: Dict[str, object] = {}
 
     # -- transport ------------------------------------------------------------
 
@@ -576,7 +609,9 @@ class PHNscAdapter(SourceAdapter):
         if raw.oversized:
             raise _Refusal(st.OVERSIZED_RESPONSE, "response exceeds the byte limit")
         probe = raw.body.decode("utf-8", "replace")
-        if looks_challenged(raw.headers, probe):
+        signal = challenge_signal(raw.headers, probe)
+        if signal is not None:
+            self.refusal_report = refusal_evidence(raw, signal)
             raise _Refusal(st.ACCESS_CHALLENGED,
                            "an access challenge was served instead of the document")
         return probe
@@ -714,6 +749,7 @@ class PHNscAdapter(SourceAdapter):
 
     def discover(self, window: CollectionWindow) -> DiscoveryResult:
         self._listing_ids, self.listing_report, self.robots_status = {}, {}, None
+        self.refusal_report = {}
         start = window.target_date - timedelta(days=window.lookback_days)
         try:
             self._load_robots(st.LISTING_FAILURE)
